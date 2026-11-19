@@ -23,9 +23,20 @@ export function storedLanguage(): LanguagePreference {
 /** The app's one i18next instance. `initReactI18next` hands it to every `useTranslation`. */
 const i18n = createInstance()
 
-/** Keeps `<html lang>` right for assistive technology. Skipped where there is no page, such as a Node test. */
+/** Keeps `<html lang>` and the window title right. Skipped where there is no page, such as a Node test. */
 function markPage(code: string): void {
-  if (typeof document !== 'undefined') document.documentElement.lang = code
+  if (typeof document === 'undefined') return
+  document.documentElement.lang = code
+  document.title = i18n.t('common:appName')
+}
+
+/**
+ * The locale dates and times are formatted in: the computer's own regional variant when it speaks the app's language
+ * (so English in Australia writes "19 Nov", not "Nov 19"), else the app's language.
+ */
+export function dateLocale(): string {
+  const systemLanguages = typeof navigator === 'undefined' ? [] : navigator.languages
+  return systemLanguages.find((tag) => tag.toLowerCase().split('-')[0] === i18n.language) ?? i18n.language
 }
 
 /** Switches the whole app to a language. */

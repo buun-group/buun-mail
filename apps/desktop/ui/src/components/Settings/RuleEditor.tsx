@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import type { Rule, RuleAction, Workspace } from '../../api/types'
 
@@ -19,6 +20,7 @@ const blank = (value: string): string | undefined => (value.trim() === '' ? unde
  * The Rust side checks the rule and its reason shows here when it is refused.
  */
 export function RuleEditor({ rule, workspaces, onSave, onCancel }: RuleEditorProps): ReactNode {
+  const { t } = useTranslation(['rules', 'common'])
   const action = <T extends RuleAction['type']>(type: T): Extract<RuleAction, { type: T }> | undefined => rule?.actions.find((item): item is Extract<RuleAction, { type: T }> => item.type === type)
   const [name, setName] = useState(rule?.name ?? '')
   const [workspace, setWorkspace] = useState(rule?.when.workspace ?? '')
@@ -83,37 +85,37 @@ export function RuleEditor({ rule, workspaces, onSave, onCancel }: RuleEditorPro
           .finally(() => setBusy(false))
       }}
     >
-      {field('rule-name', 'Name', name, setName, 'Stripe receipts')}
+      {field('rule-name', t('editor.name'), name, setName, t('editor.namePlaceholder'))}
 
       <fieldset>
-        <legend>When mail</legend>
-        <p className="settings__hint">Fill in what matters; leave the rest blank. Addresses can be exact or *@domain.</p>
-        {workspacePicker('rule-workspace', 'Is in', workspace, setWorkspace, 'Any workspace')}
-        {field('rule-from', 'Is from', from, setFrom, '*@stripe.com')}
-        {field('rule-to', 'Was sent to', to, setTo, 'billing@acme.com')}
-        {field('rule-subject', 'Has in the subject', subject, setSubject, 'invoice')}
+        <legend>{t('editor.when')}</legend>
+        <p className="settings__hint">{t('editor.whenHint')}</p>
+        {workspacePicker('rule-workspace', t('editor.isIn'), workspace, setWorkspace, t('editor.anyWorkspace'))}
+        {field('rule-from', t('editor.isFrom'), from, setFrom, '*@stripe.com')}
+        {field('rule-to', t('editor.sentTo'), to, setTo, 'billing@acme.com')}
+        {field('rule-subject', t('editor.subject'), subject, setSubject, t('editor.subjectPlaceholder'))}
       </fieldset>
 
       <fieldset>
-        <legend>Then</legend>
-        {field('rule-tag', 'Tag it', tag, setTag, 'receipt')}
+        <legend>{t('editor.then')}</legend>
+        {field('rule-tag', t('editor.tag'), tag, setTag, t('editor.tagPlaceholder'))}
         <label className="rule-editor__check">
           <input type="checkbox" id="rule-move" checked={move} onChange={(event) => setMove(event.target.checked)} />
-          Move it
+          {t('editor.move')}
         </label>
         {move && (
           <div className="rule-editor__move">
-            {workspacePicker('rule-move-workspace', 'To workspace', moveWorkspace, setMoveWorkspace, 'The same workspace')}
-            {field('rule-move-folder', 'Folder', moveFolder, setMoveFolder, 'Inbox when blank')}
+            {workspacePicker('rule-move-workspace', t('editor.toWorkspace'), moveWorkspace, setMoveWorkspace, t('editor.sameWorkspace'))}
+            {field('rule-move-folder', t('editor.folder'), moveFolder, setMoveFolder, t('editor.folderPlaceholder'))}
           </div>
         )}
         <label className="rule-editor__check">
           <input type="checkbox" id="rule-read" checked={markRead} onChange={(event) => setMarkRead(event.target.checked)} />
-          Mark it read
+          {t('editor.markRead')}
         </label>
         <label className="rule-editor__check">
           <input type="checkbox" id="rule-quiet" checked={quiet} onChange={(event) => setQuiet(event.target.checked)} />
-          Keep it quiet (no pop-up or notification)
+          {t('editor.quiet')}
         </label>
       </fieldset>
 
@@ -124,10 +126,10 @@ export function RuleEditor({ rule, workspaces, onSave, onCancel }: RuleEditorPro
       )}
       <div className="settings__actions">
         <button type="submit" className="connect__submit" disabled={busy}>
-          {rule === null ? 'Add rule' : 'Save rule'}
+          {rule === null ? t('editor.add') : t('editor.save')}
         </button>
         <button type="button" className="settings__button" onClick={onCancel}>
-          Cancel
+          {t('common:cancel')}
         </button>
       </div>
     </form>

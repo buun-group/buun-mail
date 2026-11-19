@@ -20,6 +20,8 @@ Code here follows:
 | `constants/` | `products.ts`, `integrations.ts`, `agents.ts` (agent clients and what to paste), `ui.ts` (preferences, labels, settings sections) |
 | `hooks/` | `useMailbox`, `usePreferences` (theme, density, grain, sidebar), `useWorkspaceLooks` (icons and images), `useFolded`, `usePeek`, `useShortcut`, `useNotifications` |
 | `lib/` | `time.ts`, `clipboard.ts`, `place.ts` (floating boxes kept in the window), `rules.ts` (a rule in one sentence) |
+| `i18n/` | i18next: start-up, languages, bundled resources, type-checked keys |
+| `locales/` | Every string the UI shows, by language and area (`en/` only so far) |
 | `icons.ts` | Every glyph |
 | `styles/` | `tokens.css` (the only colours), `fonts.css` (Geist, Latin only), `base.css`, `app.css` |
 | `__tests__/` | Products in step with marks and capabilities, times, the app, settings and sidebar in a browser |

@@ -9,12 +9,11 @@ import { Switch } from './Switch'
 import { LANGUAGES } from '../../i18n/languages'
 import type { LanguagePreference } from '../../i18n/languages'
 
-const THEME_LABELS = { system: 'Match system', light: 'Light', dark: 'Dark' } as const
-const DENSITY_LABELS = { comfortable: 'Comfortable', compact: 'Compact' } as const
-
 /** Look and feel, saved on this computer. */
 export function GeneralSection({ preferences }: { preferences: Preferences }): ReactNode {
-  const { t } = useTranslation('settings')
+  const { t } = useTranslation(['settings', 'common'])
+  const themeLabels = { system: t('common:themes.system'), light: t('common:themes.light'), dark: t('common:themes.dark') }
+  const densityLabels = { comfortable: t('density.comfortable'), compact: t('density.compact') }
   return (
     <div className="settings__rows">
       <div className="settings__row">
@@ -35,24 +34,28 @@ export function GeneralSection({ preferences }: { preferences: Preferences }): R
       </div>
       <div className="settings__row">
         <div>
-          <p className="settings__label">Theme</p>
-          <p className="settings__hint">Match system follows your computer between light and dark.</p>
+          <p id="theme-label" className="settings__label">
+            {t('theme.title')}
+          </p>
+          <p className="settings__hint">{t('theme.hint')}</p>
         </div>
-        <Segmented name="theme" options={THEME_PREFERENCES} labels={THEME_LABELS} glyphs={THEME_GLYPHS} value={preferences.themePreference} onChange={preferences.setThemePreference} />
+        <Segmented name="theme" labelledBy="theme-label" options={THEME_PREFERENCES} labels={themeLabels} glyphs={THEME_GLYPHS} value={preferences.themePreference} onChange={preferences.setThemePreference} />
       </div>
       <div className="settings__row">
         <div>
-          <p className="settings__label">Message list</p>
-          <p className="settings__hint">Compact fits more messages on screen.</p>
+          <p id="density-label" className="settings__label">
+            {t('density.title')}
+          </p>
+          <p className="settings__hint">{t('density.hint')}</p>
         </div>
-        <Segmented name="density" options={DENSITIES} labels={DENSITY_LABELS} glyphs={DENSITY_GLYPHS} value={preferences.density} onChange={preferences.setDensity} />
+        <Segmented name="density" labelledBy="density-label" options={DENSITIES} labels={densityLabels} glyphs={DENSITY_GLYPHS} value={preferences.density} onChange={preferences.setDensity} />
       </div>
       <div className="settings__row">
         <div>
           <label id="grain-label" htmlFor="grain" className="settings__label">
-            Paper grain
+            {t('grain.title')}
           </label>
-          <p className="settings__hint">A fine texture over the window, as on buungroup.com.</p>
+          <p className="settings__hint">{t('grain.hint')}</p>
         </div>
         <Switch id="grain" labelledBy="grain-label" checked={preferences.grain} onChange={preferences.setGrain} />
       </div>

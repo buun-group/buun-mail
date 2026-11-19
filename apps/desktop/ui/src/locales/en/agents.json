@@ -1,1 +1,44 @@
-{}
+{
+  "loading": "Loading.",
+  "intro": "Let an AI agent read, search, tag and file your mail, and manage rules, through MCP. It runs on this computer only, and every request needs the token below.",
+  "allow": "Allow agents",
+  "listening": "Listening at {{url}}",
+  "off": "Off. Agents cannot connect.",
+  "token": {
+    "title": "Token",
+    "show": "Show the token",
+    "hide": "Hide the token",
+    "copy": "Copy the token",
+    "copied": "Token copied",
+    "regenerate": "Make a new token",
+    "regenerateConfirm": "Cut off agents and make a new token"
+  },
+  "copyFailed": "Copy failed: select the text and copy it",
+  "connect": {
+    "title": "Connect a client",
+    "clientsLabel": "Agent clients",
+    "setupCopied": "{{name}} setup copied",
+    "whereFile": "Add to {{path}}"
+  },
+  "clients": {
+    "claude": {
+      "name": "Claude Code",
+      "where": "Run in a terminal"
+    },
+    "cursor": {
+      "name": "Cursor"
+    },
+    "vscode": {
+      "name": "VS Code"
+    },
+    "any": {
+      "name": "Any MCP client",
+      "where": "Streamable HTTP, with this header"
+    }
+  },
+  "activity": {
+    "title": "Recent activity",
+    "empty": "Nothing yet. Changes by you, your rules and agents show here.",
+    "rule": "Rule: {{name}}"
+  }
+}

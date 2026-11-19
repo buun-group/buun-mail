@@ -31,11 +31,11 @@ export async function markAllRead(place: Place, wholeWorkspace: boolean): Promis
 
 /**
  * Asks for .eml and .mbox files and imports them. Resolves to null when the person cancels, or in a plain browser,
- * where there is no store to import into.
+ * where there is no store to import into. `filterName` is what the file picker calls those files, in the app's language.
  */
-export async function importFiles(): Promise<ImportReport | null> {
+export async function importFiles(filterName: string): Promise<ImportReport | null> {
   if (!isTauri()) return null
-  const picked = await open({ multiple: true, directory: false, filters: [{ name: 'Email', extensions: [...IMPORT_EXTENSIONS] }] })
+  const picked = await open({ multiple: true, directory: false, filters: [{ name: filterName, extensions: [...IMPORT_EXTENSIONS] }] })
   if (picked === null || picked.length === 0) return null
   return invoke<ImportReport>(COMMANDS.importFiles, { paths: picked })
 }

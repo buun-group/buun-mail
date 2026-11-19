@@ -29,8 +29,8 @@ export type Density = (typeof DENSITIES)[number]
 /** The workspace the router keeps for mail no rule claims. Mirrors `UNSORTED_WORKSPACE` in the routing crate. */
 export const UNSORTED_WORKSPACE = 'unsorted'
 
-/** What the sidebar calls a workspace's inbox, the folder with no name. */
-export const INBOX_LABEL = 'Inbox'
+/** The words the sidebar calls a workspace's inbox, the folder with no name: a key for `t()`. */
+export const INBOX_LABEL = 'common:inbox'
 
 /** The settings sections, in tab order. */
 export const SETTINGS_SECTIONS = ['general', 'notifications', 'workspaces', 'rules', 'integrations', 'agents'] as const

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
+import { Trans, useTranslation } from 'react-i18next'
 
 import { routingPath } from '../../api/client'
 import type { Workspace } from '../../api/types'
@@ -27,6 +28,7 @@ const BRAND_KEYS = Object.keys(BRAND_ICONS) as BrandIcon[]
 
 /** Every workspace as the routing file defines it, each with a picker for its icon or image. */
 export function WorkspacesSection({ workspaces, looks, onLook, editing, onEditing, theme }: WorkspacesSectionProps): ReactNode {
+  const { t } = useTranslation('settings')
   const defined = workspaces.filter((workspace) => workspace.id !== UNSORTED_WORKSPACE)
   const [path, setPath] = useState<string | null>(null)
   useEffect(() => {
@@ -37,7 +39,7 @@ export function WorkspacesSection({ workspaces, looks, onLook, editing, onEditin
   return (
     <>
       <p className="settings__intro">
-        Workspaces come from your routing file{path === null ? <>, <code>workspaces.toml</code></> : <> at <code>{path}</code></>}. Edit it and restart to change which addresses land where. Give each workspace an icon or an image here; it is kept on this computer and wins over the file&apos;s <code>icon</code>.
+        <Trans t={t} i18nKey={path === null ? 'workspaces.introDefault' : 'workspaces.introAt'} components={{ file: <code>{path ?? 'workspaces.toml'}</code>, field: <code>icon</code> }} />
       </p>
       <ul className="settings__list">
         {defined.map((workspace) => (
@@ -49,7 +51,7 @@ export function WorkspacesSection({ workspaces, looks, onLook, editing, onEditin
                 <p className="settings__mono">{workspace.addresses.join('  ')}</p>
               </div>
               <button type="button" className="settings__button" aria-expanded={editing === workspace.id} onClick={() => onEditing(editing === workspace.id ? null : workspace.id)}>
-                Change icon
+                {t('workspaces.changeIcon')}
               </button>
             </div>
             {editing === workspace.id && <IconPicker workspace={workspace} theme={theme} look={looks[workspace.id]} onLook={(look) => onLook(workspace.id, look)} />}
@@ -61,11 +63,12 @@ export function WorkspacesSection({ workspaces, looks, onLook, editing, onEditin
 }
 
 function IconPicker({ workspace, theme, look, onLook }: { workspace: Workspace; theme: Theme; look: WorkspaceLook | undefined; onLook: (look: WorkspaceLook | null) => void }): ReactNode {
+  const { t } = useTranslation('settings')
   const [error, setError] = useState<string | null>(null)
   const current = look?.kind === 'glyph' ? look.key : look === undefined ? workspace.icon : null
   return (
     <div className="icon-picker">
-      <div className="icon-picker__grid" role="radiogroup" aria-label={`Icon for ${workspace.name}`}>
+      <div className="icon-picker__grid" role="radiogroup" aria-label={t('workspaces.iconFor', { name: workspace.name })}>
         {BRAND_KEYS.map((key) => (
           <button key={key} type="button" role="radio" aria-checked={current === key} aria-label={BRAND_ICONS[key].name} className="icon-picker__glyph icon-picker__brand" onClick={() => onLook({ kind: 'glyph', key })}>
             <img src={BRAND_ICONS[key].mark[theme]} alt="" />
@@ -75,7 +78,7 @@ function IconPicker({ workspace, theme, look, onLook }: { workspace: Workspace; 
         {GLYPH_KEYS.map((key) => {
           const Glyph = WORKSPACE_GLYPHS[key]
           return (
-            <button key={key} type="button" role="radio" aria-checked={current === key} aria-label={key} className="icon-picker__glyph" onClick={() => onLook({ kind: 'glyph', key })}>
+            <button key={key} type="button" role="radio" aria-checked={current === key} aria-label={t(`workspaces.glyphs.${key}`)} className="icon-picker__glyph" onClick={() => onLook({ kind: 'glyph', key })}>
               <Glyph aria-hidden="true" />
             </button>
           )
@@ -84,7 +87,7 @@ function IconPicker({ workspace, theme, look, onLook }: { workspace: Workspace; 
       <div className="icon-picker__actions">
         <label className="settings__button">
           <IconImage aria-hidden="true" />
-          Upload image
+          {t('workspaces.upload')}
           <input
             id={`image-${workspace.id}`}
             type="file"
@@ -96,13 +99,13 @@ function IconPicker({ workspace, theme, look, onLook }: { workspace: Workspace; 
               setError(null)
               shrinkImage(file)
                 .then((src) => onLook({ kind: 'image', src }))
-                .catch((reason: unknown) => setError(reason instanceof Error ? reason.message : 'That image could not be read.'))
+                .catch((reason: unknown) => setError(reason instanceof Error ? reason.message : t('workspaces.imageUnreadable')))
             }}
           />
         </label>
         <button type="button" className="settings__button" onClick={() => onLook(null)} disabled={look === undefined}>
           <IconReset aria-hidden="true" />
-          Use the routing file&apos;s
+          {t('workspaces.reset')}
         </button>
         {error !== null && (
           <p role="alert" className="settings__error">

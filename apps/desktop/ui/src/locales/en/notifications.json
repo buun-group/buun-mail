@@ -1,1 +1,31 @@
-{}
+{
+  "bell": {
+    "newTip_one": "{{count}} new",
+    "newTip_other": "{{count}} new",
+    "newLabel_one": "Notifications, {{count}} new",
+    "newLabel_other": "Notifications, {{count}} new",
+    "badgeMany": "9+",
+    "clear": "Clear",
+    "empty": "New mail shows here as it arrives."
+  },
+  "toasts": {
+    "label": "New mail",
+    "dismiss": "Dismiss"
+  },
+  "desktop": {
+    "one": "{{name}} in {{workspace}}",
+    "many_one": "{{count}} new message",
+    "many_other": "{{count}} new messages",
+    "separator": ", "
+  },
+  "section": {
+    "intro": "New mail always shows under the bell. While the window is in front it also pops up in the corner; while it is behind, your computer shows a notification.",
+    "toasts": "Pop-ups in the window",
+    "toastsHint": "A short note in the corner, gone after a few seconds.",
+    "desktop": "Desktop notifications",
+    "desktopRefused": "Your system said no. Allow Buun Mail in its notification settings, then try again.",
+    "desktopAsks": "Asks your system the first time.",
+    "desktopAppOnly": "Available in the desktop app.",
+    "workspaces": "Workspaces"
+  }
+}

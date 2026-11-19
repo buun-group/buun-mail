@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from 'react'
 import type { KeyboardEvent, MouseEvent, ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import type { Place, Workspace } from '../../api/types'
 import { BRAND_ICONS, isBrandIcon } from '../../constants/products'
@@ -44,9 +45,6 @@ interface SidebarProps {
   onMarkAllRead: (place: Place, wholeWorkspace: boolean) => void
 }
 
-/** Why rename is off: names live in the routing file, which settings cannot edit yet. */
-const NEEDS_EDITOR = 'Edit the routing file for now'
-
 /** True for the keys that open a context menu from the keyboard: the menu key, or Shift and F10. */
 function isMenuKey(event: KeyboardEvent): boolean {
   return event.key === 'ContextMenu' || (event.shiftKey && event.key === 'F10')
@@ -64,6 +62,9 @@ function menuPoint(event: MouseEvent | KeyboardEvent): { x: number; y: number } 
  * over it or tabbing into it slides it open over the list, and it folds back when the pointer and focus leave.
  */
 export function Sidebar({ workspaces, place, theme, looks, folded, collapsed, onOpen, onFold, onEditIcon, onResetIcon, onMarkAllRead }: SidebarProps): ReactNode {
+  const { t } = useTranslation(['sidebar', 'common'])
+  // Why rename is off: names live in the routing file, which settings cannot edit yet.
+  const needsEditor = t('menu.needsEditor')
   const nav = useRef<HTMLElement | null>(null)
   const [peek] = usePeek(nav, collapsed)
   const rail = collapsed && !peek
@@ -72,7 +73,7 @@ export function Sidebar({ workspaces, place, theme, looks, folded, collapsed, on
 
   const copyItem = (addresses: string[]): MenuItem => ({
     id: 'copy',
-    label: addresses.length > 1 ? 'Copy addresses' : 'Copy address',
+    label: t('menu.copyAddress', { count: addresses.length }),
     glyph: IconCopy,
     onSelect: () => void copyText(addresses.join(', ')),
   })
@@ -80,24 +81,24 @@ export function Sidebar({ workspaces, place, theme, looks, folded, collapsed, on
   const workspaceMenu = (workspace: Workspace): MenuItem[] => {
     const isUnsorted = workspace.id === UNSORTED_WORKSPACE
     const items: MenuItem[] = [
-      { id: 'open', label: 'Open inbox', glyph: IconInbox, onSelect: () => onOpen({ workspace: workspace.id, folder: null }) },
-      { id: 'fold', label: folded.has(workspace.id) ? 'Show folders' : 'Hide folders', glyph: IconCaretDown, onSelect: () => onFold(workspace.id) },
-      { id: 'read', label: 'Mark all as read', glyph: IconMarkRead, onSelect: () => onMarkAllRead({ workspace: workspace.id, folder: null }, true), ...(workspace.unread === 0 ? { disabledReason: 'Nothing unread' } : {}) },
+      { id: 'open', label: t('menu.openInbox'), glyph: IconInbox, onSelect: () => onOpen({ workspace: workspace.id, folder: null }) },
+      { id: 'fold', label: folded.has(workspace.id) ? t('menu.showFolders') : t('menu.hideFolders'), glyph: IconCaretDown, onSelect: () => onFold(workspace.id) },
+      { id: 'read', label: t('menu.markAllRead'), glyph: IconMarkRead, onSelect: () => onMarkAllRead({ workspace: workspace.id, folder: null }, true), ...(workspace.unread === 0 ? { disabledReason: t('menu.nothingUnread') } : {}) },
     ]
     if (isUnsorted) return items
     return [
       ...items,
-      { id: 'icon', label: 'Change icon', glyph: IconImage, onSelect: () => onEditIcon(workspace.id), separated: true },
-      ...(looks[workspace.id] === undefined ? [] : [{ id: 'reset', label: 'Use the routing file icon', glyph: IconReset, onSelect: () => onResetIcon(workspace.id) }]),
-      { id: 'rename', label: 'Rename', glyph: IconRename, disabledReason: NEEDS_EDITOR },
+      { id: 'icon', label: t('menu.changeIcon'), glyph: IconImage, onSelect: () => onEditIcon(workspace.id), separated: true },
+      ...(looks[workspace.id] === undefined ? [] : [{ id: 'reset', label: t('menu.useRoutingIcon'), glyph: IconReset, onSelect: () => onResetIcon(workspace.id) }]),
+      { id: 'rename', label: t('menu.rename'), glyph: IconRename, disabledReason: needsEditor },
       { ...copyItem(workspace.addresses), separated: true },
     ]
   }
 
   const folderMenu = (workspace: Workspace, folder: string | null, unread: number): MenuItem[] => [
-    { id: 'open', label: 'Open', glyph: folder === null ? IconInbox : IconFolder, onSelect: () => onOpen({ workspace: workspace.id, folder }) },
-    { id: 'read', label: 'Mark all as read', glyph: IconMarkRead, onSelect: () => onMarkAllRead({ workspace: workspace.id, folder }, false), ...(unread === 0 ? { disabledReason: 'Nothing unread' } : {}) },
-    ...(folder === null ? [] : [{ id: 'rename', label: 'Rename', glyph: IconRename, disabledReason: NEEDS_EDITOR }]),
+    { id: 'open', label: t('menu.open'), glyph: folder === null ? IconInbox : IconFolder, onSelect: () => onOpen({ workspace: workspace.id, folder }) },
+    { id: 'read', label: t('menu.markAllRead'), glyph: IconMarkRead, onSelect: () => onMarkAllRead({ workspace: workspace.id, folder }, false), ...(unread === 0 ? { disabledReason: t('menu.nothingUnread') } : {}) },
+    ...(folder === null ? [] : [{ id: 'rename', label: t('menu.rename'), glyph: IconRename, disabledReason: needsEditor }]),
     ...(workspace.addresses.length > 0 ? [{ ...copyItem(workspace.addresses), separated: true }] : []),
   ]
 
@@ -108,11 +109,11 @@ export function Sidebar({ workspaces, place, theme, looks, folded, collapsed, on
 
   return (
     <div className="sidebar-slot">
-      <nav ref={nav} className="sidebar" aria-label="Workspaces" data-collapsed={collapsed} data-rail={rail} data-peek={peek}>
+      <nav ref={nav} className="sidebar" aria-label={t('nav.label')} data-collapsed={collapsed} data-rail={rail} data-peek={peek}>
         <header className="sidebar__top">
-          <button type="button" className="sidebar__compose" disabled aria-label="Compose">
+          <button type="button" className="sidebar__compose" disabled aria-label={t('nav.compose')}>
             <IconCompose aria-hidden="true" />
-            <span className="sidebar__text">Compose</span>
+            <span className="sidebar__text">{t('nav.compose')}</span>
           </button>
         </header>
 
@@ -142,19 +143,20 @@ export function Sidebar({ workspaces, place, theme, looks, folded, collapsed, on
                   const current = place?.workspace === workspace.id && place.folder === folder.name
                   const Glyph = folder.name === null ? IconInbox : isWorkspaceGlyph(folder.icon) ? WORKSPACE_GLYPHS[folder.icon] : IconFolder
                   const brand = folder.name !== null && isBrandIcon(folder.icon) ? BRAND_ICONS[folder.icon].mark[theme] : null
-                  const label = folder.name ?? INBOX_LABEL
+                  const label = folder.name ?? t(INBOX_LABEL)
+                  const where = t('nav.folder', { workspace: workspace.name, folder: label })
                   return (
                     <li key={label}>
                       <TipButton
-                        tip={rail ? `${workspace.name}, ${label}` : null}
+                        tip={rail ? where : null}
                         side="right"
                         className="sidebar__folder"
                         aria-current={current ? 'page' : undefined}
-                        aria-label={rail ? `${workspace.name}, ${label}${folder.unread > 0 ? `, ${folder.unread} unread` : ''}` : undefined}
+                        aria-label={rail ? (folder.unread > 0 ? t('nav.folderUnread', { workspace: workspace.name, folder: label, count: folder.unread }) : where) : undefined}
                         onClick={() => onOpen({ workspace: workspace.id, folder: folder.name })}
-                        onContextMenu={(event) => openMenu(event, `${workspace.name}, ${label}`, folderMenu(workspace, folder.name, folder.unread))}
+                        onContextMenu={(event) => openMenu(event, where, folderMenu(workspace, folder.name, folder.unread))}
                         onKeyDown={(event) => {
-                          if (isMenuKey(event)) openMenu(event, `${workspace.name}, ${label}`, folderMenu(workspace, folder.name, folder.unread))
+                          if (isMenuKey(event)) openMenu(event, where, folderMenu(workspace, folder.name, folder.unread))
                         }}
                       >
                         {brand === null ? <Glyph aria-hidden="true" /> : <img className="sidebar__folder-mark" src={brand} alt="" aria-hidden="true" />}
@@ -162,7 +164,7 @@ export function Sidebar({ workspaces, place, theme, looks, folded, collapsed, on
                         {folder.unread > 0 && (
                           <span className="sidebar__count">
                             {folder.unread}
-                            <span className="visually-hidden"> unread</span>
+                            <span className="visually-hidden">{t('nav.unreadAfterCount', { count: folder.unread })}</span>
                           </span>
                         )}
                       </TipButton>

@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { Mark } from '@buun-mail/brand/react'
 
@@ -16,8 +17,9 @@ interface ToastsProps {
 
 /** New mail while the window is in front: a short stack in the corner, newest on top. Each leaves on its own. */
 export function Toasts({ toasts, workspaceName, onOpen, onDismiss }: ToastsProps): ReactNode {
+  const { t } = useTranslation('notifications')
   return (
-    <section className="toasts" aria-live="polite" aria-label="New mail">
+    <section className="toasts" aria-live="polite" aria-label={t('toasts.label')}>
       {toasts.map((message) => (
         <div key={message.id} className="toast">
           <button
@@ -37,7 +39,7 @@ export function Toasts({ toasts, workspaceName, onOpen, onDismiss }: ToastsProps
               <span className="toast__subject">{message.subject}</span>
             </span>
           </button>
-          <button type="button" className="toast__close" aria-label="Dismiss" onClick={() => onDismiss(message.id)}>
+          <button type="button" className="toast__close" aria-label={t('toasts.dismiss')} onClick={() => onDismiss(message.id)}>
             <IconClose aria-hidden="true" />
           </button>
         </div>

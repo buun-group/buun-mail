@@ -1,6 +1,10 @@
 import { useCallback, useState } from 'react'
 
 import { STORAGE_KEYS, WORKSPACE_IMAGE_MAX_BYTES, WORKSPACE_IMAGE_PX } from '../constants/ui'
+import i18n from '../i18n'
+
+/** Bytes in a megabyte, as the size limit is written. */
+const BYTES_PER_MB = 1_000_000
 
 /** How one workspace looks, chosen in settings. Overrides the routing file's `icon` on this computer. */
 export type WorkspaceLook = { kind: 'glyph'; key: string } | { kind: 'image'; src: string }
@@ -27,14 +31,14 @@ function save(looks: WorkspaceLooks): void {
 
 /** Shrinks a picked image to a square PNG data URL, cropped from the centre, so it stays a few kilobytes. */
 export async function shrinkImage(file: File): Promise<string> {
-  if (file.size > WORKSPACE_IMAGE_MAX_BYTES) throw new Error('That image is over 5 MB. Pick a smaller one.')
+  if (file.size > WORKSPACE_IMAGE_MAX_BYTES) throw new Error(i18n.t('settings:workspaces.imageTooBig', { megabytes: WORKSPACE_IMAGE_MAX_BYTES / BYTES_PER_MB }))
   const bitmap = await createImageBitmap(file)
   const side = Math.min(bitmap.width, bitmap.height)
   const canvas = document.createElement('canvas')
   canvas.width = WORKSPACE_IMAGE_PX
   canvas.height = WORKSPACE_IMAGE_PX
   const context = canvas.getContext('2d')
-  if (context === null) throw new Error('This window cannot draw images.')
+  if (context === null) throw new Error(i18n.t('settings:workspaces.cannotDraw'))
   context.drawImage(bitmap, (bitmap.width - side) / 2, (bitmap.height - side) / 2, side, side, 0, 0, WORKSPACE_IMAGE_PX, WORKSPACE_IMAGE_PX)
   bitmap.close()
   return canvas.toDataURL('image/png')

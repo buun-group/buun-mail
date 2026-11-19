@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import type { ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import type { Workspace } from '../../api/types'
 import { SETTINGS_SECTIONS } from '../../constants/ui'
@@ -17,14 +18,15 @@ import { WorkspacesSection } from './WorkspacesSection'
 
 import './Settings.css'
 
-const SECTION_LABELS: Record<SettingsSection, string> = {
-  general: 'General',
-  notifications: 'Notifications',
-  workspaces: 'Workspaces',
-  rules: 'Rules',
-  integrations: 'Integrations',
-  agents: 'Agents',
-}
+/** Each section's name, as keys for `t()`. */
+const SECTION_LABELS = {
+  general: 'sections.general',
+  notifications: 'sections.notifications',
+  workspaces: 'sections.workspaces',
+  rules: 'sections.rules',
+  integrations: 'sections.integrations',
+  agents: 'sections.agents',
+} as const satisfies Record<SettingsSection, string>
 
 interface SettingsProps {
   open: boolean
@@ -45,6 +47,7 @@ interface SettingsProps {
 
 /** Settings in a native modal dialog: sections down the left, the chosen one on the right. Escape closes it. */
 export function Settings({ open, onClose, preferences, workspaces, looks, onLook, section, onSection, editing, onEditing, onImported, notifications }: SettingsProps): ReactNode {
+  const { t } = useTranslation('settings')
   const dialog = useRef<HTMLDialogElement | null>(null)
 
   useEffect(() => {
@@ -56,22 +59,22 @@ export function Settings({ open, onClose, preferences, workspaces, looks, onLook
 
   return (
     <dialog ref={dialog} className="settings" aria-labelledby="settings-title" onClose={onClose}>
-      <nav className="settings__nav" aria-label="Settings sections">
-        <h2 id="settings-title">Settings</h2>
+      <nav className="settings__nav" aria-label={t('sectionsLabel')}>
+        <h2 id="settings-title">{t('title')}</h2>
         {SETTINGS_SECTIONS.map((id) => {
           const Glyph = SECTION_GLYPHS[id]
           return (
             <button key={id} type="button" className="settings__tab" aria-current={id === section ? 'page' : undefined} onClick={() => onSection(id)}>
               <Glyph aria-hidden="true" />
-              {SECTION_LABELS[id]}
+              {t(SECTION_LABELS[id])}
             </button>
           )
         })}
       </nav>
       <div className="settings__panel">
         <header className="settings__head">
-          <h3>{SECTION_LABELS[section]}</h3>
-          <button type="button" className="settings__close" onClick={onClose} aria-label="Close settings">
+          <h3>{t(SECTION_LABELS[section])}</h3>
+          <button type="button" className="settings__close" onClick={onClose} aria-label={t('close')}>
             <IconClose aria-hidden="true" />
           </button>
         </header>

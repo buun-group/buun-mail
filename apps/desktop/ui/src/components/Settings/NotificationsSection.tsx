@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { isTauri } from '@tauri-apps/api/core'
 
@@ -9,28 +10,29 @@ import { Switch } from './Switch'
 
 /** How new mail tells you it arrived, and which workspaces stay quiet. Saved on this computer. */
 export function NotificationsSection({ notifications, workspaces }: { notifications: Notifications; workspaces: Workspace[] }): ReactNode {
+  const { t } = useTranslation('notifications')
   const { prefs, setPrefs, enableDesktop } = notifications
   const [refused, setRefused] = useState(false)
 
   return (
     <>
-      <p className="settings__intro">New mail always shows under the bell. While the window is in front it also pops up in the corner; while it is behind, your computer shows a notification.</p>
+      <p className="settings__intro">{t('section.intro')}</p>
       <div className="settings__rows">
         <div className="settings__row">
           <div>
             <label id="toasts-label" htmlFor="toasts" className="settings__label">
-              Pop-ups in the window
+              {t('section.toasts')}
             </label>
-            <p className="settings__hint">A short note in the corner, gone after a few seconds.</p>
+            <p className="settings__hint">{t('section.toastsHint')}</p>
           </div>
           <Switch id="toasts" labelledBy="toasts-label" checked={prefs.toasts} onChange={(toasts) => setPrefs({ toasts })} />
         </div>
         <div className="settings__row">
           <div>
             <label id="desktop-label" htmlFor="desktop" className="settings__label">
-              Desktop notifications
+              {t('section.desktop')}
             </label>
-            <p className="settings__hint">{refused ? 'Your system said no. Allow Buun Mail in its notification settings, then try again.' : isTauri() ? 'Asks your system the first time.' : 'Available in the desktop app.'}</p>
+            <p className="settings__hint">{refused ? t('section.desktopRefused') : isTauri() ? t('section.desktopAsks') : t('section.desktopAppOnly')}</p>
           </div>
           <Switch
             id="desktop"
@@ -49,7 +51,7 @@ export function NotificationsSection({ notifications, workspaces }: { notificati
 
       <section className="settings__group" aria-labelledby="mute-title">
         <h4 id="mute-title" className="settings__group-title">
-          Workspaces
+          {t('section.workspaces')}
         </h4>
         <ul className="settings__list">
           {workspaces.map((workspace) => {

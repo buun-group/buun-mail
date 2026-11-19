@@ -4,6 +4,7 @@ import { onMailArrived } from '../api/events'
 import { askToNotify, notify } from '../api/notify'
 import type { Message } from '../api/types'
 import { NOTIFICATION_FEED_LIMIT, STORAGE_KEYS, TOAST_LIMIT, TOAST_MS } from '../constants/ui'
+import i18n from '../i18n'
 
 /** What the person chose in Settings, Notifications. Kept on this computer. */
 export interface NotificationPrefs {
@@ -85,8 +86,8 @@ export function useNotifications(workspaceName: (id: string) => string): Notific
         } else if (now.desktop) {
           const [first] = loud
           if (first !== undefined) {
-            const title = loud.length === 1 ? `${first.fromName} in ${nameOf(first.workspace)}` : `${loud.length} new messages`
-            void notify(title, loud.length === 1 ? first.subject : loud.map((message) => message.subject).join(', '))
+            const title = loud.length === 1 ? i18n.t('notifications:desktop.one', { name: first.fromName, workspace: nameOf(first.workspace) }) : i18n.t('notifications:desktop.many', { count: loud.length })
+            void notify(title, loud.length === 1 ? first.subject : loud.map((message) => message.subject).join(i18n.t('notifications:desktop.separator')))
           }
         }
       }),

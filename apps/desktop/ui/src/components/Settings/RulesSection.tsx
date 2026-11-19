@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { applyRules, deleteRule, listRules, saveRule } from '../../api/client'
 import type { Rule, Workspace } from '../../api/types'
@@ -12,6 +13,7 @@ const reason = (error: unknown): string => (error instanceof Error ? error.messa
 
 /** Rules: each in one sentence with an on switch, a builder for new ones, and a way to run them over old mail. */
 export function RulesSection({ workspaces, onChanged }: { workspaces: Workspace[]; onChanged: () => void }): ReactNode {
+  const { t } = useTranslation('rules')
   const [rules, setRules] = useState<Rule[]>([])
   const [editing, setEditing] = useState<Rule | 'new' | null>(null)
   const [note, setNote] = useState<string | null>(null)
@@ -33,10 +35,10 @@ export function RulesSection({ workspaces, onChanged }: { workspaces: Workspace[
 
   return (
     <>
-      <p className="settings__intro">Rules run on every message as it arrives, after it lands in its workspace. Agents can read and add rules too; whoever adds one, it shows here.</p>
+      <p className="settings__intro">{t('intro')}</p>
 
       {rules.length === 0 ? (
-        <p className="settings__empty">No rules yet. Add one to tag, move, mark read or quieten mail as it comes in.</p>
+        <p className="settings__empty">{t('empty')}</p>
       ) : (
         <ul className="settings__list">
           {rules.map((rule) => (
@@ -48,7 +50,7 @@ export function RulesSection({ workspaces, onChanged }: { workspaces: Workspace[
                 </span>
                 <span className="settings__hint">{describeRule(rule, nameOf)}</span>
               </button>
-              <button type="button" className="settings__icon-button" aria-label={`Delete ${rule.name}`} onClick={() => void deleteRule(rule.id).then(load)}>
+              <button type="button" className="settings__icon-button" aria-label={t('delete', { name: rule.name })} onClick={() => void deleteRule(rule.id).then(load)}>
                 <IconDelete aria-hidden="true" />
               </button>
             </li>
@@ -60,7 +62,7 @@ export function RulesSection({ workspaces, onChanged }: { workspaces: Workspace[
         <div className="settings__actions">
           <button type="button" className="settings__button" onClick={() => setEditing('new')}>
             <IconAdd aria-hidden="true" />
-            New rule
+            {t('new')}
           </button>
           <button
             type="button"
@@ -70,14 +72,14 @@ export function RulesSection({ workspaces, onChanged }: { workspaces: Workspace[
               setNote(null)
               applyRules()
                 .then((changed) => {
-                  setNote(`${changed} ${changed === 1 ? 'message' : 'messages'} changed.`)
+                  setNote(t('changed', { count: changed }))
                   onChanged()
                 })
                 .catch((cause: unknown) => setError(reason(cause)))
             }}
           >
             <IconRun aria-hidden="true" />
-            Run on existing mail
+            {t('run')}
           </button>
           {note !== null && <p className="settings__hint">{note}</p>}
         </div>

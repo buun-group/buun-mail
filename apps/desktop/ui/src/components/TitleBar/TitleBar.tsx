@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { Mark } from '@buun-mail/brand/react'
 
@@ -10,7 +11,8 @@ import { WindowControls } from '../WindowControls/WindowControls'
 
 import './TitleBar.css'
 
-const THEME_NAMES: Record<ThemePreference, string> = { system: 'Match system', light: 'Light', dark: 'Dark' }
+/** The words for each theme, as keys for `t()`. */
+const THEME_NAMES = { system: 'common:themes.system', light: 'common:themes.light', dark: 'common:themes.dark' } as const satisfies Record<ThemePreference, string>
 
 /** The theme after this one: Match system, Light, Dark, then round again. */
 function nextTheme(current: ThemePreference): ThemePreference {
@@ -33,15 +35,17 @@ interface TitleBarProps {
  * On macOS the native traffic lights sit at its left edge and the mark moves clear of them.
  */
 export function TitleBar({ themePreference, onThemePreference, sidebarCollapsed, onSidebarCollapsed, onSettings, bell }: TitleBarProps): ReactNode {
+  const { t } = useTranslation(['sidebar', 'common'])
   const ThemeGlyph = THEME_GLYPHS[themePreference]
   const upcoming = nextTheme(themePreference)
-  const sidebarWords = sidebarCollapsed ? 'Keep the sidebar open' : 'Collapse the sidebar'
+  const sidebarWords = sidebarCollapsed ? t('titleBar.openSidebar') : t('titleBar.collapseSidebar')
+  const theme = t(THEME_NAMES[themePreference])
 
   return (
     <header className="title-bar" data-tauri-drag-region>
       <span className="title-bar__brand" data-tauri-drag-region>
         <Mark size={20} />
-        <span data-tauri-drag-region>Buun Mail</span>
+        <span data-tauri-drag-region>{t('common:appName')}</span>
       </span>
       <TipButton className="title-bar__button" tip={sidebarWords} aria-label={sidebarWords} aria-pressed={sidebarCollapsed} onClick={() => onSidebarCollapsed(!sidebarCollapsed)}>
         <IconSidebar aria-hidden="true" />
@@ -51,10 +55,10 @@ export function TitleBar({ themePreference, onThemePreference, sidebarCollapsed,
 
       <span className="title-bar__tools">
         {bell}
-        <TipButton className="title-bar__button" tip={`${THEME_NAMES[themePreference]} theme`} aria-label={`Theme: ${THEME_NAMES[themePreference]}. Switch to ${THEME_NAMES[upcoming]}`} onClick={() => onThemePreference(upcoming)}>
+        <TipButton className="title-bar__button" tip={t('titleBar.themeTip', { theme })} aria-label={t('titleBar.themeLabel', { theme, next: t(THEME_NAMES[upcoming]) })} onClick={() => onThemePreference(upcoming)}>
           <ThemeGlyph aria-hidden="true" />
         </TipButton>
-        <TipButton className="title-bar__button" tip="Settings" aria-label="Settings" onClick={onSettings}>
+        <TipButton className="title-bar__button" tip={t('common:settings')} aria-label={t('common:settings')} onClick={onSettings}>
           <IconSettings aria-hidden="true" />
         </TipButton>
       </span>

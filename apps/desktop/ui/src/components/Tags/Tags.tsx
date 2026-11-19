@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { IconClose, IconTag } from '../../icons'
 
@@ -10,6 +11,7 @@ const ROW_TAG_LIMIT = 2
 
 /** A message's tags as small chips, for a list row: the first few, then a count. */
 export function TagChips({ tags }: { tags: string[] }): ReactNode {
+  const { t } = useTranslation('mail')
   if (tags.length === 0) return null
   const shown = tags.slice(0, ROW_TAG_LIMIT)
   return (
@@ -19,7 +21,7 @@ export function TagChips({ tags }: { tags: string[] }): ReactNode {
           {tag}
         </span>
       ))}
-      {tags.length > shown.length && <span className="tag-chip tag-chip--more">+{tags.length - shown.length}</span>}
+      {tags.length > shown.length && <span className="tag-chip tag-chip--more">{t('tags.more', { count: tags.length - shown.length })}</span>}
     </span>
   )
 }
@@ -34,6 +36,7 @@ interface TagEditorProps {
 
 /** The reader's tags: each removable, and a field that adds one on Enter. */
 export function TagEditor({ tags, onAdd, onRemove, suggestions = [] }: TagEditorProps): ReactNode {
+  const { t } = useTranslation('mail')
   const [draft, setDraft] = useState('')
   const listId = 'tag-suggestions'
   return (
@@ -42,7 +45,7 @@ export function TagEditor({ tags, onAdd, onRemove, suggestions = [] }: TagEditor
       {tags.map((tag) => (
         <span key={tag} className="tag-chip tag-chip--removable">
           {tag}
-          <button type="button" aria-label={`Remove the tag ${tag}`} onClick={() => onRemove(tag)}>
+          <button type="button" aria-label={t('tags.remove', { tag })} onClick={() => onRemove(tag)}>
             <IconClose aria-hidden="true" />
           </button>
         </span>
@@ -56,9 +59,9 @@ export function TagEditor({ tags, onAdd, onRemove, suggestions = [] }: TagEditor
         }}
       >
         <label htmlFor="new-tag" className="visually-hidden">
-          Add a tag
+          {t('tags.addLabel')}
         </label>
-        <input id="new-tag" className="tag-editor__input" value={draft} placeholder={tags.length === 0 ? 'Add a tag' : 'Add'} list={listId} onChange={(event) => setDraft(event.target.value)} autoComplete="off" />
+        <input id="new-tag" className="tag-editor__input" value={draft} placeholder={tags.length === 0 ? t('tags.addFirst') : t('tags.addAnother')} list={listId} onChange={(event) => setDraft(event.target.value)} autoComplete="off" />
         <datalist id={listId}>
           {suggestions
             .filter((tag) => !tags.includes(tag))

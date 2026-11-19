@@ -1,1 +1,67 @@
-{}
+{
+  "plotwork": {
+    "kind": "Diagrams as code",
+    "heading": {
+      "first": "Draw it once.",
+      "second": "Keep it true."
+    },
+    "body": "Write a diagram in a few lines of text and Plotwork draws it, checks it in your CI and tells you when it drifts from the code it describes.",
+    "points": {
+      "first": "Twenty kinds of diagram",
+      "second": "A drift check on every pull request",
+      "third": "A live whiteboard and an MCP server"
+    }
+  },
+  "flung": {
+    "kind": "Social publishing API",
+    "heading": {
+      "first": "Every network.",
+      "second": "One API."
+    },
+    "body": "Your app or AI agent connects social accounts, then schedules and publishes posts to 27 networks through one REST API, an SDK or an MCP server.",
+    "points": {
+      "first": "27 networks, one request",
+      "second": "A TypeScript SDK and webhooks",
+      "third": "An MCP server for agents"
+    }
+  },
+  "gunspec": {
+    "kind": "Firearm data API",
+    "heading": {
+      "first": "Every figure,",
+      "second": "sourced."
+    },
+    "body": "Specifications for more than 8,500 firearms, with calibers, ammunition and what fits what, every figure traced to where it came from.",
+    "points": {
+      "first": "8,500 and more firearms",
+      "second": "Calibers, loads and fitment",
+      "third": "An API and an MCP server"
+    }
+  },
+  "dissolve": {
+    "kind": "Disposable email",
+    "heading": {
+      "first": "An inbox",
+      "second": "that forgets."
+    },
+    "body": "A disposable address in one click, for the sign-up you do not trust. Use it in the browser, from the extension or through the API, and let it go when you are done.",
+    "points": {
+      "first": "An address in one click",
+      "second": "A browser extension",
+      "third": "An API for your tests"
+    }
+  },
+  "cryptflare": {
+    "kind": "Secrets management",
+    "heading": {
+      "first": "Secrets,",
+      "second": "sealed at the edge."
+    },
+    "body": "Encrypted, versioned secrets with fine-grained access for teams, built on Cloudflare and run for you as a managed service.",
+    "points": {
+      "first": "Encrypted and versioned",
+      "second": "Access by person and by project",
+      "third": "Run for you on the edge"
+    }
+  }
+}

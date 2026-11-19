@@ -1,31 +1,45 @@
 import type { Rule, RuleAction, RuleWhen } from '../api/types'
+import i18n from '../i18n'
 
 /** One condition in words: "from *@stripe.com". */
 function condition(when: RuleWhen, workspaceName: (id: string) => string): string[] {
   return [
-    when.workspace === undefined ? null : `in ${workspaceName(when.workspace)}`,
-    when.from === undefined ? null : `from ${when.from}`,
-    when.to === undefined ? null : `to ${when.to}`,
-    when.subjectContains === undefined ? null : `with "${when.subjectContains}" in the subject`,
+    when.workspace === undefined ? null : i18n.t('rules:describe.in', { workspace: workspaceName(when.workspace) }),
+    when.from === undefined ? null : i18n.t('rules:describe.from', { pattern: when.from }),
+    when.to === undefined ? null : i18n.t('rules:describe.to', { pattern: when.to }),
+    when.subjectContains === undefined ? null : i18n.t('rules:describe.subject', { text: when.subjectContains }),
   ].filter((part): part is string => part !== null)
+}
+
+/** Where a move action sends mail: "Billing, Receipts", or "the inbox" when it names no folder. */
+function moveTarget(item: Extract<RuleAction, { type: 'move' }>, workspaceName: (id: string) => string): string {
+  const folder = item.folder ?? i18n.t('rules:describe.theInbox')
+  const workspace = item.workspace === undefined ? '' : workspaceName(item.workspace)
+  if (workspace === '') return i18n.t('rules:describe.moveTo', { folder })
+  if (folder === '') return i18n.t('rules:describe.moveTo', { folder: workspace })
+  return i18n.t('rules:describe.moveToWorkspace', { workspace, folder })
 }
 
 /** One action in words: "tag receipt". */
 function action(item: RuleAction, workspaceName: (id: string) => string): string {
   switch (item.type) {
     case 'tag':
-      return `tag ${item.tag}`
+      return i18n.t('rules:describe.tag', { tag: item.tag })
     case 'move':
-      return `move to ${[item.workspace === undefined ? null : workspaceName(item.workspace), item.folder ?? 'the inbox'].filter(Boolean).join(', ')}`
+      return moveTarget(item, workspaceName)
     case 'markRead':
-      return 'mark read'
+      return i18n.t('rules:describe.markRead')
     case 'quiet':
-      return 'keep quiet'
+      return i18n.t('rules:describe.quiet')
   }
 }
 
 /** A rule as one sentence: "Mail from *@stripe.com: tag receipt, mark read." */
 export function describeRule(rule: Rule, workspaceName: (id: string) => string): string {
+  const separator = i18n.t('rules:describe.separator')
   const when = condition(rule.when, workspaceName)
-  return `Mail ${when.length === 0 ? '(no conditions)' : when.join(', ')}: ${rule.actions.map((item) => action(item, workspaceName)).join(', ')}.`
+  return i18n.t('rules:describe.sentence', {
+    conditions: when.length === 0 ? i18n.t('rules:describe.noConditions') : when.join(separator),
+    actions: rule.actions.map((item) => action(item, workspaceName)).join(separator),
+  })
 }

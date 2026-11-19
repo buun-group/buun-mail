@@ -1,1 +1,109 @@
-{}
+{
+  "intro": "Bring your domains in through Cloudflare or pull an existing mailbox, then pick how replies go out. Each reply leaves from the address the message was sent to.",
+  "directions": {
+    "receive": "Receive mail",
+    "send": "Send mail"
+  },
+  "state": {
+    "ready": "Ready",
+    "notConnected": "Not connected"
+  },
+  "oauthNote": "Opens {{provider}} in your browser to sign in. Buun Mail never sees your password.",
+  "signIn": "Sign in with {{provider}}",
+  "connect": "Connect",
+  "notWired": "Connecting arrives with the sync step. Nothing typed here is saved or sent.",
+  "file": {
+    "note": "Messages are filed into workspaces by the address they were delivered to, read from Delivered-To, then X-Original-To, then To. A message imported twice is kept once.",
+    "importing": "Importing",
+    "choose": "Choose .eml or .mbox files",
+    "desktopOnly": "Importing works in the desktop app.",
+    "report": "{{added}} added, {{duplicates}} already here.",
+    "reportFailed": "{{added}} added, {{duplicates}} already here, {{failed}} could not be read.",
+    "filterName": "Email"
+  },
+  "providers": {
+    "cloudflare": {
+      "name": "Cloudflare Email Routing",
+      "summary": "Your own domains through one catch-all Worker. Every message keeps its exact recipient."
+    },
+    "gmail": {
+      "name": "Gmail",
+      "summary": "Read and send as your Google address after signing in with Google."
+    },
+    "outlook": {
+      "name": "Outlook",
+      "summary": "Read and send as your Microsoft address after signing in with Microsoft."
+    },
+    "proton": {
+      "name": "Proton Mail",
+      "summary": "Through Proton Bridge running on this computer."
+    },
+    "icloud": {
+      "name": "iCloud Mail",
+      "summary": "IMAP with an app-specific password."
+    },
+    "zoho": {
+      "name": "Zoho Mail",
+      "summary": "IMAP with an app password from Zoho Accounts."
+    },
+    "imap": {
+      "name": "Other IMAP",
+      "summary": "Any provider that speaks IMAP over TLS."
+    },
+    "file": {
+      "name": "Import a file",
+      "summary": "Messages exported from another client, as .eml or .mbox."
+    },
+    "resend": {
+      "name": "Resend",
+      "summary": "Send as any address on a domain verified in Resend."
+    },
+    "ses": {
+      "name": "Amazon SES",
+      "summary": "Send through SES in the region your domains are verified in."
+    },
+    "mailgun": {
+      "name": "Mailgun",
+      "summary": "Send through a Mailgun domain, US or EU."
+    },
+    "brevo": {
+      "name": "Brevo",
+      "summary": "Send transactional mail through Brevo."
+    },
+    "sparkpost": {
+      "name": "SparkPost",
+      "summary": "Send through SparkPost or Bird."
+    },
+    "smtp": {
+      "name": "SMTP",
+      "summary": "Any server that relays mail over TLS."
+    }
+  },
+  "fields": {
+    "apiKey": "API key",
+    "username": "Username",
+    "password": "Password",
+    "server": "Server",
+    "port": "Port",
+    "region": "Region",
+    "cloudflareAccount": "Account ID",
+    "cloudflareAccountPlaceholder": "32 hex characters",
+    "cloudflareAccountHint": "Cloudflare dashboard, any zone, right-hand column.",
+    "cloudflareToken": "API token",
+    "cloudflareTokenHint": "Needs Email Routing Rules: Edit and Workers Scripts: Edit.",
+    "bridgeHost": "Bridge host",
+    "imapPort": "IMAP port",
+    "bridgeUser": "Bridge username",
+    "bridgePassword": "Bridge password",
+    "bridgePasswordHint": "The one Bridge shows, not your Proton password.",
+    "appleId": "Apple ID email",
+    "applePassword": "App-specific password",
+    "applePasswordHint": "Make one at account.apple.com, Sign-In and Security.",
+    "resendKeyHint": "A sending-access key is enough.",
+    "sesAccess": "Access key ID",
+    "sesSecret": "Secret access key",
+    "sesSecretHint": "An IAM user with ses:SendRawEmail only.",
+    "mailgunDomain": "Sending domain",
+    "mailgunRegionPlaceholder": "us or eu"
+  }
+}

@@ -3,6 +3,7 @@ import { afterEach, beforeAll, describe, expect, it } from 'vitest'
 
 import { App } from '../App'
 import { INTEGRATIONS } from '../constants/integrations'
+import i18n from '../i18n'
 
 beforeAll(() => {
   window.matchMedia = (query: string) => ({ matches: false, media: query, onchange: null, addListener: () => {}, removeListener: () => {}, addEventListener: () => {}, removeEventListener: () => {}, dispatchEvent: () => false })
@@ -37,7 +38,7 @@ describe('the app in a browser', () => {
     await screen.findByText('Quote for the booking site')
     fireEvent.keyDown(window, { key: ',', ctrlKey: true })
     fireEvent.click(screen.getByRole('button', { name: 'Integrations' }))
-    for (const integration of INTEGRATIONS) expect(screen.getAllByText(integration.name)).toHaveLength(integration.directions.length)
+    for (const integration of INTEGRATIONS) expect(screen.getAllByText(i18n.t(integration.name, { ns: 'integrations' }))).toHaveLength(integration.directions.length)
   })
 
   it('opens a connect form that says it is not wired up yet', async () => {

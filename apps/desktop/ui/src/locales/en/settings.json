@@ -1,7 +1,69 @@
 {
+  "title": "Settings",
+  "sectionsLabel": "Settings sections",
+  "close": "Close settings",
+  "sections": {
+    "general": "General",
+    "notifications": "Notifications",
+    "workspaces": "Workspaces",
+    "rules": "Rules",
+    "integrations": "Integrations",
+    "agents": "Agents"
+  },
   "language": {
     "title": "Language",
     "hint": "Match system uses your computer's language when Buun Mail speaks it.",
     "system": "Match system"
+  },
+  "theme": {
+    "title": "Theme",
+    "hint": "Match system follows your computer between light and dark."
+  },
+  "density": {
+    "title": "Message list",
+    "hint": "Compact fits more messages on screen.",
+    "comfortable": "Comfortable",
+    "compact": "Compact"
+  },
+  "grain": {
+    "title": "Paper grain",
+    "hint": "A fine texture over the window, as on buungroup.com."
+  },
+  "workspaces": {
+    "introDefault": "Workspaces come from your routing file, <file/>. Edit it and restart to change which addresses land where. Give each workspace an icon or an image here; it is kept on this computer and wins over the file's <field/>.",
+    "introAt": "Workspaces come from your routing file at <file/>. Edit it and restart to change which addresses land where. Give each workspace an icon or an image here; it is kept on this computer and wins over the file's <field/>.",
+    "changeIcon": "Change icon",
+    "iconFor": "Icon for {{name}}",
+    "upload": "Upload image",
+    "reset": "Use the routing file's",
+    "imageUnreadable": "That image could not be read.",
+    "imageTooBig": "That image is over {{megabytes}} MB. Pick a smaller one.",
+    "cannotDraw": "This window cannot draw images.",
+    "glyphs": {
+      "briefcase": "briefcase",
+      "buildings": "buildings",
+      "storefront": "storefront",
+      "code": "code",
+      "house": "house",
+      "heart": "heart",
+      "rocket": "rocket",
+      "palette": "palette",
+      "globe": "globe",
+      "leaf": "leaf",
+      "camera": "camera",
+      "bag": "bag",
+      "wrench": "wrench",
+      "game": "game",
+      "cap": "cap",
+      "plane": "plane",
+      "receipt": "receipt",
+      "bank": "bank",
+      "chart": "chart",
+      "cloud": "cloud",
+      "github": "github",
+      "bell": "bell",
+      "star": "star",
+      "chat": "chat"
+    }
   }
 }

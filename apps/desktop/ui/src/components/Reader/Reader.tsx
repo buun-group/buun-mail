@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { Trans, useTranslation } from 'react-i18next'
 
 import type { Message, Workspace } from '../../api/types'
 import type { Theme } from '../../constants/ui'
@@ -22,26 +23,21 @@ interface ReaderProps {
 
 /** Why a message is where it is, in one plain sentence from the rules the router used. */
 function RouteNote({ message, workspace }: { message: Message; workspace: Workspace | undefined }): ReactNode {
-  if (message.matched === null) return <>No rule claims this address yet, so it waits in Unsorted.</>
-  return (
-    <>
-      {workspace?.name} because it was sent to <code>{message.matched}</code>
-      {message.folderMatched !== null && (
-        <>
-          , {message.folder} because it is from <code>{message.folderMatched}</code>
-        </>
-      )}
-    </>
-  )
+  const { t } = useTranslation('mail')
+  if (message.matched === null) return <>{t('reader.routeUnsorted')}</>
+  const address = <code>{message.matched}</code>
+  if (message.folderMatched === null) return <Trans t={t} i18nKey="reader.routeWorkspace" values={{ workspace: workspace?.name ?? '' }} components={{ address }} />
+  return <Trans t={t} i18nKey="reader.routeWorkspaceFolder" values={{ workspace: workspace?.name ?? '', folder: message.folder ?? '' }} components={{ address, sender: <code>{message.folderMatched}</code> }} />
 }
 
 /** The open message. With nothing open, the other Buun Group products. */
 export function Reader({ message, body, workspace, theme, onAddTag, onRemoveTag, tagSuggestions }: ReaderProps): ReactNode {
+  const { t } = useTranslation('mail')
   if (message === null) {
     return (
-      <section className="reader reader--empty" aria-label="Reader">
+      <section className="reader reader--empty" aria-label={t('reader.label')}>
         <div className="reader__empty">
-          <p className="reader__nothing">Pick a message to read it.</p>
+          <p className="reader__nothing">{t('reader.nothingOpen')}</p>
           <MoreFromBuun theme={theme} />
         </div>
       </section>
@@ -49,15 +45,15 @@ export function Reader({ message, body, workspace, theme, onAddTag, onRemoveTag,
   }
 
   return (
-    <section className="reader" aria-label="Reader">
+    <section className="reader" aria-label={t('reader.label')}>
       <div className="reader__toolbar">
-        <button type="button" className="reader__tool" disabled aria-label={`Reply as ${message.to}`}>
+        <button type="button" className="reader__tool" disabled aria-label={t('reader.replyAs', { address: message.to })}>
           <IconReply aria-hidden="true" />
         </button>
-        <button type="button" className="reader__tool" disabled aria-label="Archive">
+        <button type="button" className="reader__tool" disabled aria-label={t('reader.archive')}>
           <IconArchive aria-hidden="true" />
         </button>
-        <span className="reader__soon">Reply and archive arrive with sending.</span>
+        <span className="reader__soon">{t('reader.soon')}</span>
       </div>
 
       <article className="reader__message">
@@ -70,7 +66,7 @@ export function Reader({ message, body, workspace, theme, onAddTag, onRemoveTag,
           </time>
         </div>
         <p className="reader__to">
-          to <span className="reader__address">{message.to}</span>
+          <Trans t={t} i18nKey="reader.to" components={{ address: <span className="reader__address">{message.to}</span> }} />
         </p>
         <div className="reader__tags">
           <TagEditor tags={message.tags} suggestions={tagSuggestions} onAdd={(tag) => onAddTag(message.id, tag)} onRemove={(tag) => onRemoveTag(message.id, tag)} />

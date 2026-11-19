@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { KeyboardEvent, ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { IconType } from 'react-icons'
 
 import './ContextMenu.css'
@@ -30,6 +31,7 @@ const EDGE = 8
  * click elsewhere or a scroll closes it, and focus goes back to where it was.
  */
 export function ContextMenu({ request, onClose }: { request: MenuRequest; onClose: () => void }): ReactNode {
+  const { t } = useTranslation('sidebar')
   const menu = useRef<HTMLDivElement | null>(null)
   const [place, setPlace] = useState({ left: request.x, top: request.y })
   const enabled = request.items.filter((item) => item.disabledReason === undefined)
@@ -109,7 +111,7 @@ export function ContextMenu({ request, onClose }: { request: MenuRequest; onClos
           </button>
         )
       })}
-      {enabled.length === 0 && <p className="context-menu__empty">Nothing to do here yet.</p>}
+      {enabled.length === 0 && <p className="context-menu__empty">{t('menu.empty')}</p>}
     </div>
   )
 }

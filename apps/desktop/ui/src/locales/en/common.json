@@ -6,6 +6,13 @@
   "cancel": "Cancel",
   "copy": "Copy",
   "loading": "Loading",
+  "settings": "Settings",
+  "notifications": "Notifications",
+  "themes": {
+    "system": "Match system",
+    "light": "Light",
+    "dark": "Dark"
+  },
   "time": {
     "yesterday": "Yesterday"
   }

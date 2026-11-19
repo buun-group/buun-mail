@@ -1,6 +1,7 @@
 import { Splash } from '@buun-mail/brand/react'
 import { useCallback, useState } from 'react'
 import type { ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { Grain } from './components/Grain/Grain'
 import { NotificationBell } from './components/NotificationBell/NotificationBell'
@@ -23,6 +24,7 @@ import './styles/app.css'
 
 /** Three panes (workspaces, the open folder, the open message) and settings over them. */
 export function App(): ReactNode {
+  const { t } = useTranslation('mail')
   const preferences = usePreferences()
   const mailbox = useMailbox()
   const looks = useWorkspaceLooks()
@@ -49,7 +51,7 @@ export function App(): ReactNode {
   if (mailbox.error !== null) {
     return (
       <p role="alert" className="app-error">
-        The mailbox could not load: {mailbox.error}
+        {t('loadError', { error: mailbox.error })}
       </p>
     )
   }

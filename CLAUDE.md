@@ -42,6 +42,8 @@ This repository follows the [Buun Group coding standards](./.standards/docs/stan
 
 - The look is Buun Group's: tokens copied from `@buun-group/ui` into `ui/src/styles/tokens.css`, same names. Only that
   file writes a colour. Geist and Geist Mono, Latin subset only.
+- Every word the UI shows comes from `ui/src/locales/en/*.json` through i18next (`useTranslation`, `t()`); never write
+  copy in a component or a constant. Keys are type-checked; a new language follows `ui/src/i18n/README.md`.
 - Every glyph comes from `ui/src/icons.ts` (Phosphor Light). Never import `react-icons` elsewhere.
 - Buun Group products show in the sidebar footer and in the empty reader, from `ui/src/constants/products.ts`, in the
   words buungroup.com uses. A new product also needs its site in `src-tauri/capabilities/default.json`; a test fails

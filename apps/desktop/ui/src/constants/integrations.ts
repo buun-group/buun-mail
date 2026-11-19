@@ -1,7 +1,10 @@
+import type { ParseKeys } from 'i18next'
+
 /**
  * Where mail comes from and how it goes out. Receiving: Cloudflare for your own domains, or an existing mailbox pulled
  * over IMAP. Sending: a provider's API, or SMTP, as any address on a domain it has verified. Gmail and Outlook do both
- * after one sign-in. None is wired to Rust yet: the forms collect nothing until the sync step lands, and say so.
+ * after one sign-in. The words are translation keys into `locales/<language>/integrations.json`; ids, field types and
+ * sample values stay here. None is wired to Rust yet: the forms collect nothing until the sync step lands, and say so.
  */
 
 export const INTEGRATION_IDS = [
@@ -25,128 +28,137 @@ export type IntegrationId = (typeof INTEGRATION_IDS)[number]
 export const DIRECTIONS = ['receive', 'send'] as const
 export type Direction = (typeof DIRECTIONS)[number]
 
+/** A key in the `integrations` strings. */
+export type IntegrationKey = ParseKeys<'integrations'>
+
 export interface IntegrationField {
   id: string
-  label: string
+  label: IntegrationKey
   type: 'text' | 'password' | 'number'
-  placeholder?: string
-  hint?: string
+  /** Words to show in the empty field. */
+  placeholder?: IntegrationKey
+  /** A sample value to show in the empty field instead, such as a host or a port. Never translated. */
+  sample?: string
+  hint?: IntegrationKey
 }
 
 export type IntegrationMethod = { kind: 'form'; fields: readonly IntegrationField[] } | { kind: 'oauth'; provider: string } | { kind: 'file'; accept: string }
 
 export interface Integration {
   id: IntegrationId
-  name: string
-  summary: string
+  name: IntegrationKey
+  summary: IntegrationKey
   /** Which lists it shows in. Gmail and Outlook show in both. */
   directions: readonly Direction[]
   method: IntegrationMethod
 }
 
-const API_KEY: IntegrationField = { id: 'key', label: 'API key', type: 'password' }
+const API_KEY: IntegrationField = { id: 'key', label: 'fields.apiKey', type: 'password' }
 const IMAP_LOGIN: readonly IntegrationField[] = [
-  { id: 'user', label: 'Username', type: 'text' },
-  { id: 'password', label: 'Password', type: 'password' },
+  { id: 'user', label: 'fields.username', type: 'text' },
+  { id: 'password', label: 'fields.password', type: 'password' },
 ]
 
 export const INTEGRATIONS: readonly Integration[] = [
   {
     id: 'cloudflare',
-    name: 'Cloudflare Email Routing',
-    summary: 'Your own domains through one catch-all Worker. Every message keeps its exact recipient.',
+    name: 'providers.cloudflare.name',
+    summary: 'providers.cloudflare.summary',
     directions: ['receive'],
     method: {
       kind: 'form',
       fields: [
-        { id: 'account', label: 'Account ID', type: 'text', placeholder: '32 hex characters', hint: 'Cloudflare dashboard, any zone, right-hand column.' },
-        { id: 'token', label: 'API token', type: 'password', hint: 'Needs Email Routing Rules: Edit and Workers Scripts: Edit.' },
+        { id: 'account', label: 'fields.cloudflareAccount', type: 'text', placeholder: 'fields.cloudflareAccountPlaceholder', hint: 'fields.cloudflareAccountHint' },
+        { id: 'token', label: 'fields.cloudflareToken', type: 'password', hint: 'fields.cloudflareTokenHint' },
       ],
     },
   },
-  { id: 'gmail', name: 'Gmail', summary: 'Read and send as your Google address after signing in with Google.', directions: ['receive', 'send'], method: { kind: 'oauth', provider: 'Google' } },
-  { id: 'outlook', name: 'Outlook', summary: 'Read and send as your Microsoft address after signing in with Microsoft.', directions: ['receive', 'send'], method: { kind: 'oauth', provider: 'Microsoft' } },
+  { id: 'gmail', name: 'providers.gmail.name', summary: 'providers.gmail.summary', directions: ['receive', 'send'], method: { kind: 'oauth', provider: 'Google' } },
+  { id: 'outlook', name: 'providers.outlook.name', summary: 'providers.outlook.summary', directions: ['receive', 'send'], method: { kind: 'oauth', provider: 'Microsoft' } },
   {
     id: 'proton',
-    name: 'Proton Mail',
-    summary: 'Through Proton Bridge running on this computer.',
+    name: 'providers.proton.name',
+    summary: 'providers.proton.summary',
     directions: ['receive'],
     method: {
       kind: 'form',
       fields: [
-        { id: 'host', label: 'Bridge host', type: 'text', placeholder: '127.0.0.1' },
-        { id: 'port', label: 'IMAP port', type: 'number', placeholder: '1143' },
-        { id: 'user', label: 'Bridge username', type: 'text' },
-        { id: 'password', label: 'Bridge password', type: 'password', hint: 'The one Bridge shows, not your Proton password.' },
+        { id: 'host', label: 'fields.bridgeHost', type: 'text', sample: '127.0.0.1' },
+        { id: 'port', label: 'fields.imapPort', type: 'number', sample: '1143' },
+        { id: 'user', label: 'fields.bridgeUser', type: 'text' },
+        { id: 'password', label: 'fields.bridgePassword', type: 'password', hint: 'fields.bridgePasswordHint' },
       ],
     },
   },
   {
     id: 'icloud',
-    name: 'iCloud Mail',
-    summary: 'IMAP with an app-specific password.',
+    name: 'providers.icloud.name',
+    summary: 'providers.icloud.summary',
     directions: ['receive'],
     method: {
       kind: 'form',
       fields: [
-        { id: 'user', label: 'Apple ID email', type: 'text' },
-        { id: 'password', label: 'App-specific password', type: 'password', hint: 'Make one at account.apple.com, Sign-In and Security.' },
+        { id: 'user', label: 'fields.appleId', type: 'text' },
+        { id: 'password', label: 'fields.applePassword', type: 'password', hint: 'fields.applePasswordHint' },
       ],
     },
   },
-  { id: 'zoho', name: 'Zoho Mail', summary: 'IMAP with an app password from Zoho Accounts.', directions: ['receive'], method: { kind: 'form', fields: IMAP_LOGIN } },
+  { id: 'zoho', name: 'providers.zoho.name', summary: 'providers.zoho.summary', directions: ['receive'], method: { kind: 'form', fields: IMAP_LOGIN } },
   {
     id: 'imap',
-    name: 'Other IMAP',
-    summary: 'Any provider that speaks IMAP over TLS.',
+    name: 'providers.imap.name',
+    summary: 'providers.imap.summary',
     directions: ['receive'],
     method: {
       kind: 'form',
-      fields: [{ id: 'host', label: 'Server', type: 'text', placeholder: 'imap.example.com' }, { id: 'port', label: 'Port', type: 'number', placeholder: '993' }, ...IMAP_LOGIN],
+      fields: [{ id: 'host', label: 'fields.server', type: 'text', sample: 'imap.example.com' }, { id: 'port', label: 'fields.port', type: 'number', sample: '993' }, ...IMAP_LOGIN],
     },
   },
-  { id: 'file', name: 'Import a file', summary: 'Messages exported from another client, as .eml or .mbox.', directions: ['receive'], method: { kind: 'file', accept: '.eml,.mbox,message/rfc822,application/mbox' } },
+  { id: 'file', name: 'providers.file.name', summary: 'providers.file.summary', directions: ['receive'], method: { kind: 'file', accept: '.eml,.mbox,message/rfc822,application/mbox' } },
   {
     id: 'resend',
-    name: 'Resend',
-    summary: 'Send as any address on a domain verified in Resend.',
+    name: 'providers.resend.name',
+    summary: 'providers.resend.summary',
     directions: ['send'],
-    method: { kind: 'form', fields: [{ ...API_KEY, placeholder: 're_...', hint: 'A sending-access key is enough.' }] },
+    method: { kind: 'form', fields: [{ ...API_KEY, sample: 're_...', hint: 'fields.resendKeyHint' }] },
   },
   {
     id: 'ses',
-    name: 'Amazon SES',
-    summary: 'Send through SES in the region your domains are verified in.',
+    name: 'providers.ses.name',
+    summary: 'providers.ses.summary',
     directions: ['send'],
     method: {
       kind: 'form',
       fields: [
-        { id: 'region', label: 'Region', type: 'text', placeholder: 'eu-west-1' },
-        { id: 'access', label: 'Access key ID', type: 'text' },
-        { id: 'secret', label: 'Secret access key', type: 'password', hint: 'An IAM user with ses:SendRawEmail only.' },
+        { id: 'region', label: 'fields.region', type: 'text', sample: 'eu-west-1' },
+        { id: 'access', label: 'fields.sesAccess', type: 'text' },
+        { id: 'secret', label: 'fields.sesSecret', type: 'password', hint: 'fields.sesSecretHint' },
       ],
     },
   },
   {
     id: 'mailgun',
-    name: 'Mailgun',
-    summary: 'Send through a Mailgun domain, US or EU.',
-    directions: ['send'],
-    method: { kind: 'form', fields: [{ id: 'domain', label: 'Sending domain', type: 'text', placeholder: 'mg.example.com' }, { id: 'region', label: 'Region', type: 'text', placeholder: 'us or eu' }, API_KEY] },
-  },
-  { id: 'brevo', name: 'Brevo', summary: 'Send transactional mail through Brevo.', directions: ['send'], method: { kind: 'form', fields: [API_KEY] } },
-  { id: 'sparkpost', name: 'SparkPost', summary: 'Send through SparkPost or Bird.', directions: ['send'], method: { kind: 'form', fields: [API_KEY] } },
-  {
-    id: 'smtp',
-    name: 'SMTP',
-    summary: 'Any server that relays mail over TLS.',
+    name: 'providers.mailgun.name',
+    summary: 'providers.mailgun.summary',
     directions: ['send'],
     method: {
       kind: 'form',
-      fields: [{ id: 'host', label: 'Server', type: 'text', placeholder: 'smtp.example.com' }, { id: 'port', label: 'Port', type: 'number', placeholder: '465' }, ...IMAP_LOGIN],
+      fields: [{ id: 'domain', label: 'fields.mailgunDomain', type: 'text', sample: 'mg.example.com' }, { id: 'region', label: 'fields.region', type: 'text', placeholder: 'fields.mailgunRegionPlaceholder' }, API_KEY],
+    },
+  },
+  { id: 'brevo', name: 'providers.brevo.name', summary: 'providers.brevo.summary', directions: ['send'], method: { kind: 'form', fields: [API_KEY] } },
+  { id: 'sparkpost', name: 'providers.sparkpost.name', summary: 'providers.sparkpost.summary', directions: ['send'], method: { kind: 'form', fields: [API_KEY] } },
+  {
+    id: 'smtp',
+    name: 'providers.smtp.name',
+    summary: 'providers.smtp.summary',
+    directions: ['send'],
+    method: {
+      kind: 'form',
+      fields: [{ id: 'host', label: 'fields.server', type: 'text', sample: 'smtp.example.com' }, { id: 'port', label: 'fields.port', type: 'number', sample: '465' }, ...IMAP_LOGIN],
     },
   },
 ]
 
 /** What every connect form says until the Rust side can take it. */
-export const NOT_WIRED_NOTE = 'Connecting arrives with the sync step. Nothing typed here is saved or sent.'
+export const NOT_WIRED_NOTE: IntegrationKey = 'notWired'
