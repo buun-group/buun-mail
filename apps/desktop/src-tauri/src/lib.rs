@@ -106,6 +106,7 @@ pub fn run() {
             commands::attachment_data,
             commands::open_attachment,
             commands::describe_files,
+            commands::add_smtp_sender,
             commands::open_message,
             commands::mark_all_read,
             commands::tag_message,

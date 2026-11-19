@@ -15,7 +15,7 @@ use crate::dto::{ActivityDto, ContactDto, ImportReportDto, KnownContactDto, Mess
 use crate::error::AppError;
 use crate::events;
 use crate::mailbox::{Actor, AttachmentDataDto, ExportFormat, Mailbox};
-use crate::send::{DraftDto, SendFailure, SendService, SendableDto, SenderDto};
+use crate::send::{DraftDto, Security, SendFailure, SendService, SendableDto, SenderDto, SmtpServer};
 use crate::sync::{AvailableZone, CheckReportDto, DomainRoute, GatewayStatusDto, OwnedDomain, SyncService};
 
 /// Every workspace for the sidebar.
@@ -339,4 +339,22 @@ pub fn describe_files(paths: Vec<PathBuf>) -> Vec<(String, String, u64)> {
             Some((path.display().to_string(), name, size))
         })
         .collect()
+}
+
+/// Connects a mail server for sending, away from the window's thread: its sign-in is checked first.
+#[tauri::command]
+#[allow(clippy::too_many_arguments, reason = "each is one field of the form, named as the UI sends it")]
+pub async fn add_smtp_sender(
+    send: State<'_, SendService>,
+    name: String,
+    host: String,
+    port: u16,
+    security: Security,
+    username: String,
+    password: String,
+    domains: Vec<String>,
+) -> Result<Vec<SenderDto>, String> {
+    let service = send.inner().clone();
+    let server = SmtpServer { host: host.trim().to_owned(), port, security, username };
+    tauri::async_runtime::spawn_blocking(move || service.add_smtp(&name, server, &password, &domains)).await.map_err(|error| error.to_string())?
 }

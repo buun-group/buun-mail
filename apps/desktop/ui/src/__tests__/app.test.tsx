@@ -50,3 +50,19 @@ describe('the app in a browser', () => {
     expect((screen.getByRole('button', { name: 'Connect' }) as HTMLButtonElement).disabled).toBe(true)
   })
 })
+
+describe('connecting a mail server for sending', () => {
+  it('fills a preset and connects, listing the server with its domain', async () => {
+    render(<App />)
+    await screen.findByText('Quote for the booking site')
+    fireEvent.keyDown(window, { key: ',', ctrlKey: true })
+    fireEvent.click(screen.getByRole('button', { name: 'Integrations' }))
+    fireEvent.click(screen.getByRole('button', { name: /SMTP/ }))
+    expect(await screen.findByDisplayValue('smtp.gmail.com')).toBeTruthy()
+    fireEvent.change(screen.getByLabelText('Username'), { target: { value: 'me@flung.dev' } })
+    fireEvent.change(screen.getByLabelText('Password or app password'), { target: { value: 'app-password' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Connect' }))
+    expect(await screen.findByText('me@flung.dev @ smtp.gmail.com:465')).toBeTruthy()
+    expect(screen.getAllByText('flung.dev').length).toBeGreaterThan(0)
+  })
+})

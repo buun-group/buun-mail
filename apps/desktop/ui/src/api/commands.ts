@@ -26,6 +26,7 @@ export const COMMANDS = {
   attachmentData: 'attachment_data',
   openAttachment: 'open_attachment',
   describeFiles: 'describe_files',
+  addSmtpSender: 'add_smtp_sender',
   openMessage: 'open_message',
   markAllRead: 'mark_all_read',
   importFiles: 'import_files',

@@ -17,6 +17,8 @@ const FILE: &str = "senders.json";
 pub enum SenderKind {
     /// Resend, through its HTTP API.
     Resend,
+    /// A mail server, over SMTP.
+    Smtp,
 }
 
 /// A domain a sender may send from, and whether its owner has finished verifying it there.
@@ -48,9 +50,12 @@ pub struct SenderSettings {
     pub name: String,
     /// Which service it is.
     pub kind: SenderKind,
-    /// The API key. Never sent to the UI.
+    /// The secret: Resend's API key, or the mail server's password. Never sent to the UI.
     pub api_key: String,
-    /// True for a key that may only send, so its domains were entered by hand rather than listed.
+    /// The mail server, for an SMTP sender.
+    #[serde(default)]
+    pub smtp: Option<super::smtp::SmtpServer>,
+    /// True when its domains were entered by hand: a sending-only Resend key, or a mail server.
     pub restricted: bool,
     /// The domains it may send from.
     pub domains: Vec<SenderDomain>,

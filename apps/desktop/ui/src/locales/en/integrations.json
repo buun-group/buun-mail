@@ -199,5 +199,34 @@
     "connected": "Resend connected",
     "domainsLabel": "Domains this key may send from",
     "domainsHint": "This key may only send, so Resend will not list its domains. Separate them with commas."
+  },
+  "smtp": {
+    "connectTitle": "Connect a mail server",
+    "preset": "Server",
+    "presets": {
+      "gmail": "Gmail",
+      "icloud": "iCloud Mail",
+      "fastmail": "Fastmail",
+      "zoho": "Zoho Mail",
+      "proton": "Proton Mail Bridge",
+      "custom": "Another server"
+    },
+    "hints": {
+      "gmail": "Use an app password from your Google account (Security, App passwords), with two-step verification on.",
+      "icloud": "Use an app-specific password from your Apple account.",
+      "fastmail": "Use an app password from Fastmail's settings.",
+      "zoho": "Use an app password if two-factor sign-in is on.",
+      "proton": "Proton Mail Bridge must be running on this computer; use the password it shows.",
+      "custom": "Your provider's SMTP server, port and security."
+    },
+    "security": "Security",
+    "tls": "TLS (usually port 465)",
+    "startTls": "STARTTLS (usually port 587)",
+    "none": "None (only for a server on this computer)",
+    "password": "Password or app password",
+    "domains": "Domains it may send from",
+    "domainsHint": "Usually your address's domain; separate several with commas.",
+    "checking": "Checking the sign-in",
+    "connected": "{{host}} connected"
   }
 }

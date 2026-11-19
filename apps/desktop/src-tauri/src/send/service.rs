@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 
 use super::resend::{Domains, RESEND_API, ResendAttachment, ResendClient, ResendEmail, ResendError};
 use super::settings::{self, SenderDomain, SenderKind, SenderSettings};
+use super::smtp::SmtpServer;
 use crate::dto::MessageDto;
 use crate::error::AppError;
 use crate::mailbox::{Mailbox, unix_now};
@@ -31,6 +32,8 @@ pub struct SenderDto {
     pub domains: Vec<SenderDomain>,
     /// Its signature.
     pub signature: String,
+    /// The mail server, for an SMTP sender; never its password.
+    pub smtp: Option<SmtpServer>,
 }
 
 /// A domain mail can be sent from, and the signature its sender adds.
@@ -187,8 +190,39 @@ impl SendService {
             name,
             kind: SenderKind::Resend,
             api_key: key.to_owned(),
+            smtp: None,
             restricted,
             domains,
+            signature: String::new(),
+        });
+        settings::save(&self.0.config_folder, &senders).map_err(|error| error.to_string())?;
+        Ok(senders.iter().map(dto).collect())
+    }
+
+    /// Connects a mail server under `name`: checks the sign-in first, then saves it with the domains it may send from.
+    ///
+    /// # Errors
+    ///
+    /// The refusal in words: no domains, the server cannot be reached, or the sign-in was refused.
+    pub fn add_smtp(&self, name: &str, server: SmtpServer, password: &str, entered: &[String]) -> Result<Vec<SenderDto>, String> {
+        let domains = clean_domains(entered);
+        if domains.is_empty() {
+            return Err("Enter the domains this server may send from.".to_owned());
+        }
+        if server.host.trim().is_empty() {
+            return Err("Enter the mail server's name, such as smtp.gmail.com.".to_owned());
+        }
+        server.check(password).map_err(|error| error.to_string())?;
+        let mut senders = self.0.senders.lock().map_err(|_| AppError::Poisoned.to_string())?;
+        let name = if name.trim().is_empty() { server.host.clone() } else { name.trim().to_owned() };
+        senders.push(SenderSettings {
+            id: format!("sender-{}", unix_now()),
+            name,
+            kind: SenderKind::Smtp,
+            api_key: password.to_owned(),
+            smtp: Some(server),
+            restricted: true,
+            domains: domains.into_iter().map(|name| SenderDomain { name, status: "entered".to_owned() }).collect(),
             signature: String::new(),
         });
         settings::save(&self.0.config_folder, &senders).map_err(|error| error.to_string())?;
@@ -326,9 +360,18 @@ impl SendService {
                 })
                 .collect(),
         };
-        match sender.kind {
-            SenderKind::Resend => ResendClient::new(&self.0.api, &sender.api_key).send(&email, &outgoing.message_id)?,
-        };
+        match (sender.kind, &sender.smtp) {
+            (SenderKind::Smtp, Some(server)) => {
+                // What goes on the wire never names the Bcc recipients; the copy kept in Sent does.
+                let wire = build(&Outgoing { bcc: Vec::new(), ..outgoing.clone() });
+                let everyone: Vec<String> = outgoing.to.iter().chain(&outgoing.cc).chain(&outgoing.bcc).map(|person| person.address.clone()).collect();
+                server.send(&sender.api_key, &from, &everyone, &wire)?;
+            }
+            (SenderKind::Smtp, None) => return Err(SendFailure::refused("This mail server's settings are missing; connect it again.")),
+            (SenderKind::Resend, _) => {
+                ResendClient::new(&self.0.api, &sender.api_key).send(&email, &outgoing.message_id)?;
+            }
+        }
         Ok(self.0.mailbox.keep_sent(&build(&outgoing), &from)?)
     }
 
@@ -381,10 +424,11 @@ fn dto(sender: &SenderSettings) -> SenderDto {
         id: sender.id.clone(),
         name: sender.name.clone(),
         kind: sender.kind,
-        key_hint: hint,
+        key_hint: if sender.kind == SenderKind::Smtp { String::new() } else { hint },
         restricted: sender.restricted,
         domains: sender.domains.clone(),
         signature: sender.signature.clone(),
+        smtp: sender.smtp.clone(),
     }
 }
 

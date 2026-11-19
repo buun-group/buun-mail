@@ -43,7 +43,7 @@ export interface IntegrationField {
   hint?: IntegrationKey
 }
 
-export type IntegrationMethod = { kind: 'form'; fields: readonly IntegrationField[] } | { kind: 'oauth'; provider: string } | { kind: 'file'; accept: string } | { kind: 'gateway' } | { kind: 'resend' }
+export type IntegrationMethod = { kind: 'form'; fields: readonly IntegrationField[] } | { kind: 'oauth'; provider: string } | { kind: 'file'; accept: string } | { kind: 'gateway' } | { kind: 'resend' } | { kind: 'smtp' }
 
 export interface Integration {
   id: IntegrationId
@@ -155,10 +155,7 @@ export const INTEGRATIONS: readonly Integration[] = [
     name: 'providers.smtp.name',
     summary: 'providers.smtp.summary',
     directions: ['send'],
-    method: {
-      kind: 'form',
-      fields: [{ id: 'host', label: 'fields.server', type: 'text', sample: 'smtp.example.com' }, { id: 'port', label: 'fields.port', type: 'number', sample: '465' }, ...IMAP_LOGIN],
-    },
+    method: { kind: 'smtp' },
   },
 ]
 

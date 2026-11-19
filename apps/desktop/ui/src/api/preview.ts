@@ -1,4 +1,4 @@
-import type { Activity, AgentStatus, Contact, Draft, KnownContact, MailView, Message, MessageDetail, Place, Rule, Sendable, Sender, TagCount, Workspace } from './types'
+import type { Activity, AgentStatus, Contact, Draft, KnownContact, SmtpServer, MailView, Message, MessageDetail, Place, Rule, Sendable, Sender, TagCount, Workspace } from './types'
 
 /**
  * A small stand-in mailbox for `pnpm dev:ui`, where there is no Rust side, so the layout can be tuned in a plain
@@ -85,13 +85,18 @@ function found(id: string): Message {
 }
 
 /** The senders the preview keeps in memory: one, so compose and reply can be worked on in a browser. */
-const SENDERS: Sender[] = [{ id: 'preview-sender', name: 'Resend', kind: 'resend', keyHint: 'demo', restricted: false, domains: [{ name: 'buungroup.com', status: 'verified' }, { name: 'plotwork.dev', status: 'pending' }], signature: 'Sacha\nBuun Group' }]
+const SENDERS: Sender[] = [{ id: 'preview-sender', name: 'Resend', kind: 'resend', keyHint: 'demo', restricted: false, domains: [{ name: 'buungroup.com', status: 'verified' }, { name: 'plotwork.dev', status: 'pending' }], signature: 'Sacha\nBuun Group', smtp: null }]
 
 export const preview = {
   senders: (): Sender[] => SENDERS.map((sender) => ({ ...sender })),
   addSender: (name: string, key: string, domains: string[]): Sender[] => {
     if (!key.startsWith('re_')) throw new Error('Resend refused the API key: API key is invalid')
-    SENDERS.push({ id: `preview-${SENDERS.length + 1}`, name: name || 'Resend', kind: 'resend', keyHint: key.slice(-4), restricted: domains.length > 0, domains: domains.map((domain) => ({ name: domain, status: 'entered' })), signature: '' })
+    SENDERS.push({ id: `preview-${SENDERS.length + 1}`, name: name || 'Resend', kind: 'resend', keyHint: key.slice(-4), restricted: domains.length > 0, domains: domains.map((domain) => ({ name: domain, status: 'entered' })), signature: '', smtp: null })
+    return preview.senders()
+  },
+  addSmtp: (name: string, server: SmtpServer, domains: string[]): Sender[] => {
+    if (server.host.trim() === '') throw new Error("Enter the mail server's name, such as smtp.gmail.com.")
+    SENDERS.push({ id: `preview-${SENDERS.length + 1}`, name: name || server.host, kind: 'smtp', keyHint: '', restricted: true, domains: domains.map((domain) => ({ name: domain, status: 'entered' })), signature: '', smtp: server })
     return preview.senders()
   },
   updateSender: (id: string, change: { signature?: string; domains?: string[] }): Sender[] => {

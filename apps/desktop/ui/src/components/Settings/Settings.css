@@ -936,3 +936,13 @@ label.settings__label {
 .sender-domain__state[data-tone='problem'] svg {
   color: var(--status-danger-fg);
 }
+
+.connect__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 6rem;
+  gap: var(--space-3);
+}
+
+.connect__field--short input {
+  width: 100%;
+}

@@ -200,12 +200,25 @@ export interface SenderDomain {
 export interface Sender {
   id: string
   name: string
-  kind: 'resend'
-  /** The key's last four characters. */
+  kind: 'resend' | 'smtp'
+  /** The key's last four characters; empty for a mail server. */
   keyHint: string
   restricted: boolean
   domains: SenderDomain[]
   signature: string
+  /** The mail server, for an SMTP sender; never its password. */
+  smtp: SmtpServer | null
+}
+
+/** How the connection to a mail server is protected. */
+export type SmtpSecurity = 'tls' | 'startTls' | 'none'
+
+/** A mail server for sending. Mirrors `SmtpServer`. */
+export interface SmtpServer {
+  host: string
+  port: number
+  security: SmtpSecurity
+  username: string
 }
 
 /** A domain mail can be sent from now, and its sender's signature. Mirrors `SendableDto`. */
