@@ -22,11 +22,26 @@ The envelope recipient survives the hop, so placing a message is a table lookup,
 | Tags, rules (tag, move, mark read, quiet on arrival), activity log | Done |
 | Notifications: header bell, toasts, desktop notifications, per-workspace mute | Done |
 | Agent access: MCP server on 127.0.0.1, token, 15 tools, setup for Claude Code, Cursor, VS Code | Done |
-| Buun Mail Gateway sync: collect mail from the gateway in buungroup-app (`apps/mail-gateway`), checked every 30 seconds | Done |
+| Buun Mail Gateway sync: collect mail from the gateway in buungroup-app (`apps/mail-gateway`), checked every 30 seconds; several gateways and relayed domains | Done |
+| Reading: HTML mail in a sealed frame with remote images blocked until allowed, attachments, To, Cc and Reply-To, sender verification (SPF, DKIM, DMARC) | Done |
+| Organising: archive, trash, stars, read state, moves, quick actions, right-click menus, export (`.eml`, JSON, CSV, text) | Done |
+| Conversations, and search across every folder's full text (SQLite FTS5) | Done |
+| Writing: compose, reply, reply all and forward through Resend as any address on a verified domain, Sent folder, drafts, undo send, an outbox that retries, signatures | Done |
 | Live push from the gateway over WebSocket, sealed messages at rest | Next |
-| Search | After |
-| Reply and compose as the right address (Resend, SPF, DKIM, DMARC per domain) | After |
+| SMTP sending, attachments on outgoing mail | Next |
 | IMAP pull for Gmail, Outlook and Proton Bridge | Last |
+
+## Sending with Resend
+
+In Settings, Integrations, Resend, paste an API key. A full-access key brings its domains and their state from Resend
+(ready to send, waiting for DNS, failed); a sending-only key, which Resend will not let list domains, asks for the
+domains it may send from. Keys are kept in `senders.json` in the config folder, readable by you only, and never shown
+again beyond their last four characters.
+
+Any address on a verified domain can send, so a reply goes out from exactly the address the mail was sent to. Replies
+carry In-Reply-To and References, so they thread in the other person's mail app, and a copy is kept in the Sent folder
+of the workspace the address belongs to. Send waits five seconds with Undo; a message Resend cannot take for now waits
+in an outbox and goes when it can. Reply stays greyed out where no key covers the domain.
 
 ## Commands
 
