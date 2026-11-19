@@ -8,9 +8,10 @@
 .message-list__header {
   display: grid;
   grid-template-columns: 1fr auto;
-  align-items: end;
-  gap: var(--space-3);
-  padding: var(--space-4) var(--space-4) var(--space-3);
+  grid-template-rows: var(--titlebar-height) auto;
+  align-items: center;
+  gap: 0 var(--space-3);
+  padding: 0 var(--space-4) var(--space-3);
   border-bottom: 1px solid var(--border-faint);
 }
 

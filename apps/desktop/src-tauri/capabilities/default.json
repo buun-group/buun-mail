@@ -1,19 +1,38 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "The main window: core events, and opening only the Buun Group product sites in the browser.",
-  "windows": ["main"],
+  "description": "The main window: core events, drawing its own title bar, and opening only the Buun Group product sites in the browser.",
+  "windows": [
+    "main"
+  ],
   "permissions": [
     "core:default",
+    "core:window:allow-is-maximized",
+    "core:window:allow-close",
+    "core:window:allow-toggle-maximize",
+    "core:window:allow-minimize",
+    "core:window:allow-start-dragging",
     {
       "identifier": "opener:allow-open-url",
       "allow": [
-        { "url": "https://plotwork.dev" },
-        { "url": "https://flung.dev" },
-        { "url": "https://gunspec.io" },
-        { "url": "https://dissolve.email" },
-        { "url": "https://cryptflare.com" },
-        { "url": "https://buungroup.com" }
+        {
+          "url": "https://plotwork.dev"
+        },
+        {
+          "url": "https://flung.dev"
+        },
+        {
+          "url": "https://gunspec.io"
+        },
+        {
+          "url": "https://dissolve.email"
+        },
+        {
+          "url": "https://cryptflare.com"
+        },
+        {
+          "url": "https://buungroup.com"
+        }
       ]
     }
   ]

@@ -124,8 +124,8 @@ export function Sidebar({ workspaces, place, theme, themePreference, onThemePref
   return (
     <div className="sidebar-slot">
       <nav ref={nav} className="sidebar" aria-label="Workspaces" data-collapsed={collapsed} data-rail={rail} data-peek={peek}>
-        <header className="sidebar__top">
-          <span className="sidebar__brand">
+        <header className="sidebar__top" data-tauri-drag-region>
+          <span className="sidebar__brand" data-tauri-drag-region>
             <Mark size={22} />
             <span className="sidebar__text">Buun Mail</span>
           </span>

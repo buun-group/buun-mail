@@ -41,6 +41,13 @@
 
   --status-danger-fg: #b3261e;
 
+  /* The close button's hover, as Windows draws it. */
+  --window-close-hover: #c42b1c;
+  --window-close-text: #ffffff;
+
+  /* Every pane's top row: one height, so the title bar reads as one line across the window. */
+  --titlebar-height: 3rem;
+
   --emboss-light: rgba(255, 255, 255, 0.95);
   --emboss-dark: rgba(0, 0, 0, 0.1);
   --shadow-card: inset 0 1px 0 var(--emboss-light), 0 0 0 1px var(--alpha-8), 0 1px 2px rgba(0, 0, 0, 0.04), 0 10px 24px -12px rgba(0, 0, 0, 0.12);

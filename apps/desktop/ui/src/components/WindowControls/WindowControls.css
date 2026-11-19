@@ -1,0 +1,23 @@
+.window-controls {
+  display: flex;
+  align-self: stretch;
+  margin: calc(var(--space-2) * -1) calc(var(--space-4) * -1) calc(var(--space-2) * -1) auto;
+}
+
+.window-controls__button {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  color: var(--text-secondary);
+  font-size: var(--text-base);
+}
+
+.window-controls__button:hover {
+  background: var(--alpha-8);
+  color: var(--text-primary);
+}
+
+.window-controls__button--close:hover {
+  background: var(--window-close-hover);
+  color: var(--window-close-text);
+}

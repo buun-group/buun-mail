@@ -20,8 +20,8 @@ export function MessageList({ workspace, place, messages, selectedId, onSelect }
   const unread = messages.filter((message) => message.unread).length
   return (
     <section className="message-list" aria-label="Messages">
-      <header className="message-list__header">
-        <div className="message-list__title">
+      <header className="message-list__header" data-tauri-drag-region>
+        <div className="message-list__title" data-tauri-drag-region>
           <h1>{place?.folder ?? INBOX_LABEL}</h1>
           <span>{workspace?.name}</span>
         </div>

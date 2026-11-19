@@ -81,9 +81,20 @@
 .sidebar__top {
   display: grid;
   grid-template-columns: 1fr auto;
+  grid-template-rows: var(--titlebar-height) auto;
   align-items: center;
-  gap: var(--space-2) var(--space-1);
-  padding: var(--space-3);
+  gap: 0 var(--space-1);
+  padding: 0 var(--space-3) var(--space-3);
+}
+
+/* macOS keeps its traffic lights over the top-left corner; the brand moves clear of them. */
+:root[data-platform='mac'] .sidebar__brand {
+  padding-left: 4.25rem;
+}
+
+:root[data-platform='mac'] .sidebar[data-rail='true'] .sidebar__top {
+  grid-template-rows: calc(var(--titlebar-height) + 1.25rem) auto;
+  align-items: end;
 }
 
 .sidebar__brand {
