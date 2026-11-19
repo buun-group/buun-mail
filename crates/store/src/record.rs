@@ -37,6 +37,8 @@ pub struct MessageRecord {
     pub message_id: Option<String>,
     /// True until read.
     pub unread: bool,
+    /// Tags, sorted. Empty for a new message until rules or a person add some.
+    pub tags: Vec<String>,
 }
 
 /// How many unread messages one folder holds.
@@ -46,4 +48,26 @@ pub struct UnreadCount {
     pub placement: Placement,
     /// Its unread messages.
     pub unread: u32,
+}
+
+/// A stored rule: its id and its body, which the store keeps as opaque JSON; the `rules` crate reads it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct StoredRule {
+    /// A stable id.
+    pub id: String,
+    /// The rule as JSON.
+    pub body: String,
+}
+
+/// One entry in the activity log: who did what, when.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Activity {
+    /// When, Unix seconds.
+    pub at: i64,
+    /// Who: `you`, `rule:<name>` or `agent:<name>`.
+    pub actor: String,
+    /// What, as a short verb: `tag`, `move`, `mark_read`, `add_rule`.
+    pub action: String,
+    /// The details, in words.
+    pub detail: String,
 }

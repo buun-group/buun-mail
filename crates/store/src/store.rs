@@ -7,7 +7,7 @@ use rusqlite::{Connection, OptionalExtension, Row, params};
 
 use crate::error::StoreError;
 use crate::raw::RawFiles;
-use crate::record::{MessageRecord, Placement, UnreadCount};
+use crate::record::{Activity, MessageRecord, Placement, StoredRule, UnreadCount};
 use crate::schema::migrate;
 
 /// The index file's name inside the store folder.
@@ -16,8 +16,19 @@ const INDEX_FILE: &str = "index.sqlite";
 /// The raw messages' folder name inside the store folder.
 const RAW_DIR: &str = "raw";
 
-/// Every column of a message row, in the order [`record_from_row`] reads them.
-const COLUMNS: &str = "id, workspace, folder, matched, folder_matched, from_name, from_address, to_address, subject, preview, sent_at, message_id, unread";
+/// Every column of a message row, in the order [`record_from_row`] reads them. Tags come last, joined with [`TAG_SEPARATOR`].
+const COLUMNS: &str = "id, workspace, folder, matched, folder_matched, from_name, from_address, to_address, subject, preview, sent_at, message_id, unread, \
+    (SELECT group_concat(tag, char(31)) FROM (SELECT tag FROM tags WHERE tags.message_id = messages.id ORDER BY tag))";
+
+/// The columns written on insert, without the derived tags.
+const INSERT_COLUMNS: &str =
+    "id, workspace, folder, matched, folder_matched, from_name, from_address, to_address, subject, preview, sent_at, message_id, unread";
+
+/// Joins a message's tags in one column. The unit separator never appears in a tag.
+const TAG_SEPARATOR: char = '\u{1f}';
+
+/// How many results a search returns at most.
+pub const SEARCH_LIMIT: usize = 200;
 
 /// What happened to a message handed to [`Store::insert`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -45,6 +56,7 @@ impl Store {
         fs::create_dir_all(folder)?;
         let mut index = Connection::open(folder.join(INDEX_FILE))?;
         index.pragma_update(None, "journal_mode", "WAL")?;
+        index.pragma_update(None, "foreign_keys", true)?;
         migrate(&mut index)?;
         Ok(Self { index, raw: RawFiles::new(folder.join(RAW_DIR)) })
     }
@@ -67,7 +79,7 @@ impl Store {
         // The file first: a row must never point at bytes that are not there.
         self.raw.write(&record.id, raw)?;
         self.index.execute(
-            &format!("INSERT INTO messages ({COLUMNS}) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)"),
+            &format!("INSERT INTO messages ({INSERT_COLUMNS}) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)"),
             params![
                 record.id,
                 record.placement.workspace,
@@ -84,6 +96,7 @@ impl Store {
                 record.unread,
             ],
         )?;
+        self.add_tags(&record.id, &record.tags)?;
         Ok(Inserted::New)
     }
 
@@ -170,6 +183,143 @@ impl Store {
         Ok(changed)
     }
 
+    /// Messages whose subject, sender, recipient, preview or tag contains `query` (case-insensitive), newest first,
+    /// optionally within one workspace, and only unread ones when asked.
+    ///
+    /// # Errors
+    ///
+    /// [`StoreError`] when the index cannot be read.
+    pub fn search(&self, query: &str, workspace: Option<&str>, unread_only: bool, limit: usize) -> Result<Vec<MessageRecord>, StoreError> {
+        let pattern = format!("%{}%", query.replace('\\', "\\\\").replace('%', "\\%").replace('_', "\\_"));
+        let mut statement = self.index.prepare_cached(&format!(
+            "SELECT {COLUMNS} FROM messages WHERE (?1 = '%%' OR subject LIKE ?1 ESCAPE '\\' OR from_address LIKE ?1 ESCAPE '\\' OR from_name LIKE ?1 ESCAPE '\\' \
+             OR to_address LIKE ?1 ESCAPE '\\' OR preview LIKE ?1 ESCAPE '\\' OR EXISTS (SELECT 1 FROM tags WHERE tags.message_id = messages.id AND tag LIKE ?1 ESCAPE '\\')) \
+             AND (?2 IS NULL OR workspace = ?2) AND (?3 = 0 OR unread = 1) ORDER BY sent_at DESC LIMIT ?4"
+        ))?;
+        let limit = i64::try_from(limit.min(SEARCH_LIMIT)).unwrap_or(0);
+        let rows = statement.query_map(params![pattern, workspace, unread_only, limit], record_from_row)?;
+        Ok(rows.collect::<rusqlite::Result<_>>()?)
+    }
+
+    /// Adds tags to a message. Tags already there are left alone; empty ones are skipped.
+    ///
+    /// # Errors
+    ///
+    /// [`StoreError::NotFound`] for an unknown id, or when the index cannot be written.
+    pub fn add_tags(&self, id: &str, tags: &[String]) -> Result<(), StoreError> {
+        if !tags.is_empty() && !self.contains(id)? {
+            return Err(StoreError::NotFound(id.to_owned()));
+        }
+        let mut statement = self.index.prepare_cached("INSERT OR IGNORE INTO tags (message_id, tag) VALUES (?1, ?2)")?;
+        for tag in tags.iter().map(|tag| tag.trim()).filter(|tag| !tag.is_empty()) {
+            statement.execute(params![id, tag])?;
+        }
+        Ok(())
+    }
+
+    /// Removes one tag from a message. Returns false when it did not have it.
+    ///
+    /// # Errors
+    ///
+    /// [`StoreError`] when the index cannot be written.
+    pub fn remove_tag(&self, id: &str, tag: &str) -> Result<bool, StoreError> {
+        Ok(self.index.execute("DELETE FROM tags WHERE message_id = ?1 AND tag = ?2", params![id, tag])? == 1)
+    }
+
+    /// Every tag in use, with how many messages carry it, most used first.
+    ///
+    /// # Errors
+    ///
+    /// [`StoreError`] when the index cannot be read.
+    pub fn tag_counts(&self) -> Result<Vec<(String, u32)>, StoreError> {
+        let mut statement = self.index.prepare_cached("SELECT tag, COUNT(*) FROM tags GROUP BY tag ORDER BY COUNT(*) DESC, tag")?;
+        let rows = statement.query_map([], |row| Ok((row.get(0)?, row.get(1)?)))?;
+        Ok(rows.collect::<rusqlite::Result<_>>()?)
+    }
+
+    /// Moves a message to another workspace or folder, overriding where routing put it.
+    ///
+    /// # Errors
+    ///
+    /// [`StoreError::NotFound`] for an unknown id, or when the index cannot be written.
+    pub fn move_to(&self, id: &str, placement: &Placement) -> Result<(), StoreError> {
+        let changed =
+            self.index.execute("UPDATE messages SET workspace = ?2, folder = ?3 WHERE id = ?1", params![id, placement.workspace, placement.folder])?;
+        if changed == 0 {
+            return Err(StoreError::NotFound(id.to_owned()));
+        }
+        Ok(())
+    }
+
+    /// Every rule, in the order they run.
+    ///
+    /// # Errors
+    ///
+    /// [`StoreError`] when the index cannot be read.
+    pub fn rules(&self) -> Result<Vec<StoredRule>, StoreError> {
+        let mut statement = self.index.prepare_cached("SELECT id, body FROM rules ORDER BY position, id")?;
+        let rows = statement.query_map([], |row| Ok(StoredRule { id: row.get(0)?, body: row.get(1)? }))?;
+        Ok(rows.collect::<rusqlite::Result<_>>()?)
+    }
+
+    /// Adds a rule at the end, or replaces the body of the rule with the same id where it stands.
+    ///
+    /// # Errors
+    ///
+    /// [`StoreError`] when the index cannot be written.
+    pub fn save_rule(&self, rule: &StoredRule) -> Result<(), StoreError> {
+        self.index.execute(
+            "INSERT INTO rules (id, position, body) VALUES (?1, (SELECT COALESCE(MAX(position), 0) + 1 FROM rules), ?2) \
+             ON CONFLICT (id) DO UPDATE SET body = excluded.body",
+            params![rule.id, rule.body],
+        )?;
+        Ok(())
+    }
+
+    /// Deletes a rule. Returns false when there was none with that id.
+    ///
+    /// # Errors
+    ///
+    /// [`StoreError`] when the index cannot be written.
+    pub fn delete_rule(&self, id: &str) -> Result<bool, StoreError> {
+        Ok(self.index.execute("DELETE FROM rules WHERE id = ?1", [id])? == 1)
+    }
+
+    /// Every message id, newest first, for re-running rules over old mail.
+    ///
+    /// # Errors
+    ///
+    /// [`StoreError`] when the index cannot be read.
+    pub fn all(&self) -> Result<Vec<MessageRecord>, StoreError> {
+        let mut statement = self.index.prepare_cached(&format!("SELECT {COLUMNS} FROM messages ORDER BY sent_at DESC"))?;
+        let rows = statement.query_map([], record_from_row)?;
+        Ok(rows.collect::<rusqlite::Result<_>>()?)
+    }
+
+    /// Notes something a person, a rule or an agent changed.
+    ///
+    /// # Errors
+    ///
+    /// [`StoreError`] when the index cannot be written.
+    pub fn log(&self, entry: &Activity) -> Result<(), StoreError> {
+        self.index
+            .execute("INSERT INTO activity (at, actor, action, detail) VALUES (?1, ?2, ?3, ?4)", params![entry.at, entry.actor, entry.action, entry.detail])?;
+        Ok(())
+    }
+
+    /// The latest activity, newest first.
+    ///
+    /// # Errors
+    ///
+    /// [`StoreError`] when the index cannot be read.
+    pub fn activity(&self, limit: usize) -> Result<Vec<Activity>, StoreError> {
+        let mut statement = self.index.prepare_cached("SELECT at, actor, action, detail FROM activity ORDER BY at DESC, rowid DESC LIMIT ?1")?;
+        let rows = statement.query_map([i64::try_from(limit).unwrap_or(0)], |row| {
+            Ok(Activity { at: row.get(0)?, actor: row.get(1)?, action: row.get(2)?, detail: row.get(3)? })
+        })?;
+        Ok(rows.collect::<rusqlite::Result<_>>()?)
+    }
+
     fn contains(&self, id: &str) -> Result<bool, StoreError> {
         Ok(self.index.query_row("SELECT 1 FROM messages WHERE id = ?1", [id], |_| Ok(())).optional()?.is_some())
     }
@@ -190,5 +340,6 @@ fn record_from_row(row: &Row<'_>) -> rusqlite::Result<MessageRecord> {
         sent_at: row.get(10)?,
         message_id: row.get(11)?,
         unread: row.get(12)?,
+        tags: row.get::<_, Option<String>>(13)?.map(|joined| joined.split(TAG_SEPARATOR).map(str::to_owned).collect()).unwrap_or_default(),
     })
 }

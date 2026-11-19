@@ -2,7 +2,7 @@
 //! `apps/desktop/ui/src/api/types.ts` mirrors these; change both together.
 
 use buun_mail_message::rfc3339;
-use buun_mail_store::MessageRecord;
+use buun_mail_store::{Activity, MessageRecord};
 use serde::Serialize;
 
 /// One workspace in the sidebar.
@@ -63,6 +63,8 @@ pub struct MessageDto {
     pub received_at: String,
     /// True until read.
     pub unread: bool,
+    /// Tags, sorted.
+    pub tags: Vec<String>,
 }
 
 impl From<MessageRecord> for MessageDto {
@@ -80,6 +82,7 @@ impl From<MessageRecord> for MessageDto {
             preview: record.preview,
             received_at: rfc3339(record.sent_at),
             unread: record.unread,
+            tags: record.tags,
         }
     }
 }
@@ -114,4 +117,34 @@ pub struct ImportFailureDto {
     pub source: String,
     /// Why, in words for a person.
     pub reason: String,
+}
+
+/// A tag and how many messages carry it.
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct TagCountDto {
+    /// The tag.
+    pub tag: String,
+    /// How many messages carry it.
+    pub count: u32,
+}
+
+/// One change in the activity log.
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct ActivityDto {
+    /// When, RFC 3339 in UTC.
+    pub at: String,
+    /// Who: `you`, `rule:<name>` or `agent:<name>`.
+    pub actor: String,
+    /// What: `tag`, `move`, `mark_read`, `save_rule` and so on.
+    pub action: String,
+    /// The details, in words.
+    pub detail: String,
+}
+
+impl From<Activity> for ActivityDto {
+    fn from(entry: Activity) -> Self {
+        Self { at: rfc3339(entry.at), actor: entry.actor, action: entry.action, detail: entry.detail }
+    }
 }

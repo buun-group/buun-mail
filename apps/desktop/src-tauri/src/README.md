@@ -15,8 +15,8 @@ Code here follows:
 | `main.rs` | The binary; calls `run` |
 | `lib.rs` | Builds the app: plugins, the mailbox as state, the commands |
 | `paths.rs` | Where the routing file and the store live on this platform; writes the example routing file on first run |
-| `ingest.rs` | Parse, route and store one message. Every mail source goes through it |
-| `mailbox.rs` | What the UI reads and changes: workspaces with counts, messages, open, mark read, import |
+| `ingest.rs` | Parse, route, run the rules on and store one message. Every mail source goes through it |
+| `mailbox/` | What the UI and agents read and change: `read` (lists, search, activity), `change` (tags, moves, read state), `rules`, `import`; every change logged with who made it |
 | `commands.rs` | The thin Tauri commands |
 | `events.rs` | What the Rust side tells the UI unasked: `mail-arrived` |
 | `dto.rs` | The shapes sent to the UI, mirrored in `ui/src/api/types.ts` |

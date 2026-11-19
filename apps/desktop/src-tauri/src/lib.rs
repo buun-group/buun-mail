@@ -3,7 +3,7 @@
 //!
 //! - `paths`: where the routing file and the store live on this platform
 //! - `ingest`: parse, route and store one message; every mail source goes through it
-//! - `mailbox`: what the UI reads and changes, on top of the store
+//! - `mailbox`: what the UI and agents read and change, on top of the store
 //! - `commands`: the thin Tauri commands
 //! - `events`: what the Rust side tells the UI unasked, such as new mail
 //! - `dto`: the shapes sent to the UI
@@ -44,6 +44,14 @@ pub fn run() {
             commands::list_messages,
             commands::open_message,
             commands::mark_all_read,
+            commands::tag_message,
+            commands::untag_message,
+            commands::list_tags,
+            commands::list_rules,
+            commands::save_rule,
+            commands::delete_rule,
+            commands::apply_rules,
+            commands::list_activity,
             commands::import_files,
             commands::routing_path,
         ])

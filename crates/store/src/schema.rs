@@ -4,7 +4,8 @@ use rusqlite::Connection;
 
 /// Each migration in order. Index `n` takes the database from version `n` to `n + 1`. Never edit one that has
 /// shipped; add the next.
-const MIGRATIONS: &[&str] = &["CREATE TABLE messages (
+const MIGRATIONS: &[&str] = &[
+    "CREATE TABLE messages (
         id             TEXT PRIMARY KEY,
         workspace      TEXT NOT NULL,
         folder         TEXT,
@@ -19,7 +20,26 @@ const MIGRATIONS: &[&str] = &["CREATE TABLE messages (
         message_id     TEXT,
         unread         INTEGER NOT NULL DEFAULT 1
     ) STRICT;
-    CREATE INDEX messages_by_folder ON messages (workspace, folder, sent_at DESC);"];
+    CREATE INDEX messages_by_folder ON messages (workspace, folder, sent_at DESC);",
+    "CREATE TABLE tags (
+        message_id TEXT NOT NULL REFERENCES messages (id) ON DELETE CASCADE,
+        tag        TEXT NOT NULL,
+        PRIMARY KEY (message_id, tag)
+    ) STRICT;
+    CREATE INDEX tags_by_tag ON tags (tag);
+    CREATE TABLE rules (
+        id       TEXT PRIMARY KEY,
+        position INTEGER NOT NULL,
+        body     TEXT NOT NULL
+    ) STRICT;
+    CREATE TABLE activity (
+        at     INTEGER NOT NULL,
+        actor  TEXT NOT NULL,
+        action TEXT NOT NULL,
+        detail TEXT NOT NULL
+    ) STRICT;
+    CREATE INDEX activity_by_time ON activity (at DESC);",
+];
 
 /// Brings the database up to the latest version, one migration at a time, each in its own transaction.
 pub(crate) fn migrate(connection: &mut Connection) -> rusqlite::Result<()> {

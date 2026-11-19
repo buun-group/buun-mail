@@ -1,6 +1,7 @@
 //! The one error the commands return. It reaches the UI as its message, which is written for a person.
 
 use buun_mail_routing::ConfigError;
+use buun_mail_rules::RuleError;
 use buun_mail_store::StoreError;
 use serde::{Serialize, Serializer};
 use thiserror::Error;
@@ -11,6 +12,9 @@ pub enum AppError {
     /// The routing file is invalid.
     #[error("the routing file has a problem: {0}")]
     Routing(#[from] ConfigError),
+    /// A rule is not valid.
+    #[error(transparent)]
+    Rule(#[from] RuleError),
     /// The local store failed.
     #[error(transparent)]
     Store(#[from] StoreError),

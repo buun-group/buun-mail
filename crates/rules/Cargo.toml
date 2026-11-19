@@ -1,0 +1,17 @@
+[package]
+name = "buun-mail-rules"
+description = "Rules that run on mail as it arrives: when it matches, tag it, move it, mark it read or keep it quiet. Pure."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+buun-mail-routing.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+
+[lints]
+workspace = true

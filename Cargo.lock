@@ -352,6 +352,7 @@ version = "0.1.0"
 dependencies = [
  "buun-mail-message",
  "buun-mail-routing",
+ "buun-mail-rules",
  "buun-mail-store",
  "serde",
  "serde_json",
@@ -380,6 +381,16 @@ dependencies = [
  "serde",
  "thiserror 2.0.21",
  "toml 1.1.8+spec-1.1.0",
+]
+
+[[package]]
+name = "buun-mail-rules"
+version = "0.1.0"
+dependencies = [
+ "buun-mail-routing",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
 ]
 
 [[package]]

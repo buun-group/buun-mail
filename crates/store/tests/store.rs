@@ -20,6 +20,7 @@ fn record(id: &str, workspace: &str, folder: Option<&str>, sent_at: i64) -> Mess
         sent_at,
         message_id: None,
         unread: true,
+        tags: Vec::new(),
     }
 }
 
@@ -83,6 +84,55 @@ fn reopens_with_its_messages() -> Result<(), StoreError> {
 #[test]
 fn says_when_a_message_is_missing() -> Result<(), StoreError> {
     let (_folder, store) = store()?;
-    assert!(matches!(store.get("nope"), Err(StoreError::NotFound(_))));
+    let result = store.get("nope");
+    assert!(matches!(result, Err(StoreError::NotFound(_))), "{result:?}");
+    Ok(())
+}
+
+#[test]
+fn tags_messages_and_finds_them() -> Result<(), StoreError> {
+    let (_folder, store) = store()?;
+    let mut tagged = record("aa01", "acme", None, 1);
+    tagged.tags = vec!["invoice".to_owned()];
+    store.insert(&tagged, b"1")?;
+    store.insert(&record("aa02", "globex", None, 2), b"2")?;
+
+    store.add_tags("aa02", &["urgent".to_owned(), "invoice".to_owned(), " ".to_owned()])?;
+    assert_eq!(store.get("aa02")?.tags, ["invoice", "urgent"]);
+    assert_eq!(store.tag_counts()?, [("invoice".to_owned(), 2), ("urgent".to_owned(), 1)]);
+    assert!(store.remove_tag("aa02", "urgent")?);
+
+    let found: Vec<_> = store.search("invoice", None, false, 10)?.into_iter().map(|message| message.id).collect();
+    assert_eq!(found, ["aa02", "aa01"]);
+    assert_eq!(store.search("invoice", Some("acme"), false, 10)?.len(), 1);
+    assert_eq!(store.search("100%", None, false, 10)?.len(), 0);
+    assert!(matches!(store.add_tags("nope", &["x".to_owned()]), Err(StoreError::NotFound(_))));
+    Ok(())
+}
+
+#[test]
+fn moves_a_message_and_keeps_rules_in_order() -> Result<(), StoreError> {
+    let (_folder, store) = store()?;
+    store.insert(&record("aa01", "acme", None, 1), b"1")?;
+    store.move_to("aa01", &placement("globex", Some("Later")))?;
+    assert_eq!(store.get("aa01")?.placement, placement("globex", Some("Later")));
+
+    store.save_rule(&buun_mail_store::StoredRule { id: "b".to_owned(), body: "{}".to_owned() })?;
+    store.save_rule(&buun_mail_store::StoredRule { id: "a".to_owned(), body: "{}".to_owned() })?;
+    store.save_rule(&buun_mail_store::StoredRule { id: "b".to_owned(), body: "{\"v\":2}".to_owned() })?;
+    let rules = store.rules()?;
+    assert_eq!(rules.iter().map(|rule| rule.id.as_str()).collect::<Vec<_>>(), ["b", "a"]);
+    assert_eq!(rules.first().map(|rule| rule.body.as_str()), Some("{\"v\":2}"));
+    assert!(store.delete_rule("a")?);
+    Ok(())
+}
+
+#[test]
+fn logs_activity_newest_first() -> Result<(), StoreError> {
+    let (_folder, store) = store()?;
+    for (at, action) in [(1, "tag"), (2, "move")] {
+        store.log(&buun_mail_store::Activity { at, actor: "agent:claude".to_owned(), action: action.to_owned(), detail: String::new() })?;
+    }
+    assert_eq!(store.activity(10)?.first().map(|entry| entry.action.as_str()), Some("move"));
     Ok(())
 }

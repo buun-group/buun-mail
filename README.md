@@ -50,7 +50,8 @@ and Intel: `.dmg`) and Windows (`.msi`, setup `.exe`) into a draft release. Arch
 |---|---|
 | [`crates/routing`](crates/routing/README.md) | Pure routing: which workspace and folder a message belongs to. No I/O |
 | [`crates/message`](crates/message/README.md) | Pure parsing: raw mail to what the app shows. No I/O |
-| [`crates/store`](crates/store/README.md) | The local store: SQLite index and raw `.eml` files |
+| [`crates/store`](crates/store/README.md) | The local store: SQLite index, raw `.eml` files, tags, rules, activity log |
+| [`crates/rules`](crates/rules/README.md) | Pure rules: when mail matches, tag, move, mark read or keep quiet |
 | [`apps/desktop`](apps/desktop/README.md) | The Tauri app: Rust shell in `src-tauri`, React UI in `ui` |
 | [`packages/brand`](packages/brand/README.md) | The brand kit: mark, lockups, icons, social card, motion |
 | [`packaging`](packaging/README.md) | Arch PKGBUILD, the Linux desktop entry, which installer to pick |

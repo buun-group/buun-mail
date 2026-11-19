@@ -17,6 +17,7 @@ tauri-build.workspace = true
 [dependencies]
 buun-mail-message.workspace = true
 buun-mail-routing.workspace = true
+buun-mail-rules.workspace = true
 buun-mail-store.workspace = true
 serde.workspace = true
 serde_json.workspace = true
