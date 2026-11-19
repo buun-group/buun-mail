@@ -86,6 +86,7 @@ export {
   PiCopyLight as IconCopy,
   PiPencilSimpleLight as IconRename,
   PiCaretDownLight as IconCaretDown,
+  PiCaretUpLight as IconCaretUp,
   PiCheckLight as IconCheck,
   PiStarLight as IconStar,
   PiArrowLeftLight as IconBack,

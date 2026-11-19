@@ -116,6 +116,8 @@ export function App(): ReactNode {
         actions={actions}
         workspaceName={workspaceName}
         theme={preferences.theme}
+        sort={mailbox.sort}
+        onSort={mailbox.setSort}
         wide={preferences.readingPane === 'off'}
       />
       <Reader

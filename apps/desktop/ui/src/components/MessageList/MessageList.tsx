@@ -4,13 +4,14 @@ import { Trans, useTranslation } from 'react-i18next'
 
 import type { MailView, Message, Place, Workspace } from '../../api/types'
 import { INBOX_LABEL } from '../../constants/ui'
-import type { Theme } from '../../constants/ui'
+import type { ListSort, Theme } from '../../constants/ui'
 import { IconArchive, IconDelete, IconFolder, IconInbox, IconSearch, IconStar, IconStarred, IconUnread, isWorkspaceGlyph, WORKSPACE_GLYPHS } from '../../icons'
 import { Avatar } from '../Avatar/Avatar'
 import { formatListed } from '../../lib/time'
 import { ContextMenu, isMenuKey, menuPoint } from '../ContextMenu/ContextMenu'
 import type { MenuRequest } from '../ContextMenu/ContextMenu'
 import type { MessageActions } from '../../hooks/useMessageActions'
+import { ListHeader } from './ListHeader'
 import { QuickActions } from './QuickActions'
 import { TagChips } from '../Tags/Tags'
 
@@ -29,6 +30,8 @@ interface MessageListProps {
   /** Names a workspace, for rows in a list across workspaces. */
   workspaceName: (id: string) => string
   theme: Theme
+  sort: ListSort
+  onSort: (sort: ListSort) => void
   /** The list fills the window (reading pane off): each message on one line. */
   wide: boolean
 }
@@ -39,7 +42,7 @@ const VIEW_GLYPHS = { starred: IconStar, archive: IconArchive, trash: IconDelete
  * The open folder's messages, or a view across workspaces, newest first, as flat rows split by hairlines. Unread is
  * heavier type and an envelope glyph. Right click, the menu key or Shift F10 on a row opens what can be done to it.
  */
-export function MessageList({ workspace, place, view, messages, selectedId, onSelect, actions, workspaceName, theme, wide }: MessageListProps): ReactNode {
+export function MessageList({ workspace, place, view, messages, selectedId, onSelect, actions, workspaceName, theme, sort, onSort, wide }: MessageListProps): ReactNode {
   const { t } = useTranslation(['mail', 'common'])
   const [menu, setMenu] = useState<MenuRequest | null>(null)
   const closeMenu = useCallback(() => setMenu(null), [])
@@ -76,6 +79,8 @@ export function MessageList({ workspace, place, view, messages, selectedId, onSe
           {view === null ? <Trans t={t} i18nKey="list.empty" components={{ addresses: <code>{workspace?.addresses.join(', ') ?? t('list.thisWorkspace')}</code> }} /> : t(`list.emptyView.${view}`)}
         </p>
       ) : (
+        <div className="message-list__body">
+        <ListHeader sort={sort} onSort={onSort} />
         <ul className="message-list__rows">
           {messages.map((message) => (
             <li key={message.id}>
@@ -103,6 +108,7 @@ export function MessageList({ workspace, place, view, messages, selectedId, onSe
                 <span className="message-row__subject">
                   <span className="message-row__subject-text">{message.subject}</span>
                   <TagChips tags={message.tags} />
+                  <span className="message-row__inline-preview">{message.preview}</span>
                 </span>
                 <span className="message-row__preview">{message.preview}</span>
               </button>
@@ -110,6 +116,7 @@ export function MessageList({ workspace, place, view, messages, selectedId, onSe
             </li>
           ))}
         </ul>
+        </div>
       )}
       {menu !== null && <ContextMenu request={menu} onClose={closeMenu} />}
     </section>

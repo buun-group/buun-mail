@@ -70,6 +70,93 @@
   outline: none;
 }
 
+.message-row__inline-preview {
+  display: none;
+}
+
+/* The rows under their column headers; the headers stay put while the rows scroll. */
+.message-list__body {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+}
+
+.list-header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: stretch;
+  padding: 0 var(--space-4);
+  border-bottom: 1px solid var(--border-faint);
+  font-size: var(--text-xs);
+}
+
+.list-header__spacer {
+  display: none;
+}
+
+.list-header__column {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+  padding: var(--space-1-5) var(--space-3);
+  color: var(--text-muted);
+  font-weight: 550;
+  text-align: left;
+  white-space: nowrap;
+}
+
+/* The hairline between columns. */
+.list-header__column + .list-header__column {
+  box-shadow: inset 1px 0 0 var(--border-faint);
+}
+
+.list-header__column:first-of-type {
+  padding-left: 0;
+}
+
+.list-header__column--received {
+  justify-content: flex-end;
+  padding-right: 0;
+}
+
+.list-header__column:hover {
+  color: var(--text-primary);
+}
+
+.list-header__column[aria-pressed='true'] {
+  color: var(--text-secondary);
+}
+
+.list-header__column:focus-visible {
+  outline: 2px solid var(--brand-100);
+  outline-offset: -2px;
+  border-radius: var(--radius-sm);
+}
+
+.list-header__caret {
+  flex: none;
+  font-size: var(--text-sm);
+}
+
+.message-list[data-wide='true'] .list-header {
+  grid-template-columns: var(--wide-columns);
+  column-gap: var(--space-3);
+}
+
+.message-list[data-wide='true'] .list-header__spacer {
+  display: block;
+}
+
+.message-list[data-wide='true'] .list-header__column {
+  padding-left: var(--space-3);
+  margin-left: calc(-1 * var(--space-3));
+}
+
+.message-list[data-wide='true'] .list-header__column--received {
+  margin-left: 0;
+}
+
 .message-list__rows {
   overflow-y: auto;
   margin: 0;
@@ -200,8 +287,9 @@
   outline-offset: 1px;
 }
 
-/* The list across the whole window: one line per message, as Outlook does with the reading pane off. */
+/* The list across the whole window: one line per message in shared columns, as Outlook does with the reading pane off. */
 .message-list[data-wide='true'] {
+  --wide-columns: 1.75rem minmax(10rem, 15rem) minmax(0, 1fr) var(--list-time-width);
   border-right: 0;
 }
 
@@ -216,7 +304,7 @@
 }
 
 .message-list[data-wide='true'] .message-row {
-  grid-template-columns: auto minmax(10rem, 14rem) fit-content(45%) minmax(0, 1fr) auto;
+  grid-template-columns: var(--wide-columns);
   padding-block: var(--space-2);
 }
 
@@ -239,12 +327,20 @@
 }
 
 .message-list[data-wide='true'] .message-row__preview {
-  grid-column: 4;
-  grid-row: 1;
+  display: none;
+}
+
+.message-list[data-wide='true'] .message-row__inline-preview {
+  display: inline;
+  overflow: hidden;
+  min-width: 0;
+  font-weight: 400;
+  color: var(--text-muted);
+  text-overflow: ellipsis;
 }
 
 .message-list[data-wide='true'] .message-row__time {
-  grid-column: 5;
+  grid-column: 4;
   grid-row: 1;
 }
 

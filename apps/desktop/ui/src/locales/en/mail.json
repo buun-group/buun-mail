@@ -15,7 +15,16 @@
       "trash": "The trash is empty. Mail here goes for good after 30 days."
     },
     "starredMark": "Starred",
-    "emptyTrash": "Empty trash"
+    "emptyTrash": "Empty trash",
+    "columns": {
+      "label": "Sort the list",
+      "from": "From",
+      "subject": "Subject",
+      "received": "Received",
+      "ascending": "{{column}}, sorted first to last",
+      "descending": "{{column}}, sorted last to first",
+      "sortBy": "Sort by {{column}}"
+    }
   },
   "reader": {
     "label": "Reader",

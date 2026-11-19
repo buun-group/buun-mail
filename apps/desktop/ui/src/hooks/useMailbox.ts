@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { listMessages, listTags, listView, listWorkspaces, markAllRead, openMessage, tagMessage, untagMessage } from '../api/client'
 import { onMailChanged } from '../api/events'
 import type { MailView, Message, MessageDetail, Place, Workspace } from '../api/types'
+import type { ListSort } from '../constants/ui'
+import { sortMessages } from '../lib/sort'
 
 export interface Mailbox {
   workspaces: Workspace[]
@@ -13,7 +15,10 @@ export interface Mailbox {
   place: Place | null
   /** A list across every workspace, shown instead of `place` while set. */
   view: MailView | null
+  /** The open list, in `sort` order. */
   messages: Message[]
+  sort: ListSort
+  setSort: (sort: ListSort) => void
   /** The open message with its text, or the summary alone while the text loads. */
   selected: { message: Message; body: string | null } | null
   error: string | null
@@ -46,7 +51,9 @@ export function useMailbox(): Mailbox {
   const [ready, setReady] = useState(false)
   const [place, setPlace] = useState<Place | null>(null)
   const [view, setView] = useState<MailView | null>(null)
-  const [messages, setMessages] = useState<Message[]>([])
+  const [loaded, setMessages] = useState<Message[]>([])
+  const [sort, setSort] = useState<ListSort>({ key: 'received', descending: true })
+  const messages = useMemo(() => sortMessages(loaded, sort), [loaded, sort])
   const [detail, setDetail] = useState<MessageDetail | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -134,6 +141,8 @@ export function useMailbox(): Mailbox {
     place,
     view,
     messages,
+    sort,
+    setSort,
     selected: selectedSummary === null ? null : { message: selectedSummary, body: detail?.message.id === selectedId ? detail.body : null },
     error,
     open: (next) => {

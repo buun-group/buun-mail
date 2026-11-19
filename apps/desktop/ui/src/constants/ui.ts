@@ -52,3 +52,13 @@ export const TOAST_MS = 6_000
 
 /** At most this many toasts show at once; older ones leave first. */
 export const TOAST_LIMIT = 3
+
+/** The list's columns, which its headers sort by. */
+export const SORT_KEYS = ['from', 'subject', 'received'] as const
+export type SortKey = (typeof SORT_KEYS)[number]
+
+/** How the list is ordered: by a column, one way or the other. Newest first to start. */
+export interface ListSort {
+  key: SortKey
+  descending: boolean
+}
