@@ -73,14 +73,17 @@ Builds are unsigned until the Apple and Windows signing secrets are added, so ma
 
 ## Mail gateway
 
-Mail for your domains is received by the Buun Mail Gateway, a Cloudflare Email Worker in
-`buungroup-app/apps/mail-gateway`, which holds it until this app collects it. In Settings, Integrations, Buun Mail
-Gateway, paste the gateway's address and a mailbox token (`bmg_...`, from its `mailbox:create`). The app checks every
+Mail for your domains is received by a Buun Mail Gateway, a Cloudflare Email Worker in
+`buungroup-app/apps/mail-gateway`, which holds it until this app collects it. Each Cloudflare account can run its own
+gateway (the default), or a domain in another account can reach one gateway through a small relay Worker there (such
+as `flung-app/apps/mail-relay`). In Settings, Integrations, Buun Mail Gateway, add each gateway with a name, its
+address and a mailbox token (`bmg_...`, from its `mailbox create`); mail from all of them lands in one inbox. The app checks every
 30 seconds (or on Check now), files each message by the exact address it was sent to, and acknowledges it so the
-gateway forgets it. The address and token are kept in `gateway.json` in the config folder, readable by you only.
+gateway forgets it. Gateways are kept in `gateways.json` in the config folder, readable by you only.
 
-Under the connected gateway, **Domains** lists the domains it receives for, whether Cloudflare really routes each one
-there, and adds or removes one from the gateway's Cloudflare account. Adding a domain says where its catch-all sends
+Under each gateway, **Domains** lists the domains it receives for, whether Cloudflare really routes each one there,
+and adds or removes one from the gateway's Cloudflare account, or a domain from another account that a relay hands
+over. Adding a domain says where its catch-all sends
 mail today, points it at the gateway, and can add a workspace for it to your routing file; removing it puts the old
 catch-all back.
 

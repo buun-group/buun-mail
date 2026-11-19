@@ -823,3 +823,27 @@ label.settings__label {
   font-size: var(--text-xs);
   color: var(--text-secondary);
 }
+
+.gateways {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.gateway {
+  display: grid;
+  gap: var(--space-1);
+  padding-bottom: var(--space-5);
+  border-bottom: 1px solid var(--border-faint);
+}
+
+.gateway h5 {
+  font-size: var(--text-sm);
+}
+
+.gateway__add h5 {
+  font-size: var(--text-sm);
+}
+
+.gateway-domains__state[data-state='relay'] {
+  color: var(--text-secondary);
+}

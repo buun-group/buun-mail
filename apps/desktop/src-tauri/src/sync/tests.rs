@@ -117,7 +117,7 @@ fn live_gateway() -> Result<(), GatewayError> {
 #[test]
 fn passes_the_gateway_refusal_on_in_its_own_words() {
     let gateway = fake_gateway("hello@plotwork.dev");
-    let refused = GatewayClient::new(&gateway.url, TOKEN).add_domain("someone-else.com");
+    let refused = GatewayClient::new(&gateway.url, TOKEN).add_domain("someone-else.com", super::gateway::DomainRoute::CatchAll);
     assert!(matches!(refused, Err(GatewayError::Refused(words)) if words == "That domain is not in this gateway's Cloudflare account."));
 }
 

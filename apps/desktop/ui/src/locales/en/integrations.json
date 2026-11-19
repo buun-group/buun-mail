@@ -8,7 +8,8 @@
     "ready": "Ready",
     "notConnected": "Not connected",
     "connectHere": "Open to connect",
-    "connected": "Connected"
+    "gateways_one": "{{count}} gateway",
+    "gateways_other": "{{count}} gateways"
   },
   "oauthNote": "Opens {{provider}} in your browser to sign in. Buun Mail never sees your password.",
   "signIn": "Sign in with {{provider}}",
@@ -120,12 +121,19 @@
     "connecting": "Checking",
     "disconnect": "Disconnect",
     "checkNow": "Check now",
-    "connected": "Connected to {{url}}",
     "lastChecked": "Last checked {{time}}",
     "neverChecked": "Not checked yet",
     "received_one": "{{count}} message collected since the app started",
     "received_other": "{{count}} messages collected since the app started",
-    "desktopOnly": "Connecting works in the desktop app."
+    "desktopOnly": "Connecting works in the desktop app.",
+    "nameLabel": "Name",
+    "namePlaceholder": "Buun Group",
+    "addGateway": "Add a gateway",
+    "addAnother": "Add another gateway",
+    "none": "No gateway yet. Each Cloudflare account can run its own gateway; add each one here.",
+    "remove": "Remove gateway",
+    "confirmRemove": "Stop collecting from {{name}}? Mail already here stays.",
+    "keep": "Keep it"
   },
   "domains": {
     "title": "Domains",
@@ -148,6 +156,11 @@
     "workspaceName": "Workspace name",
     "addButton": "Add domain",
     "adding": "Adding",
-    "loading": "Loading domains"
+    "loading": "Loading domains",
+    "viaRelay": "Through a relay",
+    "addRelayed": "A domain in another Cloudflare account",
+    "relayedHint": "Its mail reaches this gateway through a relay Worker in that account. Nothing changes in Cloudflare from here.",
+    "relayedPlaceholder": "flung.dev",
+    "addRelayedButton": "Add relayed domain"
   }
 }

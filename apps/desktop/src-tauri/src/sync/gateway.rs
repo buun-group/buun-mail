@@ -42,12 +42,24 @@ pub struct Waiting {
     pub received_at: i64,
 }
 
+/// How a domain's mail reaches the gateway: its own account's catch-all, or a relay in another Cloudflare account.
+#[derive(Debug, Clone, Copy, Deserialize, serde::Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum DomainRoute {
+    /// The gateway's account routes it with a catch-all the gateway manages.
+    CatchAll,
+    /// A relay Worker in the domain's own account hands its mail over.
+    Relay,
+}
+
 /// A domain the mailbox owns, as the gateway reports it.
 #[derive(Debug, Clone, Deserialize, serde::Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct OwnedDomain {
     /// The domain.
     pub domain: String,
+    /// How its mail reaches the gateway.
+    pub via: DomainRoute,
     /// True when Cloudflare sends its mail to the gateway; `None` when the gateway cannot tell.
     pub routed_here: Option<bool>,
     /// What its catch-all did before, restored on removal.
@@ -163,14 +175,16 @@ impl GatewayClient {
         Ok(response.body_mut().read_json::<Zones>().map_err(protocol)?.zones)
     }
 
-    /// Adds a domain: the gateway points its Email Routing catch-all at itself.
+    /// Adds a domain: for a catch-all route the gateway points its Email Routing catch-all at itself; for a relay route it
+    /// records the domain, and the relay in the domain's own account hands its mail over.
     ///
     /// # Errors
     ///
     /// The gateway's refusal in its own words, such as a domain outside its account, or [`GatewayError`].
-    pub fn add_domain(&self, domain: &str) -> Result<OwnedDomain, GatewayError> {
-        let mut response =
-            answer(self.agent.post(format!("{}/v1/domains", self.base)).header("Authorization", &self.bearer()).send_json(json!({ "domain": domain })))?;
+    pub fn add_domain(&self, domain: &str, via: DomainRoute) -> Result<OwnedDomain, GatewayError> {
+        let mut response = answer(
+            self.agent.post(format!("{}/v1/domains", self.base)).header("Authorization", &self.bearer()).send_json(json!({ "domain": domain, "via": via })),
+        )?;
         Ok(response.body_mut().read_json::<Added>().map_err(protocol)?.domain)
     }
 

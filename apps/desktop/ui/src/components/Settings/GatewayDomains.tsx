@@ -18,7 +18,7 @@ function nameFor(domain: string): string {
  * back), and a picker to add another from the gateway's Cloudflare account, saying first where that domain's mail goes
  * today.
  */
-export function GatewayDomains({ onChanged }: { onChanged: () => void }): ReactNode {
+export function GatewayDomains({ gatewayId, onChanged }: { gatewayId: string; onChanged: () => void }): ReactNode {
   const { t } = useTranslation('integrations')
   const [owned, setOwned] = useState<GatewayDomain[] | null>(null)
   const [available, setAvailable] = useState<AvailableDomain[]>([])
@@ -27,24 +27,25 @@ export function GatewayDomains({ onChanged }: { onChanged: () => void }): ReactN
   const [workspaceName, setWorkspaceName] = useState('')
   const [removing, setRemoving] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [relayed, setRelayed] = useState('')
   const [error, setError] = useState<string | null>(null)
 
   const load = useCallback(() => {
-    gatewayDomains()
+    gatewayDomains(gatewayId)
       .then(setOwned)
       .catch((cause: unknown) => setError(reason(cause)))
-    gatewayAvailableDomains()
+    gatewayAvailableDomains(gatewayId)
       .then(setAvailable)
       .catch(() => setAvailable([]))
-  }, [])
+  }, [gatewayId])
   useEffect(load, [load])
 
   if (owned === null) return <p className="settings__hint">{t('domains.loading')}</p>
   const choice = available.find((zone) => zone.domain === picked)
 
   return (
-    <section className="gateway-domains" aria-labelledby="gateway-domains-title">
-      <h5 id="gateway-domains-title" className="settings__label">
+    <section className="gateway-domains" aria-labelledby={`gateway-domains-title-${gatewayId}`}>
+      <h5 id={`gateway-domains-title-${gatewayId}`} className="settings__label">
         {t('domains.title')}
       </h5>
       <p className="settings__hint">{t('domains.intro')}</p>
@@ -56,8 +57,8 @@ export function GatewayDomains({ onChanged }: { onChanged: () => void }): ReactN
           {owned.map((item) => (
             <li key={item.domain} className="gateway-domains__row">
               <span className="gateway-domains__name">{item.domain}</span>
-              <span className="gateway-domains__state" data-state={item.routedHere === null ? 'unknown' : item.routedHere ? 'routed' : 'off'}>
-                {item.routedHere === null ? t('domains.unknown') : item.routedHere ? t('domains.routed') : t('domains.notRouted')}
+              <span className="gateway-domains__state" data-state={item.via === 'relay' ? 'relay' : item.routedHere === null ? 'unknown' : item.routedHere ? 'routed' : 'off'}>
+                {item.via === 'relay' ? t('domains.viaRelay') : item.routedHere === null ? t('domains.unknown') : item.routedHere ? t('domains.routed') : t('domains.notRouted')}
               </span>
               {removing === item.domain ? (
                 <span className="gateway-domains__confirm">
@@ -67,7 +68,7 @@ export function GatewayDomains({ onChanged }: { onChanged: () => void }): ReactN
                     className="settings__button settings__button--danger"
                     onClick={() => {
                       setRemoving(null)
-                      removeGatewayDomain(item.domain)
+                      removeGatewayDomain(gatewayId, item.domain)
                         .then(() => {
                           load()
                           onChanged()
@@ -99,7 +100,7 @@ export function GatewayDomains({ onChanged }: { onChanged: () => void }): ReactN
           if (choice === undefined) return
           setBusy(true)
           setError(null)
-          addGatewayDomain(choice.domain, makeWorkspace ? workspaceName.trim() || nameFor(choice.domain) : null)
+          addGatewayDomain(gatewayId, choice.domain, 'catch_all', makeWorkspace ? workspaceName.trim() || nameFor(choice.domain) : null)
             .then(() => {
               setPicked('')
               setWorkspaceName('')
@@ -116,9 +117,9 @@ export function GatewayDomains({ onChanged }: { onChanged: () => void }): ReactN
         ) : (
           <>
             <div className="connect__field">
-              <label htmlFor="gateway-domain">{t('domains.choose')}</label>
+              <label htmlFor={`gateway-domain-${gatewayId}`}>{t('domains.choose')}</label>
               <select
-                id="gateway-domain"
+                id={`gateway-domain-${gatewayId}`}
                 className="settings__select"
                 value={picked}
                 onChange={(event) => {
@@ -138,13 +139,13 @@ export function GatewayDomains({ onChanged }: { onChanged: () => void }): ReactN
               <>
                 <p className="gateway-domains__warning">{t('domains.warning', { domain: choice.domain, rule: choice.catchAllNow })}</p>
                 <label className="rule-editor__check">
-                  <input type="checkbox" id="gateway-make-workspace" checked={makeWorkspace} onChange={(event) => setMakeWorkspace(event.target.checked)} />
+                  <input type="checkbox" id={`gateway-make-workspace-${gatewayId}`} checked={makeWorkspace} onChange={(event) => setMakeWorkspace(event.target.checked)} />
                   {t('domains.makeWorkspace')}
                 </label>
                 {makeWorkspace && (
                   <div className="connect__field">
-                    <label htmlFor="gateway-workspace-name">{t('domains.workspaceName')}</label>
-                    <input id="gateway-workspace-name" value={workspaceName} onChange={(event) => setWorkspaceName(event.target.value)} autoComplete="off" />
+                    <label htmlFor={`gateway-workspace-name-${gatewayId}`}>{t('domains.workspaceName')}</label>
+                    <input id={`gateway-workspace-name-${gatewayId}`} value={workspaceName} onChange={(event) => setWorkspaceName(event.target.value)} autoComplete="off" />
                   </div>
                 )}
                 <div className="connect__actions">
@@ -156,6 +157,36 @@ export function GatewayDomains({ onChanged }: { onChanged: () => void }): ReactN
             )}
           </>
         )}
+      </form>
+      <form
+        className="gateway-domains__add"
+        onSubmit={(event) => {
+          event.preventDefault()
+          const domain = relayed.trim().toLowerCase()
+          if (domain === '') return
+          setBusy(true)
+          setError(null)
+          addGatewayDomain(gatewayId, domain, 'relay', makeWorkspace ? nameFor(domain) : null)
+            .then(() => {
+              setRelayed('')
+              load()
+              onChanged()
+            })
+            .catch((cause: unknown) => setError(reason(cause)))
+            .finally(() => setBusy(false))
+        }}
+      >
+        <h6 className="settings__label">{t('domains.addRelayed')}</h6>
+        <p className="settings__hint">{t('domains.relayedHint')}</p>
+        <div className="connect__field">
+          <label htmlFor={`relayed-${gatewayId}`}>{t('domains.choose')}</label>
+          <input id={`relayed-${gatewayId}`} value={relayed} placeholder={t('domains.relayedPlaceholder')} onChange={(event) => setRelayed(event.target.value)} autoComplete="off" spellCheck={false} />
+        </div>
+        <div className="connect__actions">
+          <button type="submit" className="settings__button" disabled={busy || relayed.trim() === ''}>
+            {t('domains.addRelayedButton')}
+          </button>
+        </div>
       </form>
       {error !== null && (
         <p role="alert" className="settings__error">

@@ -15,7 +15,7 @@ use crate::dto::{ActivityDto, ImportReportDto, MessageDetailDto, MessageDto, Tag
 use crate::error::AppError;
 use crate::events;
 use crate::mailbox::{Actor, Mailbox};
-use crate::sync::{AvailableZone, GatewayStatusDto, OwnedDomain, SyncService};
+use crate::sync::{AvailableZone, DomainRoute, GatewayStatusDto, OwnedDomain, SyncService};
 
 /// Every workspace for the sidebar.
 #[tauri::command]
@@ -121,59 +121,61 @@ pub fn regenerate_agent_token(agent: State<'_, AgentState>) -> Result<AgentStatu
     agent.regenerate_token()
 }
 
-/// The mail gateway connection's status.
+/// Every connected mail gateway and how its checks are going.
 #[tauri::command]
-pub fn gateway_status(sync: State<'_, SyncService>) -> Result<GatewayStatusDto, AppError> {
-    sync.status()
+pub fn list_gateways(sync: State<'_, SyncService>) -> Result<Vec<GatewayStatusDto>, AppError> {
+    sync.list()
 }
 
-/// Checks and saves a mail gateway address and token, then starts collecting.
+/// Checks and saves a mail gateway under a name, then starts collecting from it.
 #[tauri::command]
-pub fn connect_gateway(sync: State<'_, SyncService>, url: String, token: String) -> Result<GatewayStatusDto, String> {
-    sync.connect(&url, &token)
+pub fn add_gateway(sync: State<'_, SyncService>, name: String, url: String, token: String) -> Result<Vec<GatewayStatusDto>, String> {
+    sync.add(&name, &url, &token)
 }
 
-/// Forgets the mail gateway.
+/// Forgets one mail gateway.
 #[tauri::command]
-pub fn disconnect_gateway(sync: State<'_, SyncService>) -> Result<GatewayStatusDto, AppError> {
-    sync.disconnect()
+pub fn remove_gateway(sync: State<'_, SyncService>, id: String) -> Result<Vec<GatewayStatusDto>, AppError> {
+    sync.remove(&id)
 }
 
-/// Checks the mail gateway now.
+/// Checks every mail gateway now.
 #[tauri::command]
-pub fn check_gateway(sync: State<'_, SyncService>) {
+pub fn check_gateways(sync: State<'_, SyncService>) {
     sync.check_now();
 }
 
-/// The domains this mailbox owns at the gateway.
+/// The domains one gateway receives for.
 #[tauri::command]
-pub fn gateway_domains(sync: State<'_, SyncService>) -> Result<Vec<OwnedDomain>, String> {
-    sync.domains()
+pub fn gateway_domains(sync: State<'_, SyncService>, id: String) -> Result<Vec<OwnedDomain>, String> {
+    sync.domains(&id)
 }
 
-/// The domains in the gateway's Cloudflare account that could be added.
+/// The domains in one gateway's Cloudflare account that could be added.
 #[tauri::command]
-pub fn gateway_available_domains(sync: State<'_, SyncService>) -> Result<Vec<AvailableZone>, String> {
-    sync.available_domains()
+pub fn gateway_available_domains(sync: State<'_, SyncService>, id: String) -> Result<Vec<AvailableZone>, String> {
+    sync.available_domains(&id)
 }
 
-/// Adds a domain at the gateway, and when asked, a workspace for it in the routing file.
+/// Adds a domain at one gateway, by catch-all or through a relay, and when asked, a workspace for it.
 #[tauri::command]
 pub fn add_gateway_domain(
     sync: State<'_, SyncService>,
     mailbox: State<'_, Arc<Mailbox>>,
+    id: String,
     domain: String,
+    via: DomainRoute,
     workspace_name: Option<String>,
 ) -> Result<OwnedDomain, String> {
-    let added = sync.add_domain(&domain)?;
+    let added = sync.add_domain(&id, &domain, via)?;
     if let Some(name) = workspace_name.filter(|name| !name.trim().is_empty()) {
         mailbox.ensure_workspace_for(&added.domain, name.trim(), &Actor::You).map_err(|error| error.to_string())?;
     }
     Ok(added)
 }
 
-/// Removes a domain at the gateway, which restores its old catch-all. The workspace stays.
+/// Removes a domain at one gateway. The workspace stays.
 #[tauri::command]
-pub fn remove_gateway_domain(sync: State<'_, SyncService>, domain: String) -> Result<(), String> {
-    sync.remove_domain(&domain)
+pub fn remove_gateway_domain(sync: State<'_, SyncService>, id: String, domain: String) -> Result<(), String> {
+    sync.remove_domain(&id, &domain)
 }

@@ -3,12 +3,12 @@ import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { gatewayStatus, importFiles } from '../../api/client'
+import { importFiles, listGateways } from '../../api/client'
 import type { ImportReport } from '../../api/types'
 import { DIRECTIONS, INTEGRATIONS, NOT_WIRED_NOTE } from '../../constants/integrations'
 import type { Direction, Integration } from '../../constants/integrations'
 import { IconCaret, IconReceive, IconSend, INTEGRATION_GLYPHS } from '../../icons'
-import { GatewayConnect } from './GatewayConnect'
+import { Gateways } from './Gateways'
 
 const DIRECTION_WORDS = {
   receive: { title: 'directions.receive', glyph: IconReceive },
@@ -19,11 +19,11 @@ const DIRECTION_WORDS = {
 export function IntegrationsSection({ onImported }: { onImported: () => void }): ReactNode {
   const { t } = useTranslation('integrations')
   const [open, setOpen] = useState<string | null>(null)
-  const [gatewayConnected, setGatewayConnected] = useState(false)
+  const [gatewayCount, setGatewayCount] = useState(0)
   useEffect(() => {
-    gatewayStatus()
-      .then((status) => setGatewayConnected(status.connected))
-      .catch(() => setGatewayConnected(false))
+    listGateways()
+      .then((list) => setGatewayCount(list.length))
+      .catch(() => setGatewayCount(0))
   }, [])
   return (
     <>
@@ -39,7 +39,7 @@ export function IntegrationsSection({ onImported }: { onImported: () => void }):
             <ul className="settings__list">
               {INTEGRATIONS.filter((integration) => integration.directions.includes(direction)).map((integration) => {
                 const key = `${direction}-${integration.id}`
-                return <IntegrationRow key={key} rowKey={key} integration={integration} open={open === key} onToggle={() => setOpen(open === key ? null : key)} onImported={onImported} gatewayConnected={gatewayConnected} onGatewayStatus={setGatewayConnected} />
+                return <IntegrationRow key={key} rowKey={key} integration={integration} open={open === key} onToggle={() => setOpen(open === key ? null : key)} onImported={onImported} gatewayCount={gatewayCount} onGatewayCount={setGatewayCount} />
               })}
             </ul>
           </section>
@@ -55,11 +55,11 @@ interface RowProps {
   open: boolean
   onToggle: () => void
   onImported: () => void
-  gatewayConnected: boolean
-  onGatewayStatus: (connected: boolean) => void
+  gatewayCount: number
+  onGatewayCount: (count: number) => void
 }
 
-function IntegrationRow({ rowKey, integration, open, onToggle, onImported, gatewayConnected, onGatewayStatus }: RowProps): ReactNode {
+function IntegrationRow({ rowKey, integration, open, onToggle, onImported, gatewayCount, onGatewayCount }: RowProps): ReactNode {
   const { t } = useTranslation('integrations')
   const Glyph = INTEGRATION_GLYPHS[integration.id]
   const panel = `integration-${rowKey}`
@@ -73,12 +73,12 @@ function IntegrationRow({ rowKey, integration, open, onToggle, onImported, gatew
           <span className="settings__label">{t(integration.name)}</span>
           <span className="settings__hint">{t(integration.summary)}</span>
         </span>
-        <span className="integration__state">{integration.method.kind === 'file' ? t('state.ready') : integration.method.kind === 'gateway' ? (gatewayConnected ? t('state.connected') : t('state.connectHere')) : t('state.notConnected')}</span>
+        <span className="integration__state">{integration.method.kind === 'file' ? t('state.ready') : integration.method.kind === 'gateway' ? (gatewayCount > 0 ? t('state.gateways', { count: gatewayCount }) : t('state.connectHere')) : t('state.notConnected')}</span>
         <IconCaret aria-hidden="true" className="integration__caret" />
       </button>
       {open && (
         <div id={panel} className="integration__panel">
-          {integration.method.kind === 'file' ? <FileImport onImported={onImported} /> : integration.method.kind === 'gateway' ? <GatewayConnect onConnected={onImported} onStatus={onGatewayStatus} /> : <ConnectForm integration={integration} idPrefix={rowKey} />}
+          {integration.method.kind === 'file' ? <FileImport onImported={onImported} /> : integration.method.kind === 'gateway' ? <Gateways onChanged={onImported} onCount={onGatewayCount} /> : <ConnectForm integration={integration} idPrefix={rowKey} />}
         </div>
       )}
     </li>

@@ -106,10 +106,11 @@ export interface AgentStatus {
   problem: string | null
 }
 
-/** The mail gateway connection, as Settings shows it. Mirrors `GatewayStatusDto` in `src-tauri/src/sync/service.rs`. */
+/** One mail gateway, as Settings shows it. Mirrors `GatewayStatusDto` in `src-tauri/src/sync/service.rs`. */
 export interface GatewayStatus {
-  connected: boolean
-  url: string | null
+  id: string
+  name: string
+  url: string
   lastChecked: string | null
   received: number
   problem: string | null
@@ -118,6 +119,8 @@ export interface GatewayStatus {
 /** A domain the gateway receives for, and whether Cloudflare really sends its mail there. */
 export interface GatewayDomain {
   domain: string
+  /** How its mail reaches the gateway: that account's catch-all, or a relay in another account. */
+  via: 'catch_all' | 'relay'
   routedHere: boolean | null
   previously: string | null
 }

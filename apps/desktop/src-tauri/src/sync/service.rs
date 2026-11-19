@@ -1,5 +1,6 @@
-//! The sync loop: one thread that checks the gateway every half minute, or at once when woken.
+//! The sync loop: one thread that checks every gateway every half minute, or at once when woken.
 
+use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::{Arc, Condvar, Mutex};
 use std::thread;
@@ -8,8 +9,8 @@ use std::time::Duration;
 use serde::Serialize;
 use tauri::AppHandle;
 
-use super::gateway::{AvailableZone, GatewayClient, GatewayError, OwnedDomain};
-use super::settings::GatewaySettings;
+use super::gateway::{AvailableZone, DomainRoute, GatewayClient, GatewayError, OwnedDomain};
+use super::settings::{self, GatewaySettings};
 use crate::dto::MessageDto;
 use crate::error::AppError;
 use crate::events;
@@ -18,142 +19,181 @@ use crate::mailbox::{Mailbox, unix_now};
 /// How long the loop waits between checks.
 const INTERVAL: Duration = Duration::from_secs(30);
 
-/// The gateway connection, as Settings shows it.
+/// One gateway, as Settings shows it.
 #[derive(Debug, Clone, Default, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct GatewayStatusDto {
-    /// True when a gateway is saved.
-    pub connected: bool,
-    /// The gateway's address, when connected.
-    pub url: Option<String>,
+    /// The gateway's id in this app.
+    pub id: String,
+    /// What the person calls it.
+    pub name: String,
+    /// Its address.
+    pub url: String,
     /// When it last checked, RFC 3339.
     pub last_checked: Option<String>,
-    /// Messages taken in since the app started.
+    /// Messages taken in from it since the app started.
     pub received: u32,
-    /// What went wrong on the last check, if anything.
+    /// What went wrong on its last check, if anything.
     pub problem: Option<String>,
+}
+
+/// What one check of one gateway found.
+#[derive(Debug, Clone, Default)]
+struct Progress {
+    last_checked: Option<String>,
+    received: u32,
+    problem: Option<String>,
 }
 
 /// The shared state between the commands and the loop.
 struct Shared {
-    settings: Mutex<Option<GatewaySettings>>,
-    status: Mutex<GatewayStatusDto>,
+    gateways: Mutex<Vec<GatewaySettings>>,
+    progress: Mutex<HashMap<String, Progress>>,
     wake: Condvar,
     woken: Mutex<bool>,
 }
 
-/// The sync service: owns the loop thread and the settings.
+/// The sync service: owns the loop thread and the saved gateways.
 pub struct SyncService {
     shared: Arc<Shared>,
     config_folder: PathBuf,
 }
 
 impl SyncService {
-    /// Loads any saved gateway and starts the loop. `app` lets it announce new mail; tests pass none.
+    /// Loads the saved gateways and starts the loop. `app` lets it announce new mail; tests pass none.
     #[must_use]
     pub fn start(config_folder: PathBuf, mailbox: Arc<Mailbox>, app: Option<AppHandle>) -> Self {
-        let settings = GatewaySettings::load(&config_folder);
-        let status = GatewayStatusDto { connected: settings.is_some(), url: settings.as_ref().map(|saved| saved.url.clone()), ..GatewayStatusDto::default() };
-        let shared = Arc::new(Shared { settings: Mutex::new(settings), status: Mutex::new(status), wake: Condvar::new(), woken: Mutex::new(true) });
+        let shared = Arc::new(Shared {
+            gateways: Mutex::new(settings::load(&config_folder)),
+            progress: Mutex::new(HashMap::new()),
+            wake: Condvar::new(),
+            woken: Mutex::new(true),
+        });
         let looping = Arc::clone(&shared);
         thread::spawn(move || run(&looping, &mailbox, app.as_ref()));
         Self { shared, config_folder }
     }
 
-    /// The connection's status.
+    /// Every gateway with how its checks are going.
     ///
     /// # Errors
     ///
     /// [`AppError::Poisoned`] after an earlier failure.
-    pub fn status(&self) -> Result<GatewayStatusDto, AppError> {
-        Ok(self.shared.status.lock()?.clone())
+    pub fn list(&self) -> Result<Vec<GatewayStatusDto>, AppError> {
+        let gateways = self.shared.gateways.lock()?;
+        let progress = self.shared.progress.lock()?;
+        Ok(gateways
+            .iter()
+            .map(|gateway| {
+                let seen = progress.get(&gateway.id).cloned().unwrap_or_default();
+                GatewayStatusDto {
+                    id: gateway.id.clone(),
+                    name: gateway.name.clone(),
+                    url: gateway.url.clone(),
+                    last_checked: seen.last_checked,
+                    received: seen.received,
+                    problem: seen.problem,
+                }
+            })
+            .collect())
     }
 
-    /// Checks the address and token against the gateway, saves them and starts collecting.
+    /// Checks an address and token against the gateway, then saves it under `name` and starts collecting from it.
     ///
     /// # Errors
     ///
-    /// The gateway's refusal or unreachability, in words; or [`AppError`] when the settings cannot be saved.
-    pub fn connect(&self, url: &str, token: &str) -> Result<GatewayStatusDto, String> {
+    /// The gateway's refusal or unreachability, in words.
+    pub fn add(&self, name: &str, url: &str, token: &str) -> Result<Vec<GatewayStatusDto>, String> {
         let url = url.trim().trim_end_matches('/');
         if !(url.starts_with("https://") || url.starts_with("http://localhost") || url.starts_with("http://127.0.0.1")) {
             return Err("The gateway address must start with https:// (or http://localhost for one on this computer).".to_owned());
         }
+        let name = if name.trim().is_empty() { url.trim_start_matches("https://").to_owned() } else { name.trim().to_owned() };
         GatewayClient::new(url, token).waiting().map_err(|error| error.to_string())?;
-        let settings = GatewaySettings { url: url.to_owned(), token: token.trim().to_owned() };
-        settings.save(&self.config_folder).map_err(|error| error.to_string())?;
-        *self.shared.settings.lock().map_err(|_| AppError::Poisoned.to_string())? = Some(settings);
-        if let Ok(mut status) = self.shared.status.lock() {
-            *status = GatewayStatusDto { connected: true, url: Some(url.to_owned()), ..GatewayStatusDto::default() };
+        {
+            let mut gateways = self.shared.gateways.lock().map_err(|_| AppError::Poisoned.to_string())?;
+            if gateways.iter().any(|gateway| gateway.url == url && gateway.token == token.trim()) {
+                return Err("That gateway and token are already connected.".to_owned());
+            }
+            let id = format!("gateway-{}", unix_now());
+            gateways.push(GatewaySettings { id, name, url: url.to_owned(), token: token.trim().to_owned() });
+            settings::save(&self.config_folder, &gateways).map_err(|error| error.to_string())?;
         }
         self.check_now();
-        self.status().map_err(|error| error.to_string())
+        self.list().map_err(|error| error.to_string())
     }
 
-    /// Forgets the gateway. Mail already taken in stays.
+    /// Forgets one gateway. Mail already taken in stays.
     ///
     /// # Errors
     ///
-    /// [`AppError`] when the settings file cannot be removed.
-    pub fn disconnect(&self) -> Result<GatewayStatusDto, AppError> {
-        GatewaySettings::forget(&self.config_folder)?;
-        *self.shared.settings.lock()? = None;
-        *self.shared.status.lock()? = GatewayStatusDto::default();
-        self.status()
+    /// [`AppError`] when the settings cannot be saved.
+    pub fn remove(&self, id: &str) -> Result<Vec<GatewayStatusDto>, AppError> {
+        {
+            let mut gateways = self.shared.gateways.lock()?;
+            gateways.retain(|gateway| gateway.id != id);
+            settings::save(&self.config_folder, &gateways)?;
+        }
+        self.shared.progress.lock()?.remove(id);
+        self.list()
     }
 
-    /// The client for the saved gateway, or the reason there is none.
-    fn client(&self) -> Result<GatewayClient, String> {
-        let settings = self.shared.settings.lock().map_err(|_| AppError::Poisoned.to_string())?.clone();
-        settings.map(|saved| GatewayClient::new(&saved.url, &saved.token)).ok_or_else(|| "Connect a gateway first.".to_owned())
-    }
-
-    /// The domains this mailbox owns at the gateway.
-    ///
-    /// # Errors
-    ///
-    /// The reason in words when no gateway is connected or it cannot be reached.
-    pub fn domains(&self) -> Result<Vec<OwnedDomain>, String> {
-        self.client()?.domains().map_err(|error| error.to_string())
-    }
-
-    /// The domains the gateway could add.
-    ///
-    /// # Errors
-    ///
-    /// As for [`SyncService::domains`].
-    pub fn available_domains(&self) -> Result<Vec<AvailableZone>, String> {
-        self.client()?.available().map_err(|error| error.to_string())
-    }
-
-    /// Adds a domain at the gateway.
-    ///
-    /// # Errors
-    ///
-    /// The gateway's refusal in its own words.
-    pub fn add_domain(&self, domain: &str) -> Result<OwnedDomain, String> {
-        self.client()?.add_domain(domain).map_err(|error| error.to_string())
-    }
-
-    /// Removes a domain at the gateway, which restores its old catch-all.
-    ///
-    /// # Errors
-    ///
-    /// The gateway's refusal in its own words.
-    pub fn remove_domain(&self, domain: &str) -> Result<(), String> {
-        self.client()?.remove_domain(domain).map_err(|error| error.to_string())
-    }
-
-    /// Wakes the loop for a check now.
+    /// Wakes the loop for a check of every gateway now.
     pub fn check_now(&self) {
         if let Ok(mut woken) = self.shared.woken.lock() {
             *woken = true;
             self.shared.wake.notify_all();
         }
     }
+
+    /// The client for one saved gateway, or the reason there is none.
+    fn client(&self, id: &str) -> Result<GatewayClient, String> {
+        let gateways = self.shared.gateways.lock().map_err(|_| AppError::Poisoned.to_string())?;
+        gateways
+            .iter()
+            .find(|gateway| gateway.id == id)
+            .map(|gateway| GatewayClient::new(&gateway.url, &gateway.token))
+            .ok_or_else(|| "That gateway is no longer connected.".to_owned())
+    }
+
+    /// The domains a gateway receives for.
+    ///
+    /// # Errors
+    ///
+    /// The reason in words when the gateway is not connected or cannot be reached.
+    pub fn domains(&self, id: &str) -> Result<Vec<OwnedDomain>, String> {
+        self.client(id)?.domains().map_err(|error| error.to_string())
+    }
+
+    /// The domains in a gateway's Cloudflare account that could be added.
+    ///
+    /// # Errors
+    ///
+    /// As for [`SyncService::domains`].
+    pub fn available_domains(&self, id: &str) -> Result<Vec<AvailableZone>, String> {
+        self.client(id)?.available().map_err(|error| error.to_string())
+    }
+
+    /// Adds a domain at a gateway, routed by its own account's catch-all or through a relay.
+    ///
+    /// # Errors
+    ///
+    /// The gateway's refusal in its own words.
+    pub fn add_domain(&self, id: &str, domain: &str, via: DomainRoute) -> Result<OwnedDomain, String> {
+        self.client(id)?.add_domain(domain, via).map_err(|error| error.to_string())
+    }
+
+    /// Removes a domain at a gateway, which restores its old catch-all when it was routed by one.
+    ///
+    /// # Errors
+    ///
+    /// The gateway's refusal in its own words.
+    pub fn remove_domain(&self, id: &str, domain: &str) -> Result<(), String> {
+        self.client(id)?.remove_domain(domain).map_err(|error| error.to_string())
+    }
 }
 
-/// The loop: check when woken or every [`INTERVAL`], record how it went, announce what arrived.
+/// The loop: check every gateway when woken or every [`INTERVAL`], record how each went, announce what arrived.
 fn run(shared: &Shared, mailbox: &Mailbox, app: Option<&AppHandle>) {
     loop {
         {
@@ -161,28 +201,37 @@ fn run(shared: &Shared, mailbox: &Mailbox, app: Option<&AppHandle>) {
             let Ok((mut woken, _)) = shared.wake.wait_timeout_while(woken, INTERVAL, |woken| !*woken) else { return };
             *woken = false;
         }
-        let Some(settings) = shared.settings.lock().ok().and_then(|settings| settings.clone()) else { continue };
-        let outcome = collect(&GatewayClient::new(&settings.url, &settings.token), mailbox);
-        if let Ok(mut status) = shared.status.lock() {
-            status.last_checked = Some(buun_mail_message::rfc3339(unix_now()));
-            match &outcome {
-                Ok(arrived) => {
-                    status.problem = None;
-                    status.received += u32::try_from(arrived.len()).unwrap_or(u32::MAX);
+        let gateways = shared.gateways.lock().map(|gateways| gateways.clone()).unwrap_or_default();
+        let mut arrived = Vec::new();
+        for gateway in gateways {
+            let outcome = collect(&GatewayClient::new(&gateway.url, &gateway.token), mailbox);
+            if let Ok(mut progress) = shared.progress.lock() {
+                let entry = progress.entry(gateway.id.clone()).or_default();
+                entry.last_checked = Some(buun_mail_message::rfc3339(unix_now()));
+                match &outcome {
+                    Ok(found) => {
+                        entry.problem = None;
+                        entry.received += u32::try_from(found.len()).unwrap_or(u32::MAX);
+                    }
+                    Err(error) => entry.problem = Some(error.to_string()),
                 }
-                Err(error) => status.problem = Some(error.to_string()),
+            }
+            if let Ok(found) = outcome {
+                arrived.extend(found);
             }
         }
-        if let (Ok(arrived), Some(app)) = (outcome, app) {
+        if let Some(app) = app {
             events::mail_arrived(app, &arrived);
-            events::mail_changed(app);
+            if !arrived.is_empty() {
+                events::mail_changed(app);
+            }
         }
     }
 }
 
-/// One check: take in every waiting message, then acknowledge the ones now safe here. A message that cannot be read
-/// is acknowledged too, after it is logged, so one bad message never blocks the queue; the gateway would only offer it
-/// again forever. Returns what arrived and should be announced.
+/// One check of one gateway: take in every waiting message, then acknowledge the ones now safe here. A message that
+/// cannot be read is acknowledged too, after it is logged, so one bad message never blocks the queue; the gateway would
+/// only offer it again forever. Returns what arrived and should be announced.
 pub(super) fn collect(client: &GatewayClient, mailbox: &Mailbox) -> Result<Vec<MessageDto>, GatewayError> {
     let waiting = client.waiting()?;
     let mut done = Vec::with_capacity(waiting.len());

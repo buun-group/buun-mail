@@ -109,42 +109,45 @@ export async function regenerateAgentToken(): Promise<AgentStatus> {
   return isTauri() ? invoke<AgentStatus>(COMMANDS.regenerateAgentToken) : preview.agent()
 }
 
-/** The mail gateway connection. In a plain browser it is never connected. */
-export async function gatewayStatus(): Promise<GatewayStatus> {
-  return isTauri() ? invoke<GatewayStatus>(COMMANDS.gatewayStatus) : { connected: false, url: null, lastChecked: null, received: 0, problem: null }
+/** Every connected gateway. None in a plain browser. */
+export async function listGateways(): Promise<GatewayStatus[]> {
+  return isTauri() ? invoke<GatewayStatus[]>(COMMANDS.listGateways) : []
 }
 
-/** Checks and saves a gateway address and token. Rejects with the gateway's reason when it refuses. */
-export async function connectGateway(url: string, token: string): Promise<GatewayStatus> {
-  return invoke<GatewayStatus>(COMMANDS.connectGateway, { url, token })
+/** Checks and saves a gateway under a name. Rejects with the gateway's reason when it refuses. */
+export async function addGateway(name: string, url: string, token: string): Promise<GatewayStatus[]> {
+  return invoke<GatewayStatus[]>(COMMANDS.addGateway, { name, url, token })
 }
 
-/** Forgets the gateway. */
-export async function disconnectGateway(): Promise<GatewayStatus> {
-  return invoke<GatewayStatus>(COMMANDS.disconnectGateway)
+/** Forgets one gateway. */
+export async function removeGateway(id: string): Promise<GatewayStatus[]> {
+  return invoke<GatewayStatus[]>(COMMANDS.removeGateway, { id })
 }
 
-/** Asks the sync to check the gateway now. */
-export async function checkGateway(): Promise<void> {
-  if (isTauri()) await invoke(COMMANDS.checkGateway)
+/** Asks the sync to check every gateway now. */
+export async function checkGateways(): Promise<void> {
+  if (isTauri()) await invoke(COMMANDS.checkGateways)
 }
 
-/** The domains the gateway receives for. */
-export async function gatewayDomains(): Promise<GatewayDomain[]> {
-  return invoke<GatewayDomain[]>(COMMANDS.gatewayDomains)
+/** The domains one gateway receives for. */
+export async function gatewayDomains(id: string): Promise<GatewayDomain[]> {
+  return invoke<GatewayDomain[]>(COMMANDS.gatewayDomains, { id })
 }
 
-/** The domains the gateway could add. */
-export async function gatewayAvailableDomains(): Promise<AvailableDomain[]> {
-  return invoke<AvailableDomain[]>(COMMANDS.gatewayAvailableDomains)
+/** The domains one gateway's Cloudflare account could add. */
+export async function gatewayAvailableDomains(id: string): Promise<AvailableDomain[]> {
+  return invoke<AvailableDomain[]>(COMMANDS.gatewayAvailableDomains, { id })
 }
 
-/** Adds a domain at the gateway, and a workspace for it when a name is given. Rejects with the gateway's reason. */
-export async function addGatewayDomain(domain: string, workspaceName: string | null): Promise<GatewayDomain> {
-  return invoke<GatewayDomain>(COMMANDS.addGatewayDomain, { domain, workspaceName })
+/**
+ * Adds a domain at one gateway: by that account's catch-all, or through a relay in another account. Adds a workspace
+ * for it when a name is given. Rejects with the gateway's reason.
+ */
+export async function addGatewayDomain(id: string, domain: string, via: GatewayDomain['via'], workspaceName: string | null): Promise<GatewayDomain> {
+  return invoke<GatewayDomain>(COMMANDS.addGatewayDomain, { id, domain, via, workspaceName })
 }
 
-/** Removes a domain at the gateway, which restores its old catch-all. */
-export async function removeGatewayDomain(domain: string): Promise<void> {
-  await invoke(COMMANDS.removeGatewayDomain, { domain })
+/** Removes a domain at one gateway, which restores its old catch-all when it had one. */
+export async function removeGatewayDomain(id: string, domain: string): Promise<void> {
+  await invoke(COMMANDS.removeGatewayDomain, { id, domain })
 }
