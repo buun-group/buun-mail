@@ -118,7 +118,7 @@ export function DissolveBar({ place, onOpen }: { place: Place; onOpen: (place: P
 
   return (
     <div className="dissolve-bar">
-      <button type="button" className="dissolve-bar__address" onClick={() => void copyWithToast(inbox.address)} aria-label={t('dissolve.copyAddress', { address: inbox.address })}>
+      <button type="button" className="dissolve-bar__address" onClick={(event) => void copyWithToast(inbox.address, undefined, event.currentTarget)} aria-label={t('dissolve.copyAddress', { address: inbox.address })}>
         <span>{inbox.address}</span>
         <IconCopy aria-hidden="true" />
       </button>

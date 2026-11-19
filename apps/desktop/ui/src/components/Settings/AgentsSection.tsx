@@ -7,7 +7,7 @@ import type { Activity, AgentStatus } from '../../api/types'
 import { ACTIVITY_SHOWN, AGENT_CLIENTS } from '../../constants/agents'
 import type { AgentClientId } from '../../constants/agents'
 import { AGENT_CLIENT_GLYPHS, IconCopy, IconHide, IconRegenerate, IconShow } from '../../icons'
-import { copyText } from '../../lib/clipboard'
+import { copyWithToast } from '../../lib/copy'
 import { formatReceived } from '../../lib/time'
 import { Switch } from './Switch'
 
@@ -36,8 +36,8 @@ export function AgentsSection(): ReactNode {
   }, [])
   useEffect(load, [load])
 
-  const copy = (label: string, text: string): void => {
-    void copyText(text).then((done) => setCopied(done ? label : t('copyFailed')))
+  const copy = (label: string, text: string, from: Element): void => {
+    void copyWithToast(text, label, from).then((done) => setCopied(done ? label : t('copyFailed')))
   }
 
   /** Who made a change: an agent by its name, a rule as "Rule: name", or you. */
@@ -73,7 +73,7 @@ export function AgentsSection(): ReactNode {
             <button type="button" className="settings__icon-button" aria-label={showToken ? t('token.hide') : t('token.show')} onClick={() => setShowToken(!showToken)}>
               {showToken ? <IconHide aria-hidden="true" /> : <IconShow aria-hidden="true" />}
             </button>
-            <button type="button" className="settings__icon-button" aria-label={t('token.copy')} onClick={() => copy(t('token.copied'), status.token)}>
+            <button type="button" className="settings__icon-button" aria-label={t('token.copy')} onClick={(event) => copy(t('token.copied'), status.token, event.currentTarget)}>
               <IconCopy aria-hidden="true" />
             </button>
             {confirming ? (
@@ -117,7 +117,7 @@ export function AgentsSection(): ReactNode {
           <div id="client-panel" role="tabpanel" aria-labelledby={`client-${chosen.id}`} className="agent-snippet">
             <div className="agent-snippet__head">
               <span className="settings__hint">{chosen.file === undefined ? t(chosen.where) : t('connect.whereFile', { path: chosen.file })}</span>
-              <button type="button" className="settings__button" onClick={() => copy(t('connect.setupCopied', { name: t(chosen.name) }), chosen.snippet(status.url, status.token))}>
+              <button type="button" className="settings__button" onClick={(event) => copy(t('connect.setupCopied', { name: t(chosen.name) }), chosen.snippet(status.url, status.token), event.currentTarget)}>
                 <IconCopy aria-hidden="true" />
                 {t('common:copy')}
               </button>

@@ -40,7 +40,7 @@ export function Verification({ subject, from, text, html }: { subject: string; f
           <IconCode aria-hidden="true" className="verification__glyph" />
           <span className="verification__what">{t('verification.code')}</span>
           <code className="verification__code">{code.value}</code>
-          <button type="button" className="verification__button" onClick={() => void copyWithToast(code.value, t('verification.codeCopied'))}>
+          <button type="button" className="verification__button" onClick={(event) => void copyWithToast(code.value, t('verification.codeCopied'), event.currentTarget)}>
             <IconCopy aria-hidden="true" />
             {t('verification.copy')}
           </button>
@@ -55,7 +55,7 @@ export function Verification({ subject, from, text, html }: { subject: string; f
             <IconExternal aria-hidden="true" />
             {t('verification.open')}
           </button>
-          <button type="button" className="verification__button" onClick={() => void copyWithToast(link.value)}>
+          <button type="button" className="verification__button" onClick={(event) => void copyWithToast(link.value, undefined, event.currentTarget)}>
             <IconCopy aria-hidden="true" />
             {t('verification.copy')}
           </button>

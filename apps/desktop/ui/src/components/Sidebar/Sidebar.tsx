@@ -27,7 +27,7 @@ import {
   isWorkspaceGlyph,
   WORKSPACE_GLYPHS,
 } from '../../icons'
-import { copyText } from '../../lib/clipboard'
+import { copyWithToast } from '../../lib/copy'
 import { ContextMenu, isMenuKey, menuPoint } from '../ContextMenu/ContextMenu'
 import type { MenuItem, MenuRequest } from '../ContextMenu/ContextMenu'
 import { BuunFooter } from '../BuunFooter/BuunFooter'
@@ -86,7 +86,7 @@ export function Sidebar({ workspaces, place, view, theme, looks, folded, collaps
     id: 'copy',
     label: t('menu.copyAddress', { count: addresses.length }),
     glyph: IconCopy,
-    onSelect: () => void copyText(addresses.join(', ')),
+    onSelect: () => void copyWithToast(addresses.join(', ')),
   })
 
   const workspaceMenu = (workspace: Workspace): MenuItem[] => {

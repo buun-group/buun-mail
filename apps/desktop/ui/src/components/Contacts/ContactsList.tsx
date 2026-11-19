@@ -84,7 +84,7 @@ export function ContactsList({ theme, canWrite, onWrite, onShowMail }: ContactsL
                   <TipButton tip={canWrite ? t('contacts.write', { who }) : t('contacts.writeNeedsSending', { who })} className="contact__tool" aria-disabled={!canWrite || undefined} aria-label={t('contacts.write', { who })} onClick={canWrite ? () => onWrite({ name: person.name, address: person.address }) : undefined}>
                     <IconCompose aria-hidden="true" />
                   </TipButton>
-                  <TipButton tip={t('contacts.copy', { address: person.address })} className="contact__tool" aria-label={t('contacts.copy', { address: person.address })} onClick={() => void copyWithToast(person.address)}>
+                  <TipButton tip={t('contacts.copy', { address: person.address })} className="contact__tool" aria-label={t('contacts.copy', { address: person.address })} onClick={(event) => void copyWithToast(person.address, undefined, event.currentTarget)}>
                     <IconCopy aria-hidden="true" />
                   </TipButton>
                 </span>

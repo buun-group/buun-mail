@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { ReactNode } from 'react'
+import type { MouseEvent, ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { openExternal } from '../../api/client'
@@ -19,8 +19,8 @@ const TICK_MS = 1_200
 export function Copyable({ text, kind, className }: { text: string; kind: CopyKind; className?: string }): ReactNode {
   const { t } = useTranslation('mail')
   const [ticked, setTicked] = useState(false)
-  const copy = (): void => {
-    void copyWithToast(text).then((copied) => {
+  const copy = (event: MouseEvent<HTMLElement>): void => {
+    void copyWithToast(text, undefined, event.currentTarget).then((copied) => {
       if (!copied) return
       setTicked(true)
       window.setTimeout(() => setTicked(false), TICK_MS)
@@ -41,7 +41,7 @@ export function Copyable({ text, kind, className }: { text: string; kind: CopyKi
         >
           {text}
         </a>
-        <button type="button" className="copyable__glyph" aria-label={t('copy.copyLink')} onClick={copy}>
+        <button type="button" className="copyable__glyph" data-ticked={ticked} aria-label={t('copy.copyLink')} onClick={copy}>
           <Glyph aria-hidden="true" />
         </button>
       </span>
@@ -50,7 +50,7 @@ export function Copyable({ text, kind, className }: { text: string; kind: CopyKi
   return (
     <button type="button" className={classes} data-copy={text} data-kind={kind} aria-label={t('copy.copyThis', { text })} onClick={copy}>
       {text}
-      <span className="copyable__glyph" aria-hidden="true">
+      <span className="copyable__glyph" data-ticked={ticked} aria-hidden="true">
         <Glyph />
       </span>
     </button>

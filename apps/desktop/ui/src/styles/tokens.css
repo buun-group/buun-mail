@@ -56,6 +56,7 @@
 
   --status-danger-fg: #b3261e;
   --status-success-fg: #1f7a3d;
+  --status-success-bg: #e3f4e8;
 
   /* The close button's hover, as Windows draws it. */
   --window-close-hover: #c42b1c;
@@ -186,6 +187,7 @@
 
   --status-danger-fg: #ff8a8a;
   --status-success-fg: #74d494;
+  --status-success-bg: #12301d;
 
   --emboss-light: rgba(255, 255, 255, 0.08);
   --emboss-dark: rgba(0, 0, 0, 0.7);

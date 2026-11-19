@@ -51,8 +51,8 @@ export function SelectionCopy({ within }: { within: RefObject<HTMLElement | null
       className="selection-copy"
       style={{ left: spot.left, top: spot.top }}
       onPointerDown={(event) => event.preventDefault()}
-      onClick={() => {
-        void copyWithToast(spot.text)
+      onClick={(event) => {
+        void copyWithToast(spot.text, undefined, event.currentTarget)
         setSpot(null)
       }}
     >

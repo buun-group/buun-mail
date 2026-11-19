@@ -68,6 +68,10 @@
   pointer-events: auto;
 }
 
+.copyable__glyph[data-ticked='true'] {
+  color: var(--status-success-fg);
+}
+
 .copyable--link .copyable__glyph:hover {
   color: var(--text-primary);
 }

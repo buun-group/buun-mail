@@ -97,3 +97,18 @@ describe('previewing an attachment', () => {
     expect(within(window).getByText('No preview for this kind of file.')).toBeTruthy()
   })
 })
+
+describe('the copy tick', () => {
+  it('pops a green tick over what was clicked, then clears it', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    const { copyWithToast } = await import('../lib/copy')
+    const button = document.createElement('button')
+    document.body.append(button)
+    await copyWithToast('hello@acme.example', undefined, button)
+    expect(document.querySelector('.copy-flash svg path')).not.toBeNull()
+    vi.advanceTimersByTime(1_000)
+    expect(document.querySelector('.copy-flash')).toBeNull()
+    button.remove()
+    vi.useRealTimers()
+  })
+})
