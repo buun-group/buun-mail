@@ -29,7 +29,9 @@ export function GeneralSection({ preferences }: { preferences: Preferences }): R
       </div>
       <div className="settings__row">
         <div>
-          <p id="grain-label" className="settings__label">Paper grain</p>
+          <label id="grain-label" htmlFor="grain" className="settings__label">
+            Paper grain
+          </label>
           <p className="settings__hint">A fine texture over the window, as on buungroup.com.</p>
         </div>
         <Switch id="grain" labelledBy="grain-label" checked={preferences.grain} onChange={preferences.setGrain} />
