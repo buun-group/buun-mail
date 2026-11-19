@@ -17,7 +17,8 @@ export function sealHtml(html: string, allowRemote: boolean): string {
   const page = new DOMParser().parseFromString(html, 'text/html')
   page.querySelectorAll('script, iframe, frame, frameset, object, embed, form, base, meta[http-equiv]').forEach((element) => element.remove())
   page.querySelectorAll('*').forEach((element) => {
-    for (const attribute of [...element.attributes]) {
+    // A copy, since removing an attribute changes the live list.
+    for (const attribute of Array.from(element.attributes)) {
       if (attribute.name.startsWith('on')) element.removeAttribute(attribute.name)
     }
   })
