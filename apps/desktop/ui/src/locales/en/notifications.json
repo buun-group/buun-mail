@@ -10,7 +10,9 @@
   },
   "toasts": {
     "label": "New mail",
-    "dismiss": "Dismiss"
+    "dismiss": "Dismiss",
+    "undo": "Undo",
+    "feedbackLabel": "What just happened"
   },
   "desktop": {
     "one": "{{name}} in {{workspace}}",

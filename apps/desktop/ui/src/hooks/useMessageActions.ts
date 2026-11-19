@@ -6,10 +6,10 @@ import { deleteMessagesForever, emptyTrash, moveMessage, setMessagesStarred, set
 import type { Message, Place, Shelf } from '../api/types'
 import type { Confirmation } from '../components/Confirm/Confirm'
 import type { MenuItem } from '../components/ContextMenu/ContextMenu'
-import type { NoticeItem } from '../components/Notice/Notice'
 import { INBOX_LABEL } from '../constants/ui'
 import { IconArchive, IconCopy, IconDelete, IconFolder, IconInbox, IconMarkRead, IconPutBack, IconStar, IconStarred } from '../icons'
 import { copyText } from '../lib/clipboard'
+import { toast } from '../lib/feedback'
 import type { Mailbox } from './useMailbox'
 
 export interface MessageActions {
@@ -25,8 +25,6 @@ export interface MessageActions {
   deleteForever: (message: Message) => void
   /** Asks first, then empties the trash. */
   emptyTrash: (count: number) => void
-  notice: NoticeItem | null
-  dismissNotice: () => void
   confirmation: Confirmation | null
   closeConfirmation: () => void
 }
@@ -39,11 +37,18 @@ const reason = (error: unknown): string => (error instanceof Error ? error.messa
  */
 export function useMessageActions(mailbox: Mailbox, workspaceName: (id: string) => string): MessageActions {
   const { t } = useTranslation(['mail', 'common'])
-  const [notice, setNotice] = useState<NoticeItem | null>(null)
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null)
-  const say = (text: string, glyph?: IconType, undo?: () => void): void => setNotice({ id: Date.now(), text, ...(glyph === undefined ? {} : { glyph }), ...(undo === undefined ? {} : { undo }) })
-  const fail = (error: unknown): void => say(reason(error))
-  const dismissNotice = useCallback(() => setNotice(null), [])
+  const say = (text: string, glyph?: IconType, undo?: () => void): void => {
+    toast({ text, tone: 'done', ...(glyph === undefined ? {} : { glyph }), ...(undo === undefined ? {} : { undo }) })
+  }
+  const fail = (error: unknown): void => {
+    toast({ text: t('actions.failed'), detail: reason(error), tone: 'problem' })
+  }
+  const copyAndSay = (text: string, done: string): void => {
+    copyText(text)
+      .then((copied) => toast(copied ? { text: done, tone: 'done', glyph: IconCopy } : { text: t('actions.copyFailed'), tone: 'problem' }))
+      .catch(fail)
+  }
   const closeConfirmation = useCallback(() => setConfirmation(null), [])
 
   const placeName = (place: Place): string => `${workspaceName(place.workspace)}, ${place.folder ?? t(INBOX_LABEL)}`
@@ -145,8 +150,8 @@ export function useMessageActions(mailbox: Mailbox, workspaceName: (id: string) 
       { id: 'star', label: message.starred ? t('actions.unstar') : t('actions.star'), glyph: message.starred ? IconStarred : IconStar, onSelect: () => toggleStar(message) },
     ]
     const copy: MenuItem[] = [
-      { id: 'copy-sender', label: t('actions.copySender'), glyph: IconCopy, onSelect: () => void copyText(message.from), separated: true },
-      { id: 'copy-subject', label: t('actions.copySubject'), glyph: IconCopy, onSelect: () => void copyText(message.subject) },
+      { id: 'copy-sender', label: t('actions.copySender'), glyph: IconCopy, onSelect: () => copyAndSay(message.from, t('actions.copiedSender')), separated: true },
+      { id: 'copy-subject', label: t('actions.copySubject'), glyph: IconCopy, onSelect: () => copyAndSay(message.subject, t('actions.copiedSubject')) },
     ]
     if (message.shelf === 'trashed') {
       return [
@@ -177,5 +182,5 @@ export function useMessageActions(mailbox: Mailbox, workspaceName: (id: string) 
     ]
   }
 
-  return { menu, toggleRead, toggleStar, archive, trash, putBack, move, deleteForever, emptyTrash: confirmEmptyTrash, notice, dismissNotice, confirmation, closeConfirmation }
+  return { menu, toggleRead, toggleStar, archive, trash, putBack, move, deleteForever, emptyTrash: confirmEmptyTrash, confirmation, closeConfirmation }
 }

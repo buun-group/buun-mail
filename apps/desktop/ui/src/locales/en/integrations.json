@@ -133,7 +133,17 @@
     "none": "No gateway yet. Each Cloudflare account can run its own gateway; add each one here.",
     "remove": "Remove gateway",
     "confirmRemove": "Stop collecting from {{name}}? Mail already here stays.",
-    "keep": "Keep it"
+    "keep": "Keep it",
+    "checking": "Checking",
+    "checked_one": "Gateway checked",
+    "checked_other": "{{count}} gateways checked",
+    "arrived_one": "{{count}} new message",
+    "arrived_other": "{{count}} new messages",
+    "nothingNew": "Nothing new",
+    "checkProblem": "{{name}} could not be checked",
+    "added": "{{name}} connected",
+    "removed": "{{name}} removed",
+    "removedDetail": "Mail already here stays."
   },
   "domains": {
     "title": "Domains",
@@ -161,6 +171,9 @@
     "addRelayed": "A domain in another Cloudflare account",
     "relayedHint": "Its mail reaches this gateway through a relay Worker in that account. Nothing changes in Cloudflare from here.",
     "relayedPlaceholder": "flung.dev",
-    "addRelayedButton": "Add relayed domain"
+    "addRelayedButton": "Add relayed domain",
+    "addedToast": "{{domain}} added",
+    "removedToast": "{{domain}} removed",
+    "failedToast": "That did not work"
   }
 }

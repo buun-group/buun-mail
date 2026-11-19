@@ -70,8 +70,6 @@
     "moved": "Moved to {{folder}}",
     "deleted_one": "Deleted for good",
     "deleted_other": "{{count}} deleted for good",
-    "undo": "Undo",
-    "dismiss": "Dismiss",
     "confirmDeleteTitle": "Delete this message for good?",
     "confirmDeleteBody": "“{{subject}}” and its original file are removed from this computer. This cannot be undone.",
     "confirmEmptyTitle": "Empty the trash?",
@@ -80,6 +78,10 @@
     "confirmDelete": "Delete forever",
     "confirmEmpty": "Empty trash",
     "cancel": "Cancel",
-    "shortcutsHint": "E archive, # trash, U unread, S star"
+    "shortcutsHint": "E archive, # trash, U unread, S star",
+    "failed": "That did not work",
+    "copiedSender": "Sender address copied",
+    "copiedSubject": "Subject copied",
+    "copyFailed": "The clipboard is not available"
   }
 }

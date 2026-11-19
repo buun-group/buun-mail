@@ -4,7 +4,7 @@ import { openUrl } from '@tauri-apps/plugin-opener'
 
 import { COMMANDS, IMPORT_EXTENSIONS } from './commands'
 import { preview, previewDetail, previewMessages, previewView, previewWorkspaces } from './preview'
-import type { Activity, AgentStatus, AvailableDomain, GatewayDomain, GatewayStatus, ImportReport, MailView, Message, MessageDetail, Place, Rule, Shelf, TagCount, Workspace } from './types'
+import type { Activity, AgentStatus, AvailableDomain, CheckReport, GatewayDomain, GatewayStatus, ImportReport, MailView, Message, MessageDetail, Place, Rule, Shelf, TagCount, Workspace } from './types'
 
 /**
  * The one door to the Rust side. In the desktop app every call is a Tauri command; in a plain browser (`pnpm dev:ui`)
@@ -160,8 +160,9 @@ export async function removeGateway(id: string): Promise<GatewayStatus[]> {
 }
 
 /** Asks the sync to check every gateway now. */
-export async function checkGateways(): Promise<void> {
-  if (isTauri()) await invoke(COMMANDS.checkGateways)
+/** Checks every gateway now. Resolves once the check is done, with what arrived. */
+export async function checkGateways(): Promise<CheckReport> {
+  return isTauri() ? invoke<CheckReport>(COMMANDS.checkGateways) : { arrived: 0, gateways: [] }
 }
 
 /** The domains one gateway receives for. */

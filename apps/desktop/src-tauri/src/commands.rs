@@ -15,7 +15,7 @@ use crate::dto::{ActivityDto, ImportReportDto, MessageDetailDto, MessageDto, She
 use crate::error::AppError;
 use crate::events;
 use crate::mailbox::{Actor, Mailbox};
-use crate::sync::{AvailableZone, DomainRoute, GatewayStatusDto, OwnedDomain, SyncService};
+use crate::sync::{AvailableZone, CheckReportDto, DomainRoute, GatewayStatusDto, OwnedDomain, SyncService};
 
 /// Every workspace for the sidebar.
 #[tauri::command]
@@ -181,10 +181,11 @@ pub fn remove_gateway(sync: State<'_, SyncService>, id: String) -> Result<Vec<Ga
     sync.remove(&id)
 }
 
-/// Checks every mail gateway now.
+/// Checks every mail gateway now, away from the window's thread, and reports what arrived.
 #[tauri::command]
-pub fn check_gateways(sync: State<'_, SyncService>) {
-    sync.check_now();
+pub async fn check_gateways(sync: State<'_, SyncService>) -> Result<CheckReportDto, AppError> {
+    let check = sync.check_now_handle();
+    tauri::async_runtime::spawn_blocking(move || check.run()).await.map_err(|_| AppError::Poisoned)?
 }
 
 /// The domains one gateway receives for.

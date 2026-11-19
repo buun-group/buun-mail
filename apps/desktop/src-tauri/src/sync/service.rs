@@ -37,6 +37,16 @@ pub struct GatewayStatusDto {
     pub problem: Option<String>,
 }
 
+/// What a check of every gateway, asked for now, found: how many messages arrived, and each gateway after it.
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct CheckReportDto {
+    /// Messages taken in by this check, across every gateway.
+    pub arrived: usize,
+    /// Every gateway, as Settings shows it, after the check.
+    pub gateways: Vec<GatewayStatusDto>,
+}
+
 /// What one check of one gateway found.
 #[derive(Debug, Clone, Default)]
 struct Progress {
@@ -51,6 +61,25 @@ struct Shared {
     progress: Mutex<HashMap<String, Progress>>,
     wake: Condvar,
     woken: Mutex<bool>,
+    /// Held for the length of a check, so the loop and a check asked for now never collect at once.
+    checking: Mutex<()>,
+    mailbox: Arc<Mailbox>,
+    app: Option<AppHandle>,
+}
+
+/// A check that can run away from the window's thread, for Check now.
+pub struct CheckNow(Arc<Shared>);
+
+impl CheckNow {
+    /// Checks every gateway now and reports what arrived.
+    ///
+    /// # Errors
+    ///
+    /// [`AppError::Poisoned`] after an earlier failure.
+    pub fn run(&self) -> Result<CheckReportDto, AppError> {
+        let arrived = check_all(&self.0);
+        Ok(CheckReportDto { arrived, gateways: statuses(&self.0)? })
+    }
 }
 
 /// The sync service: owns the loop thread and the saved gateways.
@@ -68,9 +97,12 @@ impl SyncService {
             progress: Mutex::new(HashMap::new()),
             wake: Condvar::new(),
             woken: Mutex::new(true),
+            checking: Mutex::new(()),
+            mailbox,
+            app,
         });
         let looping = Arc::clone(&shared);
-        thread::spawn(move || run(&looping, &mailbox, app.as_ref()));
+        thread::spawn(move || run(&looping));
         Self { shared, config_folder }
     }
 
@@ -80,22 +112,13 @@ impl SyncService {
     ///
     /// [`AppError::Poisoned`] after an earlier failure.
     pub fn list(&self) -> Result<Vec<GatewayStatusDto>, AppError> {
-        let gateways = self.shared.gateways.lock()?;
-        let progress = self.shared.progress.lock()?;
-        Ok(gateways
-            .iter()
-            .map(|gateway| {
-                let seen = progress.get(&gateway.id).cloned().unwrap_or_default();
-                GatewayStatusDto {
-                    id: gateway.id.clone(),
-                    name: gateway.name.clone(),
-                    url: gateway.url.clone(),
-                    last_checked: seen.last_checked,
-                    received: seen.received,
-                    problem: seen.problem,
-                }
-            })
-            .collect())
+        statuses(&self.shared)
+    }
+
+    /// A check of every gateway to run now, off the window's thread.
+    #[must_use]
+    pub fn check_now_handle(&self) -> CheckNow {
+        CheckNow(Arc::clone(&self.shared))
     }
 
     /// Checks an address and token against the gateway, then saves it under `name` and starts collecting from it.
@@ -193,40 +216,67 @@ impl SyncService {
     }
 }
 
-/// The loop: check every gateway when woken or every [`INTERVAL`], record how each went, announce what arrived.
-fn run(shared: &Shared, mailbox: &Mailbox, app: Option<&AppHandle>) {
+/// Every gateway with how its checks are going.
+fn statuses(shared: &Shared) -> Result<Vec<GatewayStatusDto>, AppError> {
+    let gateways = shared.gateways.lock()?;
+    let progress = shared.progress.lock()?;
+    Ok(gateways
+        .iter()
+        .map(|gateway| {
+            let seen = progress.get(&gateway.id).cloned().unwrap_or_default();
+            GatewayStatusDto {
+                id: gateway.id.clone(),
+                name: gateway.name.clone(),
+                url: gateway.url.clone(),
+                last_checked: seen.last_checked,
+                received: seen.received,
+                problem: seen.problem,
+            }
+        })
+        .collect())
+}
+
+/// The loop: check every gateway when woken or every [`INTERVAL`].
+fn run(shared: &Shared) {
     loop {
         {
             let Ok(woken) = shared.woken.lock() else { return };
             let Ok((mut woken, _)) = shared.wake.wait_timeout_while(woken, INTERVAL, |woken| !*woken) else { return };
             *woken = false;
         }
-        let gateways = shared.gateways.lock().map(|gateways| gateways.clone()).unwrap_or_default();
-        let mut arrived = Vec::new();
-        for gateway in gateways {
-            let outcome = collect(&GatewayClient::new(&gateway.url, &gateway.token), mailbox);
-            if let Ok(mut progress) = shared.progress.lock() {
-                let entry = progress.entry(gateway.id.clone()).or_default();
-                entry.last_checked = Some(buun_mail_message::rfc3339(unix_now()));
-                match &outcome {
-                    Ok(found) => {
-                        entry.problem = None;
-                        entry.received += u32::try_from(found.len()).unwrap_or(u32::MAX);
-                    }
-                    Err(error) => entry.problem = Some(error.to_string()),
+        check_all(shared);
+    }
+}
+
+/// Checks every gateway once, records how each went, announces what arrived, and returns how many messages did.
+fn check_all(shared: &Shared) -> usize {
+    let Ok(_one_at_a_time) = shared.checking.lock() else { return 0 };
+    let gateways = shared.gateways.lock().map(|gateways| gateways.clone()).unwrap_or_default();
+    let mut arrived = Vec::new();
+    for gateway in gateways {
+        let outcome = collect(&GatewayClient::new(&gateway.url, &gateway.token), &shared.mailbox);
+        if let Ok(mut progress) = shared.progress.lock() {
+            let entry = progress.entry(gateway.id.clone()).or_default();
+            entry.last_checked = Some(buun_mail_message::rfc3339(unix_now()));
+            match &outcome {
+                Ok(found) => {
+                    entry.problem = None;
+                    entry.received += u32::try_from(found.len()).unwrap_or(u32::MAX);
                 }
-            }
-            if let Ok(found) = outcome {
-                arrived.extend(found);
+                Err(error) => entry.problem = Some(error.to_string()),
             }
         }
-        if let Some(app) = app {
-            events::mail_arrived(app, &arrived);
-            if !arrived.is_empty() {
-                events::mail_changed(app);
-            }
+        if let Ok(found) = outcome {
+            arrived.extend(found);
         }
     }
+    if let Some(app) = &shared.app {
+        events::mail_arrived(app, &arrived);
+        if !arrived.is_empty() {
+            events::mail_changed(app);
+        }
+    }
+    arrived.len()
 }
 
 /// One check of one gateway: take in every waiting message, then acknowledge the ones now safe here. A message that

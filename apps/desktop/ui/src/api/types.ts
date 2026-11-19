@@ -124,6 +124,12 @@ export interface GatewayStatus {
   problem: string | null
 }
 
+/** What Check now found. Mirrors `CheckReportDto` in `src-tauri/src/sync/service.rs`. */
+export interface CheckReport {
+  arrived: number
+  gateways: GatewayStatus[]
+}
+
 /** A domain the gateway receives for, and whether Cloudflare really sends its mail there. */
 export interface GatewayDomain {
   domain: string

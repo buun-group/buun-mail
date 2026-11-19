@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 
 import { addGatewayDomain, gatewayAvailableDomains, gatewayDomains, removeGatewayDomain } from '../../api/client'
 import type { AvailableDomain, GatewayDomain } from '../../api/types'
+import { toast } from '../../lib/feedback'
 import { Select } from '../Select/Select'
 
 const reason = (error: unknown): string => (error instanceof Error ? error.message : String(error))
@@ -71,6 +72,7 @@ export function GatewayDomains({ gatewayId, onChanged }: { gatewayId: string; on
                       setRemoving(null)
                       removeGatewayDomain(gatewayId, item.domain)
                         .then(() => {
+                          toast({ text: t('domains.removedToast', { domain: item.domain }), tone: 'done' })
                           load()
                           onChanged()
                         })
@@ -103,6 +105,7 @@ export function GatewayDomains({ gatewayId, onChanged }: { gatewayId: string; on
           setError(null)
           addGatewayDomain(gatewayId, choice.domain, 'catch_all', makeWorkspace ? workspaceName.trim() || nameFor(choice.domain) : null)
             .then(() => {
+              toast({ text: t('domains.addedToast', { domain: choice.domain }), tone: 'done' })
               setPicked('')
               setWorkspaceName('')
               load()
@@ -164,6 +167,7 @@ export function GatewayDomains({ gatewayId, onChanged }: { gatewayId: string; on
           setError(null)
           addGatewayDomain(gatewayId, domain, 'relay', makeWorkspace ? nameFor(domain) : null)
             .then(() => {
+              toast({ text: t('domains.addedToast', { domain }), tone: 'done' })
               setRelayed('')
               load()
               onChanged()

@@ -6,6 +6,8 @@ import { isTauri } from '@tauri-apps/api/core'
 
 import { addGateway, checkGateways, listGateways, removeGateway } from '../../api/client'
 import type { GatewayStatus } from '../../api/types'
+import { IconRegenerate } from '../../icons'
+import { toast } from '../../lib/feedback'
 import { formatFull } from '../../lib/time'
 import { GatewayDomains } from './GatewayDomains'
 
@@ -29,6 +31,7 @@ export function Gateways({ onChanged, onCount }: GatewaysProps): ReactNode {
   const { t } = useTranslation('integrations')
   const [gateways, setGateways] = useState<GatewayStatus[] | null>(null)
   const [removing, setRemoving] = useState<string | null>(null)
+  const [checking, setChecking] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const show = useCallback(
@@ -51,6 +54,20 @@ export function Gateways({ onChanged, onCount }: GatewaysProps): ReactNode {
     return () => window.clearInterval(timer)
   }, [load])
 
+  const checkNow = (): void => {
+    setChecking(true)
+    checkGateways()
+      .then((report) => {
+        show(report.gateways)
+        const failing = report.gateways.find((gateway) => gateway.problem !== null)
+        if (failing !== undefined) toast({ text: t('gateway.checkProblem', { name: failing.name }), detail: failing.problem ?? '', tone: 'problem' })
+        else toast({ text: t('gateway.checked', { count: report.gateways.length }), detail: report.arrived > 0 ? t('gateway.arrived', { count: report.arrived }) : t('gateway.nothingNew'), tone: 'done' })
+        if (report.arrived > 0) onChanged()
+      })
+      .catch((cause: unknown) => toast({ text: t('domains.failedToast'), detail: reason(cause), tone: 'problem' }))
+      .finally(() => setChecking(false))
+  }
+
   if (gateways === null) return null
 
   return (
@@ -71,13 +88,20 @@ export function Gateways({ onChanged, onCount }: GatewaysProps): ReactNode {
             </p>
           )}
           <div className="settings__actions settings__actions--tight">
-            <button type="button" className="settings__button" onClick={() => void checkGateways().then(() => window.setTimeout(load, 1500))}>
-              {t('gateway.checkNow')}
+            <button type="button" className="settings__button" data-busy={checking} disabled={checking} onClick={checkNow}>
+              <IconRegenerate aria-hidden="true" className="settings__spin" />
+              {checking ? t('gateway.checking') : t('gateway.checkNow')}
             </button>
             {removing === gateway.id ? (
               <>
                 <span className="settings__hint">{t('gateway.confirmRemove', { name: gateway.name })}</span>
-                <button type="button" className="settings__button settings__button--danger" onClick={() => void removeGateway(gateway.id).then(show)}>
+                <button type="button" className="settings__button settings__button--danger" onClick={() =>
+                    void removeGateway(gateway.id).then((list) => {
+                      show(list)
+                      toast({ text: t('gateway.removed', { name: gateway.name }), detail: t('gateway.removedDetail'), tone: 'done' })
+                    })
+                  }
+                >
                   {t('gateway.remove')}
                 </button>
                 <button type="button" className="settings__button" onClick={() => setRemoving(null)}>
@@ -127,6 +151,7 @@ function AddGateway({ first, onAdded }: { first: boolean; onAdded: (list: Gatewa
         setError(null)
         addGateway(name, url, token)
           .then((list) => {
+            toast({ text: t('gateway.added', { name: list.at(-1)?.name ?? name }), tone: 'done' })
             setName('')
             setUrl('')
             setToken('')

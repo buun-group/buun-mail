@@ -1,8 +1,13 @@
 .toasts {
   position: fixed;
-  right: var(--space-4);
-  bottom: var(--space-4);
+  inset: auto var(--space-4) var(--space-4) auto;
   z-index: 240;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  overflow: visible;
+  background: none;
+  color: inherit;
   display: grid;
   gap: var(--space-2);
   width: min(22rem, calc(100vw - 2rem));
@@ -69,9 +74,97 @@
   color: var(--text-primary);
 }
 
+.toasts:empty {
+  display: none;
+}
+
+/* A popover is hidden until shown; this stack is shown whenever it holds a toast. */
+.toasts[popover]:not(:popover-open):not(:empty) {
+  display: grid;
+}
+
+.toast--feedback {
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-1) var(--space-2) var(--space-3);
+}
+
+.toast--feedback[data-leaving='true'] {
+  animation: toast-out 200ms var(--ease-out) forwards;
+}
+
+.toast__glyph {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: var(--radius-md);
+  background: var(--alpha-6);
+  font-size: var(--text-lg);
+  color: var(--text-secondary);
+}
+
+.toast--feedback[data-tone='done'] .toast__glyph {
+  color: var(--status-success-fg);
+}
+
+.toast--feedback[data-tone='problem'] .toast__glyph {
+  color: var(--status-danger-fg);
+}
+
+.toast--feedback .toast__words {
+  flex: 1;
+}
+
+.toast__text {
+  font-size: var(--text-sm);
+  font-weight: 550;
+}
+
+.toast__detail {
+  overflow: hidden;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  text-overflow: ellipsis;
+}
+
+.toast__undo {
+  flex: none;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--brand-text);
+}
+
+.toast__undo:hover {
+  background: var(--alpha-8);
+}
+
+.toast__undo:focus-visible,
+.toast__close:focus-visible {
+  outline: 2px solid var(--brand-100);
+  outline-offset: 1px;
+}
+
+@keyframes toast-out {
+  to {
+    opacity: 0;
+    transform: translateX(16px) scale(0.98);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast,
+  .toast--feedback[data-leaving='true'] {
+    animation: none;
+  }
+}
+
 @keyframes toast-in {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(10px) scale(0.98);
   }
 }

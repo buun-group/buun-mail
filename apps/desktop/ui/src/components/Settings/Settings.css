@@ -407,7 +407,7 @@ label.settings__label {
   cursor: default;
 }
 
-.settings__button:focus-within {
+.settings__button:focus-visible {
   outline: 2px solid var(--brand-100);
   outline-offset: 2px;
 }
@@ -841,4 +841,25 @@ label.settings__label {
 
 .gateway-domains__state[data-state='relay'] {
   color: var(--text-secondary);
+}
+
+.settings__spin {
+  display: none;
+}
+
+.settings__button[data-busy='true'] .settings__spin {
+  display: block;
+  animation: settings-spin 0.9s linear infinite;
+}
+
+@keyframes settings-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .settings__button[data-busy='true'] .settings__spin {
+    animation: none;
+  }
 }

@@ -14,4 +14,4 @@ mod settings;
 mod tests;
 
 pub use gateway::{AvailableZone, DomainRoute, OwnedDomain};
-pub use service::{GatewayStatusDto, SyncService};
+pub use service::{CheckReportDto, GatewayStatusDto, SyncService};

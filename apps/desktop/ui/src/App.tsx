@@ -5,7 +5,6 @@ import { useTranslation } from 'react-i18next'
 
 import { Confirm } from './components/Confirm/Confirm'
 import { Grain } from './components/Grain/Grain'
-import { Notice } from './components/Notice/Notice'
 import { NotificationBell } from './components/NotificationBell/NotificationBell'
 import { TitleBar } from './components/TitleBar/TitleBar'
 import { Toasts } from './components/Toasts/Toasts'
@@ -135,7 +134,6 @@ export function App(): ReactNode {
         notifications={notifications}
       />
       <Toasts toasts={notifications.toasts} workspaceName={workspaceName} onOpen={mailbox.reveal} onDismiss={notifications.dismissToast} />
-      <Notice notice={actions.notice} undoLabel={t('actions.undo')} dismissLabel={t('actions.dismiss')} onDismiss={actions.dismissNotice} />
       <Confirm request={actions.confirmation} cancelLabel={t('actions.cancel')} onClose={actions.closeConfirmation} />
       {preferences.grain && <Grain />}
       <Splash done={mailbox.ready} />
