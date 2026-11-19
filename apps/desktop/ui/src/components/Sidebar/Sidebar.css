@@ -27,19 +27,13 @@
 
 /* The rail: icons only. Text hides, rows centre their glyphs, counts become a dot. */
 .sidebar[data-rail='true'] .sidebar__text,
-.sidebar[data-rail='true'] .sidebar__tool,
 .sidebar[data-rail='true'] .buun-footer__marks {
   display: none;
 }
 
 .sidebar[data-rail='true'] .sidebar__top {
-  grid-template-columns: 1fr;
   justify-items: center;
   padding-inline: var(--space-2);
-}
-
-.sidebar[data-rail='true'] .sidebar__brand {
-  padding-left: 0;
 }
 
 .sidebar[data-rail='true'] .sidebar__compose {
@@ -74,44 +68,14 @@
   justify-content: center;
 }
 
-.sidebar__tools {
-  display: flex;
-  gap: 0;
-}
 
 .sidebar__top {
   display: grid;
-  grid-template-columns: 1fr auto;
-  grid-template-rows: var(--titlebar-height) auto;
-  align-items: center;
-  gap: 0 var(--space-1);
-  padding: 0 var(--space-3) var(--space-3);
+  padding: var(--space-3);
 }
 
-/* macOS keeps its traffic lights over the top-left corner; the brand moves clear of them. */
-:root[data-platform='mac'] .sidebar__brand {
-  padding-left: 4.25rem;
-}
-
-:root[data-platform='mac'] .sidebar[data-rail='true'] .sidebar__top {
-  grid-template-rows: calc(var(--titlebar-height) + 1.25rem) auto;
-  align-items: end;
-}
-
-.sidebar__brand {
-  display: flex;
-  min-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  align-items: center;
-  gap: var(--space-2);
-  padding-left: var(--space-1);
-  font-weight: 650;
-  letter-spacing: -0.015em;
-}
 
 .sidebar__compose {
-  grid-column: 1 / -1;
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
@@ -129,20 +93,7 @@
   cursor: default;
 }
 
-.sidebar__icon {
-  display: grid;
-  place-items: center;
-  width: 2rem;
-  height: 2rem;
-  border-radius: var(--radius-md);
-  color: var(--text-muted);
-  font-size: var(--text-lg);
-}
 
-.sidebar__icon:hover {
-  background: var(--alpha-6);
-  color: var(--text-primary);
-}
 
 .sidebar__list {
   overflow-y: auto;

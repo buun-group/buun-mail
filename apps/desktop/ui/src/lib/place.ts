@@ -7,9 +7,9 @@ export type Side = 'below' | 'above' | 'right'
  * Where to put a floating box (a tooltip, a popover) of `size` next to `anchor`: on the preferred side, flipped above
  * when there is no room below, then slid so it stays inside the window.
  */
-export function placeNear(anchor: DOMRect, size: { width: number; height: number }, side: Side, gap: number, align: 'center' | 'start' = 'center'): { left: number; top: number } {
+export function placeNear(anchor: DOMRect, size: { width: number; height: number }, side: Side, gap: number, align: 'center' | 'start' | 'end' = 'center'): { left: number; top: number } {
   const fitsBelow = anchor.bottom + gap + size.height <= window.innerHeight - EDGE
-  const left = align === 'start' ? anchor.left : anchor.left + (anchor.width - size.width) / 2
+  const left = align === 'start' ? anchor.left : align === 'end' ? anchor.right - size.width : anchor.left + (anchor.width - size.width) / 2
   const wanted =
     side === 'right'
       ? { left: anchor.right + gap, top: anchor.top + (anchor.height - size.height) / 2 }

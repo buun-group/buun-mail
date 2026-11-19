@@ -1,0 +1,55 @@
+.title-bar {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  height: var(--titlebar-height);
+  padding-left: var(--space-4);
+  background: var(--surface-sunken);
+  border-bottom: 1px solid var(--border-faint);
+  user-select: none;
+}
+
+/* macOS keeps its traffic lights at the bar's left; the mark starts clear of them. */
+:root[data-platform='mac'] .title-bar {
+  padding-left: 5rem;
+}
+
+.title-bar__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-right: var(--space-2);
+  font-weight: 650;
+  letter-spacing: -0.015em;
+  white-space: nowrap;
+}
+
+.title-bar__fill {
+  flex: 1;
+  align-self: stretch;
+}
+
+.title-bar__tools {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding-right: var(--space-2);
+}
+
+.title-bar__button {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  font-size: var(--text-lg);
+}
+
+.title-bar__button:hover,
+.title-bar__button[aria-expanded='true'] {
+  background: var(--alpha-6);
+  color: var(--text-primary);
+}

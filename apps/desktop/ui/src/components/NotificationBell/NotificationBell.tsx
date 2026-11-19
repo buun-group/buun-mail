@@ -32,7 +32,7 @@ export function NotificationBell({ feed, unseen, quiet, workspaceName, onOpenMes
   return (
     <>
       <TipButton
-        className="sidebar__icon notification-bell sidebar__tool"
+        className="title-bar__button notification-bell"
         tip={unseen > 0 ? `${unseen} new` : 'Notifications'}
         aria-label={unseen > 0 ? `Notifications, ${unseen} new` : 'Notifications'}
         aria-expanded={anchor !== null}
@@ -102,7 +102,7 @@ function Panel({ anchor, onClose, children }: { anchor: DOMRect; onClose: () => 
   const [place, setPlace] = useState<{ left: number; top: number } | null>(null)
 
   useLayoutEffect(() => {
-    if (panel.current !== null) setPlace(placeNear(anchor, panel.current.getBoundingClientRect(), 'below', 6, 'start'))
+    if (panel.current !== null) setPlace(placeNear(anchor, panel.current.getBoundingClientRect(), 'below', 6, 'end'))
   }, [anchor])
 
   useEffect(() => {

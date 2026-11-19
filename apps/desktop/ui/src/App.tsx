@@ -4,6 +4,7 @@ import type { ReactNode } from 'react'
 
 import { Grain } from './components/Grain/Grain'
 import { NotificationBell } from './components/NotificationBell/NotificationBell'
+import { TitleBar } from './components/TitleBar/TitleBar'
 import { Toasts } from './components/Toasts/Toasts'
 import { MessageList } from './components/MessageList/MessageList'
 import { Reader } from './components/Reader/Reader'
@@ -55,19 +56,12 @@ export function App(): ReactNode {
 
   return (
     <div className="app" data-sidebar={preferences.sidebarCollapsed ? 'collapsed' : 'open'}>
-      <Sidebar workspaces={mailbox.workspaces} place={mailbox.place} theme={preferences.theme}
+      <TitleBar
         themePreference={preferences.themePreference}
         onThemePreference={preferences.setThemePreference}
-        looks={looks.looks}
-        folded={folded.folded}
-        collapsed={preferences.sidebarCollapsed}
-        onCollapse={preferences.setSidebarCollapsed}
-        onOpen={mailbox.open}
+        sidebarCollapsed={preferences.sidebarCollapsed}
+        onSidebarCollapsed={preferences.setSidebarCollapsed}
         onSettings={openSettings}
-        onFold={folded.toggle}
-        onEditIcon={editIcon}
-        onResetIcon={(id) => looks.set(id, null)}
-        onMarkAllRead={mailbox.markAllRead}
         bell={
           <NotificationBell
             feed={notifications.feed}
@@ -81,6 +75,19 @@ export function App(): ReactNode {
           />
         }
       />
+      <Sidebar
+        workspaces={mailbox.workspaces}
+        place={mailbox.place}
+        theme={preferences.theme}
+        looks={looks.looks}
+        folded={folded.folded}
+        collapsed={preferences.sidebarCollapsed}
+        onOpen={mailbox.open}
+        onFold={folded.toggle}
+        onEditIcon={editIcon}
+        onResetIcon={(id) => looks.set(id, null)}
+        onMarkAllRead={mailbox.markAllRead}
+      />
       <MessageList workspace={workspace} place={mailbox.place} messages={mailbox.messages} selectedId={mailbox.selected?.message.id ?? null} onSelect={mailbox.select} />
       <Reader
         message={mailbox.selected?.message ?? null}
@@ -91,7 +98,11 @@ export function App(): ReactNode {
         onRemoveTag={mailbox.removeTag}
         tagSuggestions={mailbox.tags}
       />
-      <Settings open={settingsOpen} onClose={() => setSettingsOpen(false)} preferences={preferences} workspaces={mailbox.workspaces}
+      <Settings
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        preferences={preferences}
+        workspaces={mailbox.workspaces}
         looks={looks.looks}
         onLook={looks.set}
         section={section}

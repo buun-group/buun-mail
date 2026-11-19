@@ -1,7 +1,7 @@
 .app {
   display: grid;
   grid-template-columns: var(--sidebar-width) var(--list-width) minmax(0, 1fr);
-  grid-template-rows: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
   height: 100%;
   overflow: hidden;
   isolation: isolate;
@@ -25,12 +25,17 @@
 
 /* The three panes sit over the under-grain. Only the panes: the splash, the dialog and the grain are fixed layers and
    must not join the grid. */
-.app > :is(.sidebar-slot, .message-list, .reader) {
+.app > :is(.title-bar, .sidebar-slot, .message-list, .reader) {
   position: relative;
   z-index: 1;
 }
 
-/* The sidebar stays above the list, so it can slide open over it when collapsed. */
+/* The sidebar stays above the list, so it can slide open over it when collapsed; the title bar above both, so its
+   menus and tips are never under a pane. */
 .app > .sidebar-slot {
   z-index: 5;
+}
+
+.app > .title-bar {
+  z-index: 6;
 }

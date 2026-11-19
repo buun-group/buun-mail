@@ -9,8 +9,11 @@ import { getCurrentWindow } from '@tauri-apps/api/window'
 /** True on macOS, where the native traffic lights stay and the app only leaves room for them. */
 export const isMac = typeof navigator !== 'undefined' && /Mac/.test(navigator.platform || navigator.userAgent)
 
-/** True where the app draws minimise, maximise and close itself: Windows and Linux inside Tauri. */
-export const hasOwnTitleBar = isTauri() && !isMac
+/**
+ * True where the app draws minimise, maximise and close itself: Windows and Linux inside Tauri. In `pnpm dev:ui`,
+ * adding `?controls` to the address draws them too (doing nothing), so the title bar can be reviewed in a browser.
+ */
+export const hasOwnTitleBar = (isTauri() && !isMac) || (import.meta.env.DEV && typeof location !== 'undefined' && new URLSearchParams(location.search).has('controls'))
 
 export async function minimizeWindow(): Promise<void> {
   if (isTauri()) await getCurrentWindow().minimize()

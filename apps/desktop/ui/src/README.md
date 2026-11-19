@@ -16,7 +16,7 @@ Code here follows:
 |---|---|
 | `main.tsx`, `App.tsx` | Entry and the three-pane layout |
 | `api/` | `client.ts` (the only Tauri caller), `types.ts` (mirrors `dto.rs`), `preview.ts` (browser-only mailbox) |
-| `components/` | `Sidebar` (collapsible rail, right-click menus), `MessageList`, `Reader`, `Settings` (General, Notifications, Workspaces with icon picker, Rules, Integrations, Agents), `ContextMenu`, `WorkspaceIcon`, `Tags`, `NotificationBell`, `Toasts`, `Tooltip`, `BrandMark`, `MoreFromBuun`, `BuunFooter`, `ProductMark`, each with its CSS |
+| `components/` | `TitleBar` (the bar along the top: mark, sidebar toggle, bell, theme, settings, window buttons), `Sidebar` (collapsible rail, right-click menus), `MessageList`, `Reader`, `Settings` (General, Notifications, Workspaces with icon picker, Rules, Integrations, Agents), `ContextMenu`, `WorkspaceIcon`, `Tags`, `NotificationBell`, `Toasts`, `Tooltip`, `BrandMark`, `MoreFromBuun`, `BuunFooter`, `ProductMark`, each with its CSS |
 | `constants/` | `products.ts`, `integrations.ts`, `agents.ts` (agent clients and what to paste), `ui.ts` (preferences, labels, settings sections) |
 | `hooks/` | `useMailbox`, `usePreferences` (theme, density, grain, sidebar), `useWorkspaceLooks` (icons and images), `useFolded`, `usePeek`, `useShortcut`, `useNotifications` |
 | `lib/` | `time.ts`, `clipboard.ts`, `place.ts` (floating boxes kept in the window), `rules.ts` (a rule in one sentence) |

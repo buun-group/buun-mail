@@ -45,8 +45,8 @@
   --window-close-hover: #c42b1c;
   --window-close-text: #ffffff;
 
-  /* Every pane's top row: one height, so the title bar reads as one line across the window. */
-  --titlebar-height: 3rem;
+  /* The title bar along the top of the window. */
+  --titlebar-height: 2.75rem;
 
   --emboss-light: rgba(255, 255, 255, 0.95);
   --emboss-dark: rgba(0, 0, 0, 0.1);

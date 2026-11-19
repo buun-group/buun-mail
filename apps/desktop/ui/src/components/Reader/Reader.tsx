@@ -6,7 +6,6 @@ import { IconArchive, IconReply, IconRoute } from '../../icons'
 import { formatFull } from '../../lib/time'
 import { MoreFromBuun } from '../MoreFromBuun/MoreFromBuun'
 import { TagEditor } from '../Tags/Tags'
-import { WindowControls } from '../WindowControls/WindowControls'
 
 import './Reader.css'
 
@@ -40,10 +39,7 @@ function RouteNote({ message, workspace }: { message: Message; workspace: Worksp
 export function Reader({ message, body, workspace, theme, onAddTag, onRemoveTag, tagSuggestions }: ReaderProps): ReactNode {
   if (message === null) {
     return (
-      <section className="reader" aria-label="Reader">
-        <div className="reader__toolbar" data-tauri-drag-region>
-          <WindowControls />
-        </div>
+      <section className="reader reader--empty" aria-label="Reader">
         <div className="reader__empty">
           <p className="reader__nothing">Pick a message to read it.</p>
           <MoreFromBuun theme={theme} />
@@ -54,17 +50,14 @@ export function Reader({ message, body, workspace, theme, onAddTag, onRemoveTag,
 
   return (
     <section className="reader" aria-label="Reader">
-      <div className="reader__toolbar" data-tauri-drag-region>
+      <div className="reader__toolbar">
         <button type="button" className="reader__tool" disabled aria-label={`Reply as ${message.to}`}>
           <IconReply aria-hidden="true" />
         </button>
         <button type="button" className="reader__tool" disabled aria-label="Archive">
           <IconArchive aria-hidden="true" />
         </button>
-        <span className="reader__soon" data-tauri-drag-region>
-          Reply and archive arrive with sending.
-        </span>
-        <WindowControls />
+        <span className="reader__soon">Reply and archive arrive with sending.</span>
       </div>
 
       <article className="reader__message">

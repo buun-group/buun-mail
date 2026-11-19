@@ -1,11 +1,10 @@
-import { Mark } from '@buun-mail/brand/react'
 import { useCallback, useRef, useState } from 'react'
 import type { KeyboardEvent, MouseEvent, ReactNode } from 'react'
 
 import type { Place, Workspace } from '../../api/types'
 import { BRAND_ICONS, isBrandIcon } from '../../constants/products'
-import { INBOX_LABEL, THEME_PREFERENCES, UNSORTED_WORKSPACE } from '../../constants/ui'
-import type { Theme, ThemePreference } from '../../constants/ui'
+import { INBOX_LABEL, UNSORTED_WORKSPACE } from '../../constants/ui'
+import type { Theme } from '../../constants/ui'
 import { usePeek } from '../../hooks/usePeek'
 import type { WorkspaceLooks } from '../../hooks/useWorkspaceLooks'
 import {
@@ -18,11 +17,8 @@ import {
   IconMarkRead,
   IconRename,
   IconReset,
-  IconSettings,
-  IconSidebar,
   IconUnsorted,
   isWorkspaceGlyph,
-  THEME_GLYPHS,
   WORKSPACE_GLYPHS,
 } from '../../icons'
 import { copyText } from '../../lib/clipboard'
@@ -38,27 +34,14 @@ interface SidebarProps {
   workspaces: Workspace[]
   place: Place | null
   theme: Theme
-  themePreference: ThemePreference
-  onThemePreference: (value: ThemePreference) => void
   looks: WorkspaceLooks
   folded: Set<string>
   collapsed: boolean
-  onCollapse: (collapsed: boolean) => void
   onOpen: (place: Place) => void
-  onSettings: () => void
   onFold: (id: string) => void
   onEditIcon: (id: string) => void
   onResetIcon: (id: string) => void
   onMarkAllRead: (place: Place, wholeWorkspace: boolean) => void
-  /** The bell, drawn by the app so the sidebar does not need to know about notifications. */
-  bell: ReactNode
-}
-
-const THEME_NAMES: Record<ThemePreference, string> = { system: 'Match system', light: 'Light', dark: 'Dark' }
-
-/** The theme after this one: Match system, Light, Dark, then round again. */
-function nextTheme(current: ThemePreference): ThemePreference {
-  return THEME_PREFERENCES[(THEME_PREFERENCES.indexOf(current) + 1) % THEME_PREFERENCES.length] ?? 'system'
 }
 
 /** Why rename is off: names live in the routing file, which settings cannot edit yet. */
@@ -80,13 +63,11 @@ function menuPoint(event: MouseEvent | KeyboardEvent): { x: number; y: number } 
  * Every workspace and its folders, the open one marked. Collapsed, it is a rail of icons; pointing at it, scrolling
  * over it or tabbing into it slides it open over the list, and it folds back when the pointer and focus leave.
  */
-export function Sidebar({ workspaces, place, theme, themePreference, onThemePreference, looks, folded, collapsed, onCollapse, onOpen, onSettings, onFold, onEditIcon, onResetIcon, onMarkAllRead, bell }: SidebarProps): ReactNode {
+export function Sidebar({ workspaces, place, theme, looks, folded, collapsed, onOpen, onFold, onEditIcon, onResetIcon, onMarkAllRead }: SidebarProps): ReactNode {
   const nav = useRef<HTMLElement | null>(null)
-  const [peek, setPeek] = usePeek(nav, collapsed)
+  const [peek] = usePeek(nav, collapsed)
   const rail = collapsed && !peek
   const [menu, setMenu] = useState<MenuRequest | null>(null)
-  const ThemeGlyph = THEME_GLYPHS[themePreference]
-  const upcoming = nextTheme(themePreference)
   const closeMenu = useCallback(() => setMenu(null), [])
 
   const copyItem = (addresses: string[]): MenuItem => ({
@@ -128,38 +109,7 @@ export function Sidebar({ workspaces, place, theme, themePreference, onThemePref
   return (
     <div className="sidebar-slot">
       <nav ref={nav} className="sidebar" aria-label="Workspaces" data-collapsed={collapsed} data-rail={rail} data-peek={peek}>
-        <header className="sidebar__top" data-tauri-drag-region>
-          <span className="sidebar__brand" data-tauri-drag-region>
-            <Mark size={22} />
-            <span className="sidebar__text">Buun Mail</span>
-          </span>
-          <span className="sidebar__tools">
-            {bell}
-            <TipButton
-              className="sidebar__icon sidebar__tool"
-              onClick={() => onThemePreference(upcoming)}
-              aria-label={`Theme: ${THEME_NAMES[themePreference]}. Switch to ${THEME_NAMES[upcoming]}`}
-              tip={`${THEME_NAMES[themePreference]} theme`}
-            >
-              <ThemeGlyph aria-hidden="true" />
-            </TipButton>
-            <TipButton className="sidebar__icon sidebar__tool" onClick={onSettings} aria-label="Settings" tip="Settings">
-              <IconSettings aria-hidden="true" />
-            </TipButton>
-            <TipButton
-              className="sidebar__icon"
-              tip={collapsed ? 'Keep the sidebar open' : 'Collapse the sidebar'}
-              side={collapsed ? 'right' : 'below'}
-              aria-pressed={collapsed}
-              aria-label={collapsed ? 'Keep the sidebar open' : 'Collapse the sidebar'}
-              onClick={() => {
-                onCollapse(!collapsed)
-                setPeek(false)
-              }}
-            >
-              <IconSidebar aria-hidden="true" />
-            </TipButton>
-          </span>
+        <header className="sidebar__top">
           <button type="button" className="sidebar__compose" disabled aria-label="Compose">
             <IconCompose aria-hidden="true" />
             <span className="sidebar__text">Compose</span>
