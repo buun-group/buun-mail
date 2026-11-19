@@ -363,6 +363,7 @@ dependencies = [
  "buun-mail-store",
  "getrandom 0.4.3",
  "lettre",
+ "rustls",
  "serde",
  "serde_json",
  "tauri",
@@ -374,6 +375,7 @@ dependencies = [
  "thiserror 2.0.21",
  "tiny_http",
  "ureq",
+ "webpki-roots",
 ]
 
 [[package]]

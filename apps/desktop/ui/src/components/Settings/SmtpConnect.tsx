@@ -6,28 +6,19 @@ import { addSmtpSender, listSenders } from '../../api/client'
 import type { Sender, SmtpSecurity } from '../../api/types'
 import { toast } from '../../lib/feedback'
 import { Select } from '../Select/Select'
+import { MAIL_PRESET_IDS, MAIL_PRESETS } from '../../constants/mailServers'
+import type { MailPreset } from '../../constants/mailServers'
 import { reason, SenderCard } from './SenderCard'
 
-/** Common mail servers, so a person only types their address, app password and domains. */
-const PRESETS = [
-  { id: 'gmail', host: 'smtp.gmail.com', port: 465, security: 'tls' },
-  { id: 'icloud', host: 'smtp.mail.me.com', port: 587, security: 'startTls' },
-  { id: 'fastmail', host: 'smtp.fastmail.com', port: 465, security: 'tls' },
-  { id: 'zoho', host: 'smtp.zoho.com', port: 465, security: 'tls' },
-  { id: 'proton', host: '127.0.0.1', port: 1025, security: 'none' },
-  { id: 'custom', host: '', port: 465, security: 'tls' },
-] as const satisfies readonly { id: string; host: string; port: number; security: SmtpSecurity }[]
-
-type PresetId = (typeof PRESETS)[number]['id']
 
 /** Mail servers connected for sending, and a form to connect another with a preset or its own settings. */
-export function SmtpConnect({ onChanged, onCount }: { onChanged: () => void; onCount: (senders: Sender[]) => void }): ReactNode {
+export function SmtpConnect({ onChanged, onCount, preset: initial = 'gmail' }: { onChanged: () => void; onCount: (senders: Sender[]) => void; preset?: MailPreset }): ReactNode {
   const { t } = useTranslation('integrations')
   const [senders, setSenders] = useState<Sender[] | null>(null)
-  const [preset, setPreset] = useState<PresetId>('gmail')
-  const [host, setHost] = useState<string>(PRESETS[0].host)
-  const [port, setPort] = useState<number>(PRESETS[0].port)
-  const [security, setSecurity] = useState<SmtpSecurity>(PRESETS[0].security)
+  const [preset, setPreset] = useState<MailPreset>(initial)
+  const [host, setHost] = useState<string>(MAIL_PRESETS[initial].smtp.host)
+  const [port, setPort] = useState<number>(MAIL_PRESETS[initial].smtp.port)
+  const [security, setSecurity] = useState<SmtpSecurity>(MAIL_PRESETS[initial].smtp.security)
   const [name, setName] = useState('')
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -50,12 +41,11 @@ export function SmtpConnect({ onChanged, onCount }: { onChanged: () => void; onC
     onChanged()
   }
 
-  const choose = (id: PresetId): void => {
-    const picked = PRESETS.find((item) => item.id === id) ?? PRESETS[0]
-    setPreset(picked.id)
-    setHost(picked.host)
-    setPort(picked.port)
-    setSecurity(picked.security)
+  const choose = (id: MailPreset): void => {
+    setPreset(id)
+    setHost(MAIL_PRESETS[id].smtp.host)
+    setPort(MAIL_PRESETS[id].smtp.port)
+    setSecurity(MAIL_PRESETS[id].smtp.security)
   }
 
   const connect = (event: FormEvent<HTMLFormElement>): void => {
@@ -87,7 +77,7 @@ export function SmtpConnect({ onChanged, onCount }: { onChanged: () => void; onC
         <h5 className="settings__label">{t('smtp.connectTitle')}</h5>
         <div className="connect__field">
           <label htmlFor="smtp-preset">{t('smtp.preset')}</label>
-          <Select id="smtp-preset" className="select--wide" value={preset} options={PRESETS.map((item) => ({ value: item.id, label: t(`smtp.presets.${item.id}`) }))} onChange={choose} />
+          <Select id="smtp-preset" className="select--wide" value={preset} options={MAIL_PRESET_IDS.map((id) => ({ value: id, label: t(`smtp.presets.${id}`) }))} onChange={choose} />
           <small>{t(`smtp.hints.${preset}`)}</small>
         </div>
         <div className="connect__row">

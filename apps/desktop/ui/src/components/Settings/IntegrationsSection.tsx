@@ -12,6 +12,7 @@ import type { Theme } from '../../constants/ui'
 import { IconCaret, IconReceive, IconSend, INTEGRATION_GLYPHS } from '../../icons'
 import { Gateways } from './Gateways'
 import { ResendConnect } from './ResendConnect'
+import { ImapConnect } from './ImapConnect'
 import { SmtpConnect } from './SmtpConnect'
 
 const DIRECTION_WORDS = {
@@ -49,7 +50,7 @@ export function IntegrationsSection({ onImported, onSendersChanged, theme }: { o
             <ul className="settings__list">
               {INTEGRATIONS.filter((integration) => integration.directions.includes(direction)).map((integration) => {
                 const key = `${direction}-${integration.id}`
-                return <IntegrationRow key={key} rowKey={key} integration={integration} open={open === key} onToggle={() => setOpen(open === key ? null : key)} onImported={onImported} gatewayCount={gatewayCount} onGatewayCount={setGatewayCount} senders={senders} onSenders={setSenders} onSendersChanged={onSendersChanged} theme={theme} />
+                return <IntegrationRow key={key} rowKey={key} direction={direction} integration={integration} open={open === key} onToggle={() => setOpen(open === key ? null : key)} onImported={onImported} gatewayCount={gatewayCount} onGatewayCount={setGatewayCount} senders={senders} onSenders={setSenders} onSendersChanged={onSendersChanged} theme={theme} />
               })}
             </ul>
           </section>
@@ -61,6 +62,8 @@ export function IntegrationsSection({ onImported, onSendersChanged, theme }: { o
 
 interface RowProps {
   rowKey: string
+  /** Which list the row is in: reading mail, or sending it. */
+  direction: Direction
   integration: Integration
   open: boolean
   onToggle: () => void
@@ -76,7 +79,7 @@ interface RowProps {
 /** How many senders of one kind are connected. */
 const senderCountOf = (senders: Sender[], kind: 'resend' | 'smtp'): number => senders.filter((sender) => sender.kind === kind).length
 
-function IntegrationRow({ rowKey, integration, open, onToggle, onImported, gatewayCount, onGatewayCount, senders, onSenders, onSendersChanged, theme }: RowProps): ReactNode {
+function IntegrationRow({ rowKey, direction, integration, open, onToggle, onImported, gatewayCount, onGatewayCount, senders, onSenders, onSendersChanged, theme }: RowProps): ReactNode {
   const { t } = useTranslation('integrations')
   const Glyph = INTEGRATION_GLYPHS[integration.id]
   const panel = `integration-${rowKey}`
@@ -90,12 +93,12 @@ function IntegrationRow({ rowKey, integration, open, onToggle, onImported, gatew
           <span className="settings__label">{t(integration.name)}</span>
           <span className="settings__hint">{t(integration.summary)}</span>
         </span>
-        <span className="integration__state">{integration.method.kind === 'file' ? t('state.ready') : integration.method.kind === 'gateway' ? (gatewayCount > 0 ? t('state.gateways', { count: gatewayCount }) : t('state.connectHere')) : integration.method.kind === 'resend' || integration.method.kind === 'smtp' ? (senderCountOf(senders, integration.method.kind) > 0 ? t('state.senders', { count: senderCountOf(senders, integration.method.kind) }) : t('state.connectHere')) : t('state.notConnected')}</span>
+        <span className="integration__state">{integration.method.kind === 'file' ? t('state.ready') : integration.method.kind === 'gateway' ? (gatewayCount > 0 ? t('state.gateways', { count: gatewayCount }) : t('state.connectHere')) : integration.method.kind === 'mailbox' ? t('state.connectHere') : integration.method.kind === 'resend' || integration.method.kind === 'smtp' ? (senderCountOf(senders, integration.method.kind) > 0 ? t('state.senders', { count: senderCountOf(senders, integration.method.kind) }) : t('state.connectHere')) : t('state.notConnected')}</span>
         <IconCaret aria-hidden="true" className="integration__caret" />
       </button>
       {open && (
         <div id={panel} className="integration__panel">
-          {integration.method.kind === 'file' ? <FileImport onImported={onImported} /> : integration.method.kind === 'gateway' ? <Gateways onChanged={onImported} onCount={onGatewayCount} /> : integration.method.kind === 'resend' ? <ResendConnect onChanged={onSendersChanged} onCount={onSenders} /> : integration.method.kind === 'smtp' ? <SmtpConnect onChanged={onSendersChanged} onCount={onSenders} /> : <ConnectForm integration={integration} idPrefix={rowKey} />}
+          {integration.method.kind === 'file' ? <FileImport onImported={onImported} /> : integration.method.kind === 'gateway' ? <Gateways onChanged={onImported} onCount={onGatewayCount} /> : integration.method.kind === 'resend' ? <ResendConnect onChanged={onSendersChanged} onCount={onSenders} /> : integration.method.kind === 'smtp' ? <SmtpConnect onChanged={onSendersChanged} onCount={onSenders} /> : integration.method.kind === 'mailbox' ? direction === 'receive' ? <ImapConnect preset={integration.method.preset} onChanged={onImported} /> : <SmtpConnect preset={integration.method.preset} onChanged={onSendersChanged} onCount={onSenders} /> : <ConnectForm integration={integration} idPrefix={rowKey} />}
         </div>
       )}
     </li>

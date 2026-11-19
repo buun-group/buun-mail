@@ -262,3 +262,16 @@ export interface KnownContact {
   messages: number
   latest: string
 }
+
+/** An IMAP mailbox collected from, without its password. Mirrors `ImapAccountDto`. */
+export interface ImapAccount {
+  id: string
+  name: string
+  host: string
+  port: number
+  username: string
+  folder: string
+  lastChecked: string | null
+  received: number
+  problem: string | null
+}

@@ -14,6 +14,7 @@ use crate::agent::{AgentState, AgentStatusDto};
 use crate::dto::{ActivityDto, ContactDto, ImportReportDto, KnownContactDto, MessageDetailDto, MessageDto, ShelfDto, TagCountDto, ViewDto, WorkspaceDto};
 use crate::error::AppError;
 use crate::events;
+use crate::imap::{ImapAccountDto, ImapSecurity, ImapService};
 use crate::mailbox::{Actor, AttachmentDataDto, ExportFormat, Mailbox};
 use crate::send::{DraftDto, Security, SendFailure, SendService, SendableDto, SenderDto, SmtpServer};
 use crate::sync::{AvailableZone, CheckReportDto, DomainRoute, GatewayStatusDto, OwnedDomain, SyncService};
@@ -357,4 +358,42 @@ pub async fn add_smtp_sender(
     let service = send.inner().clone();
     let server = SmtpServer { host: host.trim().to_owned(), port, security, username };
     tauri::async_runtime::spawn_blocking(move || service.add_smtp(&name, server, &password, &domains)).await.map_err(|error| error.to_string())?
+}
+
+/// Every IMAP mailbox, without passwords, with how its checks are going.
+#[tauri::command]
+pub fn list_imap_accounts(imap: State<'_, ImapService>) -> Result<Vec<ImapAccountDto>, AppError> {
+    imap.list()
+}
+
+/// Adds an IMAP mailbox after signing in to check it, then collects its newest messages, away from the window's thread.
+#[tauri::command]
+#[allow(clippy::too_many_arguments, reason = "each is one field of the form, named as the UI sends it")]
+pub async fn add_imap_account(
+    imap: State<'_, ImapService>,
+    name: String,
+    host: String,
+    port: u16,
+    security: ImapSecurity,
+    username: String,
+    password: String,
+    folder: String,
+) -> Result<Vec<ImapAccountDto>, String> {
+    let service = imap.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || service.add(&name, &host, port, security, &username, &password, &folder))
+        .await
+        .map_err(|error| error.to_string())?
+}
+
+/// Forgets an IMAP mailbox.
+#[tauri::command]
+pub fn remove_imap_account(imap: State<'_, ImapService>, id: String) -> Result<Vec<ImapAccountDto>, AppError> {
+    imap.remove(&id)
+}
+
+/// Checks every IMAP mailbox now, away from the window's thread. Returns how many messages arrived.
+#[tauri::command]
+pub async fn check_imap_accounts(imap: State<'_, ImapService>) -> Result<usize, String> {
+    let service = imap.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || service.check_all()).await.map_err(|error| error.to_string())
 }

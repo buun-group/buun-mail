@@ -43,7 +43,9 @@ export interface IntegrationField {
   hint?: IntegrationKey
 }
 
-export type IntegrationMethod = { kind: 'form'; fields: readonly IntegrationField[] } | { kind: 'oauth'; provider: string } | { kind: 'file'; accept: string } | { kind: 'gateway' } | { kind: 'resend' } | { kind: 'smtp' }
+import type { MailPreset } from './mailServers'
+
+export type IntegrationMethod = { kind: 'form'; fields: readonly IntegrationField[] } | { kind: 'oauth'; provider: string } | { kind: 'file'; accept: string } | { kind: 'gateway' } | { kind: 'resend' } | { kind: 'smtp' } | { kind: 'mailbox'; preset: MailPreset }
 
 export interface Integration {
   id: IntegrationId
@@ -55,10 +57,6 @@ export interface Integration {
 }
 
 const API_KEY: IntegrationField = { id: 'key', label: 'fields.apiKey', type: 'password' }
-const IMAP_LOGIN: readonly IntegrationField[] = [
-  { id: 'user', label: 'fields.username', type: 'text' },
-  { id: 'password', label: 'fields.password', type: 'password' },
-]
 
 export const INTEGRATIONS: readonly Integration[] = [
   { id: 'gateway', name: 'providers.gateway.name', summary: 'providers.gateway.summary', directions: ['receive'], method: { kind: 'gateway' } },
@@ -75,47 +73,12 @@ export const INTEGRATIONS: readonly Integration[] = [
       ],
     },
   },
-  { id: 'gmail', name: 'providers.gmail.name', summary: 'providers.gmail.summary', directions: ['receive', 'send'], method: { kind: 'oauth', provider: 'Google' } },
+  { id: 'gmail', name: 'providers.gmail.name', summary: 'providers.gmail.summary', directions: ['receive', 'send'], method: { kind: 'mailbox', preset: 'gmail' } },
   { id: 'outlook', name: 'providers.outlook.name', summary: 'providers.outlook.summary', directions: ['receive', 'send'], method: { kind: 'oauth', provider: 'Microsoft' } },
-  {
-    id: 'proton',
-    name: 'providers.proton.name',
-    summary: 'providers.proton.summary',
-    directions: ['receive'],
-    method: {
-      kind: 'form',
-      fields: [
-        { id: 'host', label: 'fields.bridgeHost', type: 'text', sample: '127.0.0.1' },
-        { id: 'port', label: 'fields.imapPort', type: 'number', sample: '1143' },
-        { id: 'user', label: 'fields.bridgeUser', type: 'text' },
-        { id: 'password', label: 'fields.bridgePassword', type: 'password', hint: 'fields.bridgePasswordHint' },
-      ],
-    },
-  },
-  {
-    id: 'icloud',
-    name: 'providers.icloud.name',
-    summary: 'providers.icloud.summary',
-    directions: ['receive'],
-    method: {
-      kind: 'form',
-      fields: [
-        { id: 'user', label: 'fields.appleId', type: 'text' },
-        { id: 'password', label: 'fields.applePassword', type: 'password', hint: 'fields.applePasswordHint' },
-      ],
-    },
-  },
-  { id: 'zoho', name: 'providers.zoho.name', summary: 'providers.zoho.summary', directions: ['receive'], method: { kind: 'form', fields: IMAP_LOGIN } },
-  {
-    id: 'imap',
-    name: 'providers.imap.name',
-    summary: 'providers.imap.summary',
-    directions: ['receive'],
-    method: {
-      kind: 'form',
-      fields: [{ id: 'host', label: 'fields.server', type: 'text', sample: 'imap.example.com' }, { id: 'port', label: 'fields.port', type: 'number', sample: '993' }, ...IMAP_LOGIN],
-    },
-  },
+  { id: 'proton', name: 'providers.proton.name', summary: 'providers.proton.summary', directions: ['receive', 'send'], method: { kind: 'mailbox', preset: 'proton' } },
+  { id: 'icloud', name: 'providers.icloud.name', summary: 'providers.icloud.summary', directions: ['receive', 'send'], method: { kind: 'mailbox', preset: 'icloud' } },
+  { id: 'zoho', name: 'providers.zoho.name', summary: 'providers.zoho.summary', directions: ['receive', 'send'], method: { kind: 'mailbox', preset: 'zoho' } },
+  { id: 'imap', name: 'providers.imap.name', summary: 'providers.imap.summary', directions: ['receive'], method: { kind: 'mailbox', preset: 'custom' } },
   { id: 'file', name: 'providers.file.name', summary: 'providers.file.summary', directions: ['receive'], method: { kind: 'file', accept: '.eml,.mbox,message/rfc822,application/mbox' } },
   {
     id: 'resend',

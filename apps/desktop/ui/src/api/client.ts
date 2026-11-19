@@ -5,7 +5,7 @@ import { openUrl } from '@tauri-apps/plugin-opener'
 import type { ExportFormat } from '../constants/ui'
 import { COMMANDS, IMPORT_EXTENSIONS } from './commands'
 import { preview, previewDetail, previewMessages, previewView, previewWorkspaces } from './preview'
-import type { Activity, AgentStatus, AvailableDomain, CheckReport, Contact, Draft, FileToSend, KnownContact, SmtpServer, Sendable, Sender, GatewayDomain, GatewayStatus, ImportReport, MailView, Message, MessageDetail, Place, Rule, Shelf, TagCount, Workspace } from './types'
+import type { Activity, AgentStatus, AvailableDomain, CheckReport, Contact, Draft, FileToSend, ImapAccount, KnownContact, SmtpSecurity, SmtpServer, Sendable, Sender, GatewayDomain, GatewayStatus, ImportReport, MailView, Message, MessageDetail, Place, Rule, Shelf, TagCount, Workspace } from './types'
 
 /**
  * The one door to the Rust side. In the desktop app every call is a Tauri command; in a plain browser (`pnpm dev:ui`)
@@ -296,4 +296,24 @@ export async function pickFilesToSend(): Promise<FileToSend[]> {
 /** Connects a mail server for sending, after checking its sign-in. Rejects with the server's reason. */
 export async function addSmtpSender(name: string, server: SmtpServer, password: string, domains: string[]): Promise<Sender[]> {
   return isTauri() ? invoke<Sender[]>(COMMANDS.addSmtpSender, { name, ...server, password, domains }) : preview.addSmtp(name, server, domains)
+}
+
+/** Every IMAP mailbox collected from. */
+export async function listImapAccounts(): Promise<ImapAccount[]> {
+  return isTauri() ? invoke<ImapAccount[]>(COMMANDS.listImapAccounts) : preview.imapAccounts()
+}
+
+/** Adds an IMAP mailbox after checking its sign-in, and collects its newest mail. Rejects with the server's reason. */
+export async function addImapAccount(account: { name: string; host: string; port: number; security: SmtpSecurity; username: string; password: string; folder: string }): Promise<ImapAccount[]> {
+  return isTauri() ? invoke<ImapAccount[]>(COMMANDS.addImapAccount, account) : preview.addImap(account)
+}
+
+/** Forgets an IMAP mailbox. */
+export async function removeImapAccount(id: string): Promise<ImapAccount[]> {
+  return isTauri() ? invoke<ImapAccount[]>(COMMANDS.removeImapAccount, { id }) : preview.removeImap(id)
+}
+
+/** Checks every IMAP mailbox now. Resolves to how many messages arrived. */
+export async function checkImapAccounts(): Promise<number> {
+  return isTauri() ? invoke<number>(COMMANDS.checkImapAccounts) : 0
 }

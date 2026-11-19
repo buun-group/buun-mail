@@ -33,27 +33,27 @@
     },
     "gmail": {
       "name": "Gmail",
-      "summary": "Read and send as your Google address after signing in with Google."
+      "summary": "Read over IMAP and send over SMTP with a Google app password."
     },
     "outlook": {
       "name": "Outlook",
-      "summary": "Read and send as your Microsoft address after signing in with Microsoft."
+      "summary": "Needs sign-in with Microsoft, which requires an app registration in Azure; not set up yet."
     },
     "proton": {
       "name": "Proton Mail",
-      "summary": "Through Proton Bridge running on this computer."
+      "summary": "Read and send through Proton Mail Bridge running on this computer."
     },
     "icloud": {
       "name": "iCloud Mail",
-      "summary": "IMAP with an app-specific password."
+      "summary": "Read over IMAP and send over SMTP with an app-specific password."
     },
     "zoho": {
       "name": "Zoho Mail",
-      "summary": "IMAP with an app password from Zoho Accounts."
+      "summary": "Read over IMAP and send over SMTP with an app password."
     },
     "imap": {
       "name": "Other IMAP",
-      "summary": "Any provider that speaks IMAP over TLS."
+      "summary": "Any IMAP mailbox: new mail every two minutes, never marked read there."
     },
     "file": {
       "name": "Import a file",
@@ -202,7 +202,7 @@
   },
   "smtp": {
     "connectTitle": "Connect a mail server",
-    "preset": "Server",
+    "preset": "Provider",
     "presets": {
       "gmail": "Gmail",
       "icloud": "iCloud Mail",
@@ -228,5 +228,23 @@
     "domainsHint": "Usually your address's domain; separate several with commas.",
     "checking": "Checking the sign-in",
     "connected": "{{host}} connected"
+  },
+  "imap": {
+    "connectTitle": "Collect a mailbox over IMAP",
+    "hints": {
+      "gmail": "Turn on two-step verification, then make an app password in your Google account (Security, App passwords). Mail stays on Gmail too.",
+      "icloud": "Make an app-specific password in your Apple account.",
+      "fastmail": "Make an app password in Fastmail's settings, with IMAP access.",
+      "zoho": "Turn on IMAP access in Zoho Mail's settings; use an app password if two-factor sign-in is on.",
+      "proton": "Proton Mail Bridge must be running on this computer, set to plain connections; use the password Bridge shows.",
+      "custom": "Your provider's IMAP server, usually port 993 with TLS."
+    },
+    "tls": "TLS (usually port 993)",
+    "startTls": "STARTTLS (usually port 143)",
+    "folder": "Folder",
+    "connected": "{{name}} connected",
+    "firstTake": "Its newest 200 messages are coming in; new mail follows every two minutes.",
+    "checked": "Mailboxes checked",
+    "checkFailed": "The mailboxes could not be checked"
   }
 }

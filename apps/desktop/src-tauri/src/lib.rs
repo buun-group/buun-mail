@@ -5,6 +5,7 @@
 //! - `paths`: where the routing file and the store live on this platform
 //! - `sync`: collecting mail from the Buun Mail Gateway
 //! - `send`: sending through a connected service such as Resend
+//! - `imap`: collecting from IMAP mailboxes
 //! - `ingest`: parse, route and store one message; every mail source goes through it
 //! - `mailbox`: what the UI and agents read and change, on top of the store
 //! - `commands`: the thin Tauri commands
@@ -17,6 +18,7 @@ mod commands;
 mod dto;
 mod error;
 mod events;
+mod imap;
 mod ingest;
 mod mailbox;
 mod paths;
@@ -76,6 +78,7 @@ pub fn run() {
                 }
             });
             app.manage(send::SendService::open(paths.config.clone(), Arc::clone(&mailbox)));
+            app.manage(imap::ImapService::start(paths.config.clone(), Arc::clone(&mailbox), Some(app.handle().clone())));
             app.manage(mailbox);
             Ok(())
         })
@@ -107,6 +110,10 @@ pub fn run() {
             commands::open_attachment,
             commands::describe_files,
             commands::add_smtp_sender,
+            commands::list_imap_accounts,
+            commands::add_imap_account,
+            commands::remove_imap_account,
+            commands::check_imap_accounts,
             commands::open_message,
             commands::mark_all_read,
             commands::tag_message,

@@ -1,4 +1,4 @@
-import type { Activity, AgentStatus, Contact, Draft, KnownContact, SmtpServer, MailView, Message, MessageDetail, Place, Rule, Sendable, Sender, TagCount, Workspace } from './types'
+import type { Activity, AgentStatus, Contact, Draft, ImapAccount, KnownContact, SmtpServer, MailView, Message, MessageDetail, Place, Rule, Sendable, Sender, TagCount, Workspace } from './types'
 
 /**
  * A small stand-in mailbox for `pnpm dev:ui`, where there is no Rust side, so the layout can be tuned in a plain
@@ -87,7 +87,20 @@ function found(id: string): Message {
 /** The senders the preview keeps in memory: one, so compose and reply can be worked on in a browser. */
 const SENDERS: Sender[] = [{ id: 'preview-sender', name: 'Resend', kind: 'resend', keyHint: 'demo', restricted: false, domains: [{ name: 'buungroup.com', status: 'verified' }, { name: 'plotwork.dev', status: 'pending' }], signature: 'Sacha\nBuun Group', smtp: null }]
 
+const IMAP: ImapAccount[] = []
+
 export const preview = {
+  imapAccounts: (): ImapAccount[] => IMAP.map((account) => ({ ...account })),
+  addImap: (account: { name: string; host: string; port: number; username: string; folder: string }): ImapAccount[] => {
+    if (account.host.trim() === '') throw new Error('the mail server could not be reached: no server name')
+    IMAP.push({ id: `imap-${IMAP.length + 1}`, name: account.name || account.username, host: account.host, port: account.port, username: account.username, folder: account.folder || 'INBOX', lastChecked: new Date().toISOString(), received: 0, problem: null })
+    return preview.imapAccounts()
+  },
+  removeImap: (id: string): ImapAccount[] => {
+    const at = IMAP.findIndex((account) => account.id === id)
+    if (at !== -1) IMAP.splice(at, 1)
+    return preview.imapAccounts()
+  },
   senders: (): Sender[] => SENDERS.map((sender) => ({ ...sender })),
   addSender: (name: string, key: string, domains: string[]): Sender[] => {
     if (!key.startsWith('re_')) throw new Error('Resend refused the API key: API key is invalid')
