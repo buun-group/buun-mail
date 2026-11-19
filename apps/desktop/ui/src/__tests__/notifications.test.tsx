@@ -65,3 +65,17 @@ describe('notifications', () => {
     expect(within(screen.getByRole('region', { name: 'New mail' })).queryByText('Subject n3')).toBeNull()
   })
 })
+
+describe('the test notification', () => {
+  it('shows a sample toast from Settings, which opens nothing when clicked', async () => {
+    render(<App />)
+    await screen.findByText('Quote for the booking site')
+    fireEvent.keyDown(window, { key: ',', ctrlKey: true })
+    const settings = screen.getByRole('dialog', { name: 'Settings' })
+    fireEvent.click(within(settings).getByRole('button', { name: 'Notifications' }))
+    fireEvent.click(within(settings).getByRole('button', { name: 'Send a test' }))
+    const toasts = screen.getByRole('region', { name: 'New mail' })
+    fireEvent.click(await within(toasts).findByText('This is how new mail looks'))
+    expect(within(toasts).queryByText('This is how new mail looks')).toBeNull()
+  })
+})

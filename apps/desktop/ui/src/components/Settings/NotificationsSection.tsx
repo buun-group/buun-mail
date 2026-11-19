@@ -6,6 +6,7 @@ import { isTauri } from '@tauri-apps/api/core'
 
 import type { Workspace } from '../../api/types'
 import type { Notifications } from '../../hooks/useNotifications'
+import { IconBell } from '../../icons'
 import { Switch } from './Switch'
 
 /** How new mail tells you it arrived, and which workspaces stay quiet. Saved on this computer. */
@@ -46,6 +47,16 @@ export function NotificationsSection({ notifications, workspaces }: { notificati
               void enableDesktop().then((allowed) => setRefused(!allowed))
             }}
           />
+        </div>
+        <div className="settings__row">
+          <div>
+            <p className="settings__label">{t('test.title')}</p>
+            <p className="settings__hint">{t('test.hint')}</p>
+          </div>
+          <button type="button" className="settings__button" onClick={() => notifications.sendTest(workspaces[0]?.id ?? '')}>
+            <IconBell aria-hidden="true" />
+            {t('test.button')}
+          </button>
         </div>
       </div>
 

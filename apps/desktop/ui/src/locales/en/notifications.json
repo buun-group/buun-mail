@@ -29,5 +29,14 @@
     "desktopAsks": "Asks your system the first time.",
     "desktopAppOnly": "Available in the desktop app.",
     "workspaces": "Workspaces"
+  },
+  "test": {
+    "title": "Try it",
+    "hint": "Shows a sample new-mail pop-up, and a desktop notification when those are on, so you can see how they look.",
+    "button": "Send a test",
+    "sender": "Buun Mail",
+    "subject": "This is how new mail looks",
+    "toastsOff": "Pop-ups in the window are off",
+    "toastsOffDetail": "Turn them on above to see the test."
   }
 }

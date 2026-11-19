@@ -168,7 +168,7 @@ export function App(): ReactNode {
         onImported={mailbox.refresh}
         notifications={notifications}
       />
-      <Toasts toasts={notifications.toasts} workspaceName={workspaceName} onOpen={mailbox.reveal} onDismiss={notifications.dismissToast} />
+      <Toasts toasts={notifications.toasts} workspaceName={workspaceName} onOpen={(message) => (notifications.isTest(message.id) ? undefined : mailbox.reveal(message))} onDismiss={notifications.dismissToast} />
       <Confirm request={actions.confirmation} cancelLabel={t('actions.cancel')} onClose={actions.closeConfirmation} />
       {preferences.grain && <Grain />}
       <Splash done={mailbox.ready} />

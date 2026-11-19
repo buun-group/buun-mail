@@ -5,6 +5,7 @@ import { askToNotify, notify } from '../api/notify'
 import type { Message } from '../api/types'
 import { NOTIFICATION_FEED_LIMIT, STORAGE_KEYS, TOAST_LIMIT, TOAST_MS } from '../constants/ui'
 import i18n from '../i18n'
+import { toast as sayInWindow } from '../lib/feedback'
 
 /** What the person chose in Settings, Notifications. Kept on this computer. */
 export interface NotificationPrefs {
@@ -35,7 +36,15 @@ export interface Notifications {
   clear: () => void
   toasts: Message[]
   dismissToast: (id: string) => void
+  /** Shows a sample new-mail toast, and a desktop notification when those are on, for Settings' Try it. */
+  sendTest: (workspace: string) => void
+  /** True for a sample from `sendTest`, which opens nothing when clicked. */
+  isTest: (id: string) => boolean
 }
+
+/** The id every sample toast starts with. */
+const TEST_ID = 'notification-test-'
+
 
 function load(): NotificationPrefs {
   try {
@@ -116,5 +125,28 @@ export function useNotifications(workspaceName: (id: string) => string): Notific
     clear: () => setFeed([]),
     toasts,
     dismissToast,
+    sendTest: (workspace) => {
+      const sample: Message = {
+        id: `${TEST_ID}${Date.now()}`,
+        workspace,
+        folder: null,
+        fromName: i18n.t('notifications:test.sender'),
+        from: 'hello@buungroup.com',
+        to: 'you@buungroup.com',
+        matched: null,
+        folderMatched: null,
+        subject: i18n.t('notifications:test.subject'),
+        preview: '',
+        receivedAt: new Date().toISOString(),
+        unread: true,
+        starred: false,
+        shelf: 'active',
+        tags: [],
+      }
+      if (prefs.toasts) setToasts((current) => [sample, ...current].slice(0, TOAST_LIMIT))
+      else sayInWindow({ text: i18n.t('notifications:test.toastsOff'), detail: i18n.t('notifications:test.toastsOffDetail'), tone: 'info' })
+      if (prefs.desktop) void notify(i18n.t('notifications:desktop.one', { name: sample.fromName, workspace: workspaceName(workspace) }), sample.subject)
+    },
+    isTest: (id) => id.startsWith(TEST_ID),
   }
 }
