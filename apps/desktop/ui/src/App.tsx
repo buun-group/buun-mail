@@ -39,6 +39,7 @@ export function App(): ReactNode {
   const workspace = mailbox.workspaces.find((item) => item.id === mailbox.place?.workspace)
   const workspaceName = (id: string): string => mailbox.workspaces.find((item) => item.id === id)?.name ?? id
   const notifications = useNotifications(workspaceName)
+
   const openNotificationSettings = (): void => {
     setSection('notifications')
     setSettingsOpen(true)
@@ -81,7 +82,15 @@ export function App(): ReactNode {
         }
       />
       <MessageList workspace={workspace} place={mailbox.place} messages={mailbox.messages} selectedId={mailbox.selected?.message.id ?? null} onSelect={mailbox.select} />
-      <Reader message={mailbox.selected?.message ?? null} body={mailbox.selected?.body ?? null} workspace={workspace} theme={preferences.theme} />
+      <Reader
+        message={mailbox.selected?.message ?? null}
+        body={mailbox.selected?.body ?? null}
+        workspace={workspace}
+        theme={preferences.theme}
+        onAddTag={mailbox.addTag}
+        onRemoveTag={mailbox.removeTag}
+        tagSuggestions={mailbox.tags}
+      />
       <Settings open={settingsOpen} onClose={() => setSettingsOpen(false)} preferences={preferences} workspaces={mailbox.workspaces}
         looks={looks.looks}
         onLook={looks.set}

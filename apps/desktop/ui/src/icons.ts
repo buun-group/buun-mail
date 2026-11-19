@@ -15,6 +15,8 @@ import {
   PiChatCircleLight,
   PiCloudLight,
   PiCodeLight,
+  PiFunnelLight,
+  PiRobotLight,
   PiGameControllerLight,
   PiGithubLogoLight,
   PiGlobeLight,
@@ -42,8 +44,9 @@ import {
   PiTrayArrowDownLight,
   PiListLight,
 } from 'react-icons/pi'
-import { SiBrevo, SiCloudflare, SiGmail, SiIcloud, SiMailgun, SiProtonmail, SiResend, SiSparkpost, SiZoho } from 'react-icons/si'
+import { SiBrevo, SiClaude, SiCloudflare, SiCursor, SiGmail, SiIcloud, SiMailgun, SiModelcontextprotocol, SiProtonmail, SiResend, SiSparkpost, SiZoho } from 'react-icons/si'
 
+import type { AgentClientId } from './constants/agents'
 import type { IntegrationId } from './constants/integrations'
 import type { Density, SettingsSection, ThemePreference } from './constants/ui'
 
@@ -66,6 +69,13 @@ export {
   PiArrowCounterClockwiseLight as IconReset,
   PiSidebarSimpleLight as IconSidebar,
   PiBellLight as IconBell,
+  PiTagLight as IconTag,
+  PiPlusLight as IconAdd,
+  PiTrashLight as IconDelete,
+  PiPlayLight as IconRun,
+  PiEyeLight as IconShow,
+  PiEyeSlashLight as IconHide,
+  PiArrowsClockwiseLight as IconRegenerate,
   PiBellSlashLight as IconBellOff,
   PiMinusLight as IconMinimize,
   PiSquareLight as IconMaximize,
@@ -136,4 +146,14 @@ export const THEME_GLYPHS: Record<ThemePreference, IconType> = { system: PiDeskt
 
 export const DENSITY_GLYPHS: Record<Density, IconType> = { comfortable: PiRowsLight, compact: PiListLight }
 
-export const SECTION_GLYPHS: Record<SettingsSection, IconType> = { general: PiGearSixLight, notifications: PiBellLight, workspaces: PiStackSimpleLight, integrations: PiPlugsConnectedLight }
+export const SECTION_GLYPHS: Record<SettingsSection, IconType> = {
+  general: PiGearSixLight,
+  notifications: PiBellLight,
+  workspaces: PiStackSimpleLight,
+  rules: PiFunnelLight,
+  integrations: PiPlugsConnectedLight,
+  agents: PiRobotLight,
+}
+
+/** Agent clients by their own logos. VS Code has no Simple Icons mark, so it takes the code glyph. */
+export const AGENT_CLIENT_GLYPHS: Record<AgentClientId, IconType> = { claude: SiClaude, cursor: SiCursor, vscode: PiCodeLight, any: SiModelcontextprotocol }

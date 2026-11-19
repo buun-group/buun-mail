@@ -40,7 +40,7 @@ pub fn evaluate(rules: &[CheckedRule], facts: &Facts<'_>) -> Outcome {
     let mut outcome = Outcome::default();
     for checked in rules.iter().filter(|checked| checked.rule.enabled && matches(checked, facts)) {
         outcome.fired.push(checked.rule.name.clone());
-        for action in &checked.rule.then {
+        for action in &checked.rule.actions {
             match action {
                 Action::Tag { tag } => {
                     let tag = tag.trim().to_owned();

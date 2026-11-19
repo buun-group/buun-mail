@@ -82,6 +82,10 @@
   --logo-mailgun: #f06b66;
   --logo-brevo: #0b996e;
   --logo-sparkpost: #fa6423;
+  --logo-claude: #d97757;
+  --logo-cursor: #000000;
+  --logo-vscode: #0078d4;
+  --logo-any: #000000;
 
   --font-sans: 'Geist Variable', ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-mono: 'Geist Mono Variable', ui-monospace, Menlo, monospace;
@@ -108,7 +112,7 @@
   --radius-xl: 1rem;
   --radius-full: 9999px;
 
-  --sidebar-width: 15rem;
+  --sidebar-width: 16rem;
   --rail-width: 3.25rem;
   --list-width: 22rem;
   --row-pad: var(--space-3);
@@ -160,6 +164,9 @@
   --grain-over-opacity: 0.22;
   --grain-filter: invert(1);
   --logo-resend: #fafafa;
+  --logo-cursor: #fafafa;
+  --logo-any: #fafafa;
+  --logo-vscode: #4aa3ff;
   --logo-outlook: #4aa3ff;
   --logo-proton: #9b85ff;
 
@@ -182,6 +189,10 @@
 .logo--mailgun { --logo: var(--logo-mailgun); }
 .logo--brevo { --logo: var(--logo-brevo); }
 .logo--sparkpost { --logo: var(--logo-sparkpost); }
+.logo--claude { --logo: var(--logo-claude); }
+.logo--cursor { --logo: var(--logo-cursor); }
+.logo--vscode { --logo: var(--logo-vscode); }
+.logo--any { --logo: var(--logo-any); }
 
 .tone--plotwork { --tone: var(--tone-plotwork); }
 .tone--flung { --tone: var(--tone-flung); }

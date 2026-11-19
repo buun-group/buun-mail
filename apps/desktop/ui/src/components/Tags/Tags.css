@@ -1,0 +1,71 @@
+.tag-chips {
+  display: inline-flex;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 1.125rem;
+  padding: 0 var(--space-1-5);
+  border-radius: var(--radius-full);
+  background: var(--alpha-8);
+  color: var(--text-secondary);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.tag-chip--more {
+  color: var(--text-muted);
+}
+
+.tag-chip--removable {
+  height: 1.375rem;
+  padding-right: 2px;
+  font-size: var(--text-xs);
+}
+
+.tag-chip--removable button {
+  display: grid;
+  place-items: center;
+  width: 1rem;
+  height: 1rem;
+  border-radius: var(--radius-full);
+  color: var(--text-muted);
+}
+
+.tag-chip--removable button:hover {
+  background: var(--alpha-12);
+  color: var(--text-primary);
+}
+
+.tag-editor {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.tag-editor__glyph {
+  margin-right: var(--space-1);
+  color: var(--text-muted);
+}
+
+.tag-editor__input {
+  width: 6rem;
+  height: 1.375rem;
+  padding: 0 var(--space-2);
+  border: 0;
+  border-radius: var(--radius-full);
+  background: none;
+  box-shadow: inset 0 0 0 1px var(--alpha-12);
+  font-size: var(--text-xs);
+  outline: none;
+}
+
+.tag-editor__input:focus-visible {
+  box-shadow: inset 0 0 0 1px var(--alpha-20), 0 0 0 2px var(--brand-40);
+}

@@ -16,6 +16,10 @@ This repository follows the [Buun Group coding standards](./.standards/docs/stan
 - `apps/desktop/ui` never decides where mail goes. It shows what the Rust side sends. `src/api/client.ts` is the only
   file that calls Tauri.
 - `src-tauri/src/dto.rs` and `ui/src/api/types.ts` mirror each other. Change both together.
+- Agents reach the mailbox only through `src-tauri/src/agent` (MCP). A new agent ability is a tool in `agent/tools.rs`
+  calling a mailbox method, never SQL or file access of its own. Tool names are a contract: never rename one.
+- Rules are JSON (`crates/rules`), the same shape for the UI and for agents. A rule's fields are `name`, `when` and
+  `actions`.
 - `packages/brand` is the only place the mark is drawn. The app imports `Mark`, `Splash` and the motion CSS from it; the
   desktop icons are generated from its `app-icon-1024.png` with `tauri icon`.
 

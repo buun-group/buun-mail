@@ -1,0 +1,156 @@
+import { useCallback, useEffect, useState } from 'react'
+import type { ReactNode } from 'react'
+
+import { agentStatus, listActivity, regenerateAgentToken, setAgentEnabled } from '../../api/client'
+import type { Activity, AgentStatus } from '../../api/types'
+import { ACTIVITY_SHOWN, AGENT_CLIENTS } from '../../constants/agents'
+import type { AgentClientId } from '../../constants/agents'
+import { AGENT_CLIENT_GLYPHS, IconCopy, IconHide, IconRegenerate, IconShow } from '../../icons'
+import { copyText } from '../../lib/clipboard'
+import { formatReceived } from '../../lib/time'
+import { Switch } from './Switch'
+
+const reason = (error: unknown): string => (error instanceof Error ? error.message : String(error))
+
+/**
+ * Agent access: turn the MCP server on, copy what each client needs, and see what agents (and rules, and you) changed.
+ */
+export function AgentsSection(): ReactNode {
+  const [status, setStatus] = useState<AgentStatus | null>(null)
+  const [activity, setActivity] = useState<Activity[]>([])
+  const [client, setClient] = useState<AgentClientId>('claude')
+  const [showToken, setShowToken] = useState(false)
+  const [confirming, setConfirming] = useState(false)
+  const [copied, setCopied] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  const load = useCallback(() => {
+    agentStatus()
+      .then(setStatus)
+      .catch((cause: unknown) => setError(reason(cause)))
+    listActivity(ACTIVITY_SHOWN)
+      .then(setActivity)
+      .catch(() => setActivity([]))
+  }, [])
+  useEffect(load, [load])
+
+  const copy = (label: string, text: string): void => {
+    void copyText(text).then((done) => setCopied(done ? label : 'Copy failed: select the text and copy it'))
+  }
+
+  if (status === null) return <p className="settings__empty">Loading.</p>
+  const chosen = AGENT_CLIENTS.find((item) => item.id === client) ?? AGENT_CLIENTS[0]
+  const token = showToken ? status.token : '•'.repeat(24)
+
+  return (
+    <>
+      <p className="settings__intro">Let an AI agent read, search, tag and file your mail, and manage rules, through MCP. It runs on this computer only, and every request needs the token below.</p>
+
+      <div className="settings__rows">
+        <div className="settings__row">
+          <div>
+            <label id="agents-label" htmlFor="agents" className="settings__label">
+              Allow agents
+            </label>
+            <p className="settings__hint">{status.problem ?? (status.running ? `Listening at ${status.url}` : 'Off. Agents cannot connect.')}</p>
+          </div>
+          <Switch id="agents" labelledBy="agents-label" checked={status.enabled} onChange={(enabled) => void setAgentEnabled(enabled).then(setStatus).catch((cause: unknown) => setError(reason(cause)))} />
+        </div>
+        <div className="settings__row">
+          <div className="agent-token">
+            <span className="settings__label">Token</span>
+            <code>{token}</code>
+          </div>
+          <span className="settings__actions settings__actions--tight">
+            <button type="button" className="settings__icon-button" aria-label={showToken ? 'Hide the token' : 'Show the token'} onClick={() => setShowToken(!showToken)}>
+              {showToken ? <IconHide aria-hidden="true" /> : <IconShow aria-hidden="true" />}
+            </button>
+            <button type="button" className="settings__icon-button" aria-label="Copy the token" onClick={() => copy('Token copied', status.token)}>
+              <IconCopy aria-hidden="true" />
+            </button>
+            {confirming ? (
+              <button
+                type="button"
+                className="settings__button settings__button--danger"
+                onClick={() => {
+                  setConfirming(false)
+                  void regenerateAgentToken().then(setStatus)
+                }}
+              >
+                Cut off agents and make a new token
+              </button>
+            ) : (
+              <button type="button" className="settings__icon-button" aria-label="Make a new token" onClick={() => setConfirming(true)}>
+                <IconRegenerate aria-hidden="true" />
+              </button>
+            )}
+          </span>
+        </div>
+      </div>
+
+      <section className="settings__group" aria-labelledby="connect-title">
+        <h4 id="connect-title" className="settings__group-title">
+          Connect a client
+        </h4>
+        <div className="agent-clients" role="tablist" aria-label="Agent clients">
+          {AGENT_CLIENTS.map((item) => {
+            const Glyph = AGENT_CLIENT_GLYPHS[item.id]
+            return (
+              <button key={item.id} type="button" role="tab" id={`client-${item.id}`} aria-selected={item.id === client} aria-controls="client-panel" className="agent-clients__tab" onClick={() => setClient(item.id)}>
+                <span className={`agent-clients__logo logo--${item.id}`} aria-hidden="true">
+                  <Glyph />
+                </span>
+                {item.name}
+              </button>
+            )
+          })}
+        </div>
+        {chosen !== undefined && (
+          <div id="client-panel" role="tabpanel" aria-labelledby={`client-${chosen.id}`} className="agent-snippet">
+            <div className="agent-snippet__head">
+              <span className="settings__hint">{chosen.where}</span>
+              <button type="button" className="settings__button" onClick={() => copy(`${chosen.name} setup copied`, chosen.snippet(status.url, status.token))}>
+                <IconCopy aria-hidden="true" />
+                Copy
+              </button>
+            </div>
+            <pre>{chosen.snippet(status.url, showToken ? status.token : '<token>')}</pre>
+          </div>
+        )}
+        {copied !== null && (
+          <p className="settings__hint" role="status">
+            {copied}
+          </p>
+        )}
+      </section>
+
+      <section className="settings__group" aria-labelledby="activity-title">
+        <h4 id="activity-title" className="settings__group-title">
+          Recent activity
+        </h4>
+        {activity.length === 0 ? (
+          <p className="settings__empty">Nothing yet. Changes by you, your rules and agents show here.</p>
+        ) : (
+          <ul className="settings__list activity-list">
+            {activity.map((entry, index) => (
+              // Entries have no id; the list is replaced whole each time it loads.
+              // eslint-disable-next-line react/no-array-index-key
+              <li key={`${entry.at}-${index}`}>
+                <span className="activity-list__actor">{entry.actor.replace(/^agent:/, '').replace(/^rule:/, 'Rule: ')}</span>
+                <span className="activity-list__what">
+                  {entry.action.replace('_', ' ')} {entry.detail}
+                </span>
+                <time dateTime={entry.at}>{formatReceived(entry.at)}</time>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+      {error !== null && (
+        <p role="alert" className="settings__error">
+          {error}
+        </p>
+      )}
+    </>
+  )
+}

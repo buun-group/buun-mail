@@ -20,7 +20,7 @@ pub struct Rule {
     /// Which mail it applies to.
     pub when: When,
     /// What it does to that mail, in order.
-    pub then: Vec<Action>,
+    pub actions: Vec<Action>,
 }
 
 /// The conditions. Each one given must hold; leaving one out means it does not matter.
@@ -73,8 +73,8 @@ fn enabled_by_default() -> bool {
 impl Rule {
     /// A new, enabled rule with no id yet.
     #[must_use]
-    pub fn new(name: &str, when: When, then: Vec<Action>) -> Self {
-        Self { id: String::new(), name: name.to_owned(), enabled: true, when, then }
+    pub fn new(name: &str, when: When, actions: Vec<Action>) -> Self {
+        Self { id: String::new(), name: name.to_owned(), enabled: true, when, actions }
     }
 
     /// Reads a rule from JSON.
@@ -107,10 +107,10 @@ impl Rule {
         if when.workspace.is_none() && when.from.is_none() && when.to.is_none() && when.subject_contains.as_deref().is_none_or(|text| text.trim().is_empty()) {
             return Err(RuleError::NoCondition(name.to_owned()));
         }
-        if self.then.is_empty() {
+        if self.actions.is_empty() {
             return Err(RuleError::NoAction(name.to_owned()));
         }
-        if self.then.iter().any(|action| matches!(action, Action::Tag { tag } if tag.trim().is_empty())) {
+        if self.actions.iter().any(|action| matches!(action, Action::Tag { tag } if tag.trim().is_empty())) {
             return Err(RuleError::EmptyTag(name.to_owned()));
         }
         let pattern =
@@ -151,9 +151,9 @@ mod tests {
 
     #[test]
     fn reads_the_json_agents_send() -> Result<(), RuleError> {
-        let rule = Rule::from_json(r#"{"name":"Receipts","when":{"from":"*@stripe.com"},"then":[{"type":"tag","tag":"receipt"},{"type":"markRead"}]}"#)?;
+        let rule = Rule::from_json(r#"{"name":"Receipts","when":{"from":"*@stripe.com"},"actions":[{"type":"tag","tag":"receipt"},{"type":"markRead"}]}"#)?;
         assert!(rule.enabled);
-        assert_eq!(rule.then, [Action::Tag { tag: "receipt".to_owned() }, Action::MarkRead]);
+        assert_eq!(rule.actions, [Action::Tag { tag: "receipt".to_owned() }, Action::MarkRead]);
         assert_eq!(Rule::from_json(&rule.to_json())?, rule);
         Ok(())
     }
@@ -176,6 +176,6 @@ mod tests {
 
     #[test]
     fn refuses_unknown_fields() {
-        assert!(Rule::from_json(r#"{"name":"x","when":{"sender":"a@b.com"},"then":[]}"#).is_err());
+        assert!(Rule::from_json(r#"{"name":"x","when":{"sender":"a@b.com"},"actions":[]}"#).is_err());
     }
 }

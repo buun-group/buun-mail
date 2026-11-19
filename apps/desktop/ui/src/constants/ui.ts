@@ -32,7 +32,7 @@ export const UNSORTED_WORKSPACE = 'unsorted'
 export const INBOX_LABEL = 'Inbox'
 
 /** The settings sections, in tab order. */
-export const SETTINGS_SECTIONS = ['general', 'notifications', 'workspaces', 'integrations'] as const
+export const SETTINGS_SECTIONS = ['general', 'notifications', 'workspaces', 'rules', 'integrations', 'agents'] as const
 export type SettingsSection = (typeof SETTINGS_SECTIONS)[number]
 
 /** The key that opens settings with Ctrl or Cmd, as in most desktop apps. */

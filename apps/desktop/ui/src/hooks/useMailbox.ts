@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 
-import { listMessages, listWorkspaces, markAllRead, openMessage } from '../api/client'
+import { listMessages, listTags, listWorkspaces, markAllRead, openMessage, tagMessage, untagMessage } from '../api/client'
+import { onMailChanged } from '../api/events'
 import type { Message, MessageDetail, Place, Workspace } from '../api/types'
 
 export interface Mailbox {
   workspaces: Workspace[]
+  /** Every tag in use, most used first, offered when tagging. */
+  tags: string[]
   /** True once the workspaces have loaded. */
   ready: boolean
   place: Place | null
@@ -19,6 +22,10 @@ export interface Mailbox {
   markAllRead: (place: Place, wholeWorkspace: boolean) => void
   /** Reloads the workspaces and the open folder, after an import or anything else that changes the store. */
   refresh: () => void
+  /** Adds a tag to the open message. */
+  addTag: (id: string, tag: string) => void
+  /** Removes a tag from the open message. */
+  removeTag: (id: string, tag: string) => void
 }
 
 const message = (reason: unknown): string => (reason instanceof Error ? reason.message : String(reason))
@@ -26,6 +33,7 @@ const message = (reason: unknown): string => (reason instanceof Error ? reason.m
 /** Loads the workspaces, then the messages of whichever folder is open. Opens the first inbox to start. */
 export function useMailbox(): Mailbox {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([])
+  const [tags, setTags] = useState<string[]>([])
   const [ready, setReady] = useState(false)
   const [place, setPlace] = useState<Place | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
@@ -43,6 +51,9 @@ export function useMailbox(): Mailbox {
         setPlace((current) => current ?? (first === undefined ? null : { workspace: first.id, folder: null }))
       })
       .catch(fail)
+    listTags()
+      .then((found) => setTags(found.map((item) => item.tag)))
+      .catch(() => setTags([]))
   }, [fail])
 
   const loadMessages = useCallback(
@@ -72,6 +83,11 @@ export function useMailbox(): Mailbox {
     if (place !== null) loadMessages(place)
   }, [loadWorkspaces, loadMessages, place])
 
+  // An agent or a rule changed something under the window: reload what is on screen.
+  useEffect(() => onMailChanged(refresh), [refresh])
+
+  const replace = (updated: Message): void => setMessages((list) => list.map((item) => (item.id === updated.id ? updated : item)))
+
   const select = (picked: Message): void => {
     setSelectedId(picked.id)
     setDetail(null)
@@ -89,6 +105,7 @@ export function useMailbox(): Mailbox {
 
   return {
     workspaces,
+    tags,
     ready,
     place,
     messages,
@@ -109,5 +126,16 @@ export function useMailbox(): Mailbox {
         .catch(fail)
     },
     refresh,
+    addTag: (id, tag) => {
+      tagMessage(id, [tag])
+        .then((updated) => {
+          replace(updated)
+          setTags((current) => (current.includes(tag) ? current : [...current, tag]))
+        })
+        .catch(fail)
+    },
+    removeTag: (id, tag) => {
+      untagMessage(id, tag).then(replace).catch(fail)
+    },
   }
 }

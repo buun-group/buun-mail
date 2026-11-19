@@ -128,3 +128,7 @@
 .reader__body[aria-busy='true'] {
   color: var(--text-muted);
 }
+
+.reader__tags {
+  margin-top: var(--space-3);
+}

@@ -35,6 +35,7 @@ export interface Message {
   preview: string
   receivedAt: string
   unread: boolean
+  tags: string[]
 }
 
 /** Where the list is pointed: one folder of one workspace. */
@@ -60,4 +61,47 @@ export interface ImportReport {
   added: number
   duplicates: number
   failed: ImportFailure[]
+}
+
+/** When a rule applies. Every condition given must hold. Mirrors `crates/rules/src/rule.rs`. */
+export interface RuleWhen {
+  workspace?: string
+  from?: string
+  to?: string
+  subjectContains?: string
+}
+
+/** What a rule does. */
+export type RuleAction = { type: 'tag'; tag: string } | { type: 'move'; workspace?: string; folder?: string } | { type: 'markRead' } | { type: 'quiet' }
+
+/** A rule, as the app, the settings screen and agents all write it. */
+export interface Rule {
+  id: string
+  name: string
+  enabled: boolean
+  when: RuleWhen
+  actions: RuleAction[]
+}
+
+/** A tag and how many messages carry it. */
+export interface TagCount {
+  tag: string
+  count: number
+}
+
+/** One change in the activity log. `actor` is `you`, `rule:<name>` or `agent:<name>`. */
+export interface Activity {
+  at: string
+  actor: string
+  action: string
+  detail: string
+}
+
+/** Agent access, as Settings shows it. */
+export interface AgentStatus {
+  enabled: boolean
+  running: boolean
+  url: string
+  token: string
+  problem: string | null
 }

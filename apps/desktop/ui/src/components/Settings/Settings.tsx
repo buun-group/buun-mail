@@ -8,9 +8,11 @@ import type { Notifications } from '../../hooks/useNotifications'
 import type { Preferences } from '../../hooks/usePreferences'
 import type { WorkspaceLook, WorkspaceLooks } from '../../hooks/useWorkspaceLooks'
 import { IconClose, SECTION_GLYPHS } from '../../icons'
+import { AgentsSection } from './AgentsSection'
 import { GeneralSection } from './GeneralSection'
 import { IntegrationsSection } from './IntegrationsSection'
 import { NotificationsSection } from './NotificationsSection'
+import { RulesSection } from './RulesSection'
 import { WorkspacesSection } from './WorkspacesSection'
 
 import './Settings.css'
@@ -19,7 +21,9 @@ const SECTION_LABELS: Record<SettingsSection, string> = {
   general: 'General',
   notifications: 'Notifications',
   workspaces: 'Workspaces',
+  rules: 'Rules',
   integrations: 'Integrations',
+  agents: 'Agents',
 }
 
 interface SettingsProps {
@@ -75,7 +79,9 @@ export function Settings({ open, onClose, preferences, workspaces, looks, onLook
           {section === 'general' && <GeneralSection preferences={preferences} />}
           {section === 'notifications' && <NotificationsSection notifications={notifications} workspaces={workspaces} />}
           {section === 'workspaces' && <WorkspacesSection workspaces={workspaces} looks={looks} onLook={onLook} editing={editing} onEditing={onEditing} theme={preferences.theme} />}
+          {section === 'rules' && <RulesSection workspaces={workspaces} onChanged={onImported} />}
           {section === 'integrations' && <IntegrationsSection onImported={onImported} />}
+          {section === 'agents' && <AgentsSection />}
         </div>
       </div>
     </dialog>

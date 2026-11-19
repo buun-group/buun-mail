@@ -28,7 +28,7 @@ const WAIT_POLL: Duration = Duration::from_secs(1);
 pub const INSTRUCTIONS: &str = "Buun Mail files every address a person runs into workspaces (usually one per business) and folders. \
 Start with list_workspaces, then list_messages or search_messages. read_message gives the full text without marking it read. \
 Tag, move and mark read to triage. Rules (list_rules, add_rule) run on every new message: when it matches workspace, from, to or subjectContains, \
-then tag, move, markRead or quiet. Patterns are an exact address or *@domain. Everything you change is logged under your name.";
+its actions tag, move, markRead or quiet it. Patterns are an exact address or *@domain. Everything you change is logged under your name.";
 
 /// Every tool, for `tools/list`.
 #[must_use]
@@ -37,7 +37,7 @@ pub fn definitions() -> Value {
     let limit = json!({ "type": "integer", "minimum": 1, "maximum": MAX_LIMIT, "description": "How many to return. Defaults to 25." });
     let rule = json!({
         "type": "object",
-        "required": ["name", "when", "then"],
+        "required": ["name", "when", "actions"],
         "properties": {
             "name": { "type": "string", "description": "What the rule is for, in a few words." },
             "enabled": { "type": "boolean" },
@@ -51,7 +51,7 @@ pub fn definitions() -> Value {
                     "subjectContains": { "type": "string", "description": "Text in the subject, any case." }
                 }
             },
-            "then": {
+            "actions": {
                 "type": "array",
                 "minItems": 1,
                 "items": {

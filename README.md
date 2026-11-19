@@ -19,6 +19,9 @@ The envelope recipient survives the hop, so placing a message is a table lookup,
 | Routing crate: address, patterns, workspaces, folders, "why is it here" | Done, tested |
 | Desktop shell (Tauri 2) with the three-pane UI, settings, integrations and Buun Group products | Done |
 | Local store (SQLite index, raw `.eml` on disk), `.eml` and `.mbox` import, read state | Done |
+| Tags, rules (tag, move, mark read, quiet on arrival), activity log | Done |
+| Notifications: header bell, toasts, desktop notifications, per-workspace mute | Done |
+| Agent access: MCP server on 127.0.0.1, token, 15 tools, setup for Claude Code, Cursor, VS Code | Done |
 | Catch-all Email Worker storing mail for the client to pull | Next |
 | Search | After |
 | Reply and compose as the right address (Resend, SPF, DKIM, DMARC per domain) | After |
@@ -57,6 +60,13 @@ and Intel: `.dmg`) and Windows (`.msi`, setup `.exe`) into a draft release. Arch
 | [`packaging`](packaging/README.md) | Arch PKGBUILD, the Linux desktop entry, which installer to pick |
 | [`config/workspaces.example.toml`](config/workspaces.example.toml) | The routing file format, with comments |
 | `.standards/` | The [Buun Group coding standards](https://github.com/buun-group/standards), a submodule |
+
+## Agents
+
+Turn on Settings, Agents. The app then serves MCP at `http://127.0.0.1:28700/mcp` with a bearer token, and shows the
+line to paste for Claude Code, Cursor, VS Code or any MCP client. Agents can list, search and read mail, tag, move and
+mark it read, and add or remove rules; `wait_for_message` waits for something like a sign-up confirmation. Everything an
+agent changes is logged under its name and shows in the window at once.
 
 ## Routing file
 

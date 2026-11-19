@@ -10,12 +10,13 @@ vi.mock('../api/events', () => ({
     arrival.deliver = handler
     return () => {}
   },
+  onMailChanged: () => () => {},
 }))
 
 const { App } = await import('../App')
 
 function mail(id: string, workspace: string): Message {
-  return { id, workspace, folder: null, fromName: `Sender ${id}`, from: 'a@b.com', to: 'x@y.com', matched: null, folderMatched: null, subject: `Subject ${id}`, preview: '', receivedAt: '2026-11-19T07:42:00Z', unread: true }
+  return { id, workspace, folder: null, fromName: `Sender ${id}`, from: 'a@b.com', to: 'x@y.com', matched: null, folderMatched: null, subject: `Subject ${id}`, preview: '', receivedAt: '2026-11-19T07:42:00Z', unread: true, tags: [] }
 }
 
 beforeAll(() => {

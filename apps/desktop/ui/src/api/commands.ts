@@ -6,6 +6,17 @@ export const COMMANDS = {
   markAllRead: 'mark_all_read',
   importFiles: 'import_files',
   routingPath: 'routing_path',
+  tagMessage: 'tag_message',
+  untagMessage: 'untag_message',
+  listTags: 'list_tags',
+  listRules: 'list_rules',
+  saveRule: 'save_rule',
+  deleteRule: 'delete_rule',
+  applyRules: 'apply_rules',
+  listActivity: 'list_activity',
+  agentStatus: 'agent_status',
+  setAgentEnabled: 'set_agent_enabled',
+  regenerateAgentToken: 'regenerate_agent_token',
 } as const
 
 /** The files the import picker offers. */

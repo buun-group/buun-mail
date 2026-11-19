@@ -84,14 +84,17 @@ fn adds_a_rule_and_reports_a_bad_one_as_a_tool_error() {
     let good = rpc(
         &harness,
         "tools/call",
-        &json!({ "name": "add_rule", "arguments": { "rule": { "name": "Receipts", "when": { "from": "*@stripe.com" }, "then": [{ "type": "tag", "tag": "receipt" }] } } }),
+        &json!({ "name": "add_rule", "arguments": { "rule": { "name": "Receipts", "when": { "from": "*@stripe.com" }, "actions": [{ "type": "tag", "tag": "receipt" }] } } }),
     );
     assert_eq!(good.pointer("/result/isError"), Some(&json!(false)), "{good}");
     let listed = rpc(&harness, "tools/call", &json!({ "name": "list_rules", "arguments": {} }));
     assert!(listed.to_string().contains("Receipts"));
 
-    let bad =
-        rpc(&harness, "tools/call", &json!({ "name": "add_rule", "arguments": { "rule": { "name": "All", "when": {}, "then": [{ "type": "markRead" }] } } }));
+    let bad = rpc(
+        &harness,
+        "tools/call",
+        &json!({ "name": "add_rule", "arguments": { "rule": { "name": "All", "when": {}, "actions": [{ "type": "markRead" }] } } }),
+    );
     assert_eq!(bad.pointer("/result/isError"), Some(&json!(true)));
     assert!(bad.to_string().contains("needs at least one condition"));
 

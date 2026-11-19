@@ -5,6 +5,7 @@ import type { Theme } from '../../constants/ui'
 import { IconArchive, IconReply, IconRoute } from '../../icons'
 import { formatFull } from '../../lib/time'
 import { MoreFromBuun } from '../MoreFromBuun/MoreFromBuun'
+import { TagEditor } from '../Tags/Tags'
 import { WindowControls } from '../WindowControls/WindowControls'
 
 import './Reader.css'
@@ -15,6 +16,9 @@ interface ReaderProps {
   body: string | null
   workspace: Workspace | undefined
   theme: Theme
+  onAddTag: (id: string, tag: string) => void
+  onRemoveTag: (id: string, tag: string) => void
+  tagSuggestions: string[]
 }
 
 /** Why a message is where it is, in one plain sentence from the rules the router used. */
@@ -33,7 +37,7 @@ function RouteNote({ message, workspace }: { message: Message; workspace: Worksp
 }
 
 /** The open message. With nothing open, the other Buun Group products. */
-export function Reader({ message, body, workspace, theme }: ReaderProps): ReactNode {
+export function Reader({ message, body, workspace, theme, onAddTag, onRemoveTag, tagSuggestions }: ReaderProps): ReactNode {
   if (message === null) {
     return (
       <section className="reader" aria-label="Reader">
@@ -75,6 +79,9 @@ export function Reader({ message, body, workspace, theme }: ReaderProps): ReactN
         <p className="reader__to">
           to <span className="reader__address">{message.to}</span>
         </p>
+        <div className="reader__tags">
+          <TagEditor tags={message.tags} suggestions={tagSuggestions} onAdd={(tag) => onAddTag(message.id, tag)} onRemove={(tag) => onRemoveTag(message.id, tag)} />
+        </div>
         <p className="reader__route">
           <IconRoute aria-hidden="true" />
           <span>

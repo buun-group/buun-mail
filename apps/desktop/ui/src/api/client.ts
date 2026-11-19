@@ -3,8 +3,8 @@ import { open } from '@tauri-apps/plugin-dialog'
 import { openUrl } from '@tauri-apps/plugin-opener'
 
 import { COMMANDS, IMPORT_EXTENSIONS } from './commands'
-import { previewDetail, previewMessages, previewWorkspaces } from './preview'
-import type { ImportReport, Message, MessageDetail, Place, Workspace } from './types'
+import { preview, previewDetail, previewMessages, previewWorkspaces } from './preview'
+import type { Activity, AgentStatus, ImportReport, Message, MessageDetail, Place, Rule, TagCount, Workspace } from './types'
 
 /**
  * The one door to the Rust side. In the desktop app every call is a Tauri command; in a plain browser (`pnpm dev:ui`)
@@ -52,4 +52,59 @@ export async function openExternal(href: string): Promise<void> {
     return
   }
   window.open(href, '_blank', 'noopener,noreferrer')
+}
+
+/** Adds tags to a message and returns it. */
+export async function tagMessage(id: string, tags: string[]): Promise<Message> {
+  return isTauri() ? invoke<Message>(COMMANDS.tagMessage, { id, tags }) : preview.tag(id, tags)
+}
+
+/** Removes a tag from a message and returns it. */
+export async function untagMessage(id: string, tag: string): Promise<Message> {
+  return isTauri() ? invoke<Message>(COMMANDS.untagMessage, { id, tag }) : preview.untag(id, tag)
+}
+
+/** Every tag in use. */
+export async function listTags(): Promise<TagCount[]> {
+  return isTauri() ? invoke<TagCount[]>(COMMANDS.listTags) : preview.tags()
+}
+
+/** Every rule, in run order. */
+export async function listRules(): Promise<Rule[]> {
+  return isTauri() ? invoke<Rule[]>(COMMANDS.listRules) : preview.rules()
+}
+
+/** Adds or replaces a rule. Rejects with the reason when the rule is not valid. */
+export async function saveRule(rule: Rule): Promise<Rule> {
+  return isTauri() ? invoke<Rule>(COMMANDS.saveRule, { rule }) : preview.saveRule(rule)
+}
+
+/** Deletes a rule. */
+export async function deleteRule(id: string): Promise<boolean> {
+  return isTauri() ? invoke<boolean>(COMMANDS.deleteRule, { id }) : preview.deleteRule(id)
+}
+
+/** Runs every rule over mail already stored. Resolves to how many messages changed. */
+export async function applyRules(): Promise<number> {
+  return isTauri() ? invoke<number>(COMMANDS.applyRules) : 0
+}
+
+/** The latest changes by people, rules and agents. */
+export async function listActivity(limit: number): Promise<Activity[]> {
+  return isTauri() ? invoke<Activity[]>(COMMANDS.listActivity, { limit }) : preview.activity()
+}
+
+/** Agent access status, or a stand-in in a plain browser. */
+export async function agentStatus(): Promise<AgentStatus> {
+  return isTauri() ? invoke<AgentStatus>(COMMANDS.agentStatus) : preview.agent()
+}
+
+/** Turns agent access on or off. */
+export async function setAgentEnabled(enabled: boolean): Promise<AgentStatus> {
+  return isTauri() ? invoke<AgentStatus>(COMMANDS.setAgentEnabled, { enabled }) : preview.setAgent(enabled)
+}
+
+/** Makes a new agent token. */
+export async function regenerateAgentToken(): Promise<AgentStatus> {
+  return isTauri() ? invoke<AgentStatus>(COMMANDS.regenerateAgentToken) : preview.agent()
 }

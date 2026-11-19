@@ -4,6 +4,7 @@ import type { Message, Place, Workspace } from '../../api/types'
 import { INBOX_LABEL } from '../../constants/ui'
 import { IconSearch } from '../../icons'
 import { formatReceived } from '../../lib/time'
+import { TagChips } from '../Tags/Tags'
 
 import './MessageList.css'
 
@@ -48,7 +49,10 @@ export function MessageList({ workspace, place, messages, selectedId, onSelect }
                 <time className="message-row__time" dateTime={message.receivedAt}>
                   {formatReceived(message.receivedAt)}
                 </time>
-                <span className="message-row__subject">{message.subject}</span>
+                <span className="message-row__subject">
+                  <span className="message-row__subject-text">{message.subject}</span>
+                  <TagChips tags={message.tags} />
+                </span>
                 <span className="message-row__preview">{message.preview}</span>
               </button>
             </li>
