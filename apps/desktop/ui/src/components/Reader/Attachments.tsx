@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import type { ReactNode } from 'react'
 import type { IconType } from 'react-icons'
 import { useTranslation } from 'react-i18next'
@@ -8,6 +9,7 @@ import { saveAttachment } from '../../api/client'
 import type { Attachment } from '../../api/types'
 import { IconAttachment, IconCalendarFile, IconFile, IconFileImage, IconFilePdf, IconFileZip } from '../../icons'
 import { toast } from '../../lib/feedback'
+import { AttachmentPreview } from './AttachmentPreview'
 
 /** A glyph for an attachment from its type. */
 function glyphFor(mime: string): IconType {
@@ -25,9 +27,10 @@ export function readableSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
-/** The files a message carries, pictures shown in its body left out; clicking one saves it where the person chooses. */
+/** The files a message carries, pictures shown in its body left out; clicking one previews it, with Open and Save. */
 export function Attachments({ messageId, attachments }: { messageId: string; attachments: Attachment[] }): ReactNode {
   const { t } = useTranslation('mail')
+  const [showing, setShowing] = useState<Attachment | null>(null)
   const files = attachments.filter((item) => !item.inline)
   if (files.length === 0) return null
   const keep = (file: Attachment): void => {
@@ -49,7 +52,7 @@ export function Attachments({ messageId, attachments }: { messageId: string; att
           const Glyph = glyphFor(file.mime)
           return (
             <li key={file.index}>
-              <button type="button" className="attachment" aria-label={t('attachments.save', { name: file.name })} onClick={() => keep(file)}>
+              <button type="button" className="attachment" aria-label={t('attachments.preview', { name: file.name })} onClick={() => setShowing(file)}>
                 <Glyph aria-hidden="true" className="attachment__glyph" />
                 <span className="attachment__words">
                   <span className="attachment__name">{file.name}</span>
@@ -60,6 +63,7 @@ export function Attachments({ messageId, attachments }: { messageId: string; att
           )
         })}
       </ul>
+      {showing !== null && <AttachmentPreview messageId={messageId} file={showing} onSave={() => keep(showing)} onClose={() => setShowing(null)} />}
     </section>
   )
 }

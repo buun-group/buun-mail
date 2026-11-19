@@ -15,6 +15,7 @@ path = "src/main.rs"
 tauri-build.workspace = true
 
 [dependencies]
+base64.workspace = true
 buun-mail-message.workspace = true
 buun-mail-routing.workspace = true
 buun-mail-rules.workspace = true

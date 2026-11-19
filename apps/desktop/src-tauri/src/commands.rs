@@ -14,7 +14,7 @@ use crate::agent::{AgentState, AgentStatusDto};
 use crate::dto::{ActivityDto, ContactDto, ImportReportDto, KnownContactDto, MessageDetailDto, MessageDto, ShelfDto, TagCountDto, ViewDto, WorkspaceDto};
 use crate::error::AppError;
 use crate::events;
-use crate::mailbox::{Actor, ExportFormat, Mailbox};
+use crate::mailbox::{Actor, AttachmentDataDto, ExportFormat, Mailbox};
 use crate::send::{DraftDto, SendFailure, SendService, SendableDto, SenderDto};
 use crate::sync::{AvailableZone, CheckReportDto, DomainRoute, GatewayStatusDto, OwnedDomain, SyncService};
 
@@ -312,4 +312,18 @@ pub fn snooze_messages(mailbox: State<'_, Arc<Mailbox>>, ids: Vec<String>, until
 #[tauri::command]
 pub fn list_contacts(mailbox: State<'_, Arc<Mailbox>>, query: String) -> Result<Vec<KnownContactDto>, AppError> {
     mailbox.all_contacts(&query)
+}
+
+/// One attachment's bytes for a preview inside the app.
+#[tauri::command]
+pub fn attachment_data(mailbox: State<'_, Arc<Mailbox>>, id: String, index: usize) -> Result<AttachmentDataDto, AppError> {
+    mailbox.attachment_data(&id, index)
+}
+
+/// Opens one attachment with the system's own app for its kind; programs and scripts are refused.
+#[tauri::command]
+pub fn open_attachment(app: AppHandle, mailbox: State<'_, Arc<Mailbox>>, id: String, index: usize) -> Result<(), AppError> {
+    use tauri_plugin_opener::OpenerExt as _;
+    let path = mailbox.attachment_to_open(&id, index)?;
+    app.opener().open_path(path.display().to_string(), None::<&str>).map_err(|error| AppError::Unreadable(error.to_string()))
 }

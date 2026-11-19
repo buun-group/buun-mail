@@ -103,6 +103,8 @@ pub fn run() {
             commands::search_all,
             commands::snooze_messages,
             commands::list_contacts,
+            commands::attachment_data,
+            commands::open_attachment,
             commands::open_message,
             commands::mark_all_read,
             commands::tag_message,

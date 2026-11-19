@@ -189,7 +189,17 @@
     "save": "Save {{name}}",
     "saved": "Saved",
     "desktopOnly": "Saving attachments works in the desktop app.",
-    "failed": "The attachment could not be saved"
+    "failed": "The attachment could not be saved",
+    "preview": "Preview {{name}}",
+    "open": "Open",
+    "openHint": "Opens in your computer's app for this kind of file",
+    "saveButton": "Save",
+    "close": "Close",
+    "noPreview": "No preview for this kind of file.",
+    "tooLarge": "Too large to show here.",
+    "notOpenable": "Buun Mail does not open programs or scripts. Save it and check it first if you trust the sender.",
+    "loading": "Loading",
+    "openFailed": "It could not be opened"
   },
   "conversation": {
     "label": "Conversation",

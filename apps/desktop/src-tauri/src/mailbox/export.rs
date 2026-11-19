@@ -48,7 +48,71 @@ struct Exported<'a> {
 /// The CSV columns, in order.
 const CSV_COLUMNS: [&str; 9] = ["received_at", "from_name", "from", "to", "subject", "workspace", "folder", "tags", "body"];
 
+/// How large an attachment may be to show inside the app; larger ones are opened or saved instead.
+const PREVIEW_LIMIT: usize = 15 * 1024 * 1024;
+
+/// File extensions the system may open with its own app: documents, pictures and archives. Programs and scripts are
+/// never among them, so opening an attachment can never run something a message carried.
+const OPENABLE: [&str; 22] = [
+    "pdf", "png", "jpg", "jpeg", "gif", "webp", "heic", "txt", "md", "csv", "json", "ics", "rtf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "odt", "ods",
+    "zip",
+];
+
+/// True when an attachment's name ends in an extension the system may open.
+#[must_use]
+pub fn openable(name: &str) -> bool {
+    name.rsplit_once('.').is_some_and(|(_, extension)| OPENABLE.contains(&extension.to_ascii_lowercase().as_str()))
+}
+
+/// One attachment's bytes for a preview inside the app, as base64, with its type.
+#[derive(Debug, Clone, serde::Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct AttachmentDataDto {
+    /// Its name.
+    pub name: String,
+    /// Its media type.
+    pub mime: String,
+    /// Its bytes, base64.
+    pub base64: String,
+}
+
 impl Mailbox {
+    /// One attachment's bytes for a preview, when it is small enough to show.
+    ///
+    /// # Errors
+    ///
+    /// [`AppError`] for an unknown message or attachment, or one too large to preview.
+    pub fn attachment_data(&self, id: &str, index: usize) -> Result<AttachmentDataDto, AppError> {
+        use base64::Engine as _;
+        let raw = self.store.lock()?.raw(id)?;
+        let (info, bytes) =
+            buun_mail_message::attachment(&raw, index).ok_or_else(|| AppError::Unreadable("That attachment is not in the message.".to_owned()))?;
+        if bytes.len() > PREVIEW_LIMIT {
+            return Err(AppError::Unreadable("That attachment is too large to show here; open or save it instead.".to_owned()));
+        }
+        Ok(AttachmentDataDto { name: info.name, mime: info.mime, base64: base64::engine::general_purpose::STANDARD.encode(bytes) })
+    }
+
+    /// Writes one attachment to a private folder for this app in the system's temporary folder, and returns its path,
+    /// for the system to open. Refuses a program or script.
+    ///
+    /// # Errors
+    ///
+    /// [`AppError`] for an unknown message or attachment, a kind of file that may not be opened, or a write failure.
+    pub fn attachment_to_open(&self, id: &str, index: usize) -> Result<std::path::PathBuf, AppError> {
+        let raw = self.store.lock()?.raw(id)?;
+        let (info, bytes) =
+            buun_mail_message::attachment(&raw, index).ok_or_else(|| AppError::Unreadable("That attachment is not in the message.".to_owned()))?;
+        if !openable(&info.name) {
+            return Err(AppError::Unreadable(format!("{} is a kind of file Buun Mail will not open; save it and check it first.", info.name)));
+        }
+        let folder = std::env::temp_dir().join("buun-mail-attachments").join(id.get(..16).unwrap_or(id));
+        fs::create_dir_all(&folder).map_err(|source| AppError::File { path: folder.display().to_string(), source })?;
+        let path = folder.join(&info.name);
+        fs::write(&path, bytes).map_err(|source| AppError::File { path: path.display().to_string(), source })?;
+        Ok(path)
+    }
+
     /// Saves one attachment of a message to `path`. Returns its file name.
     ///
     /// # Errors
@@ -210,6 +274,16 @@ mod tests {
         assert!(render(&[one.clone(), one.clone()], ExportFormat::Eml).is_err());
         let mbox = render(&[one.clone(), one], ExportFormat::Mbox).unwrap_or_default();
         assert_eq!(buun_mail_message::split_mbox(&mbox).len(), 2);
+    }
+
+    #[test]
+    fn opens_documents_but_never_programs() {
+        assert!(openable("Invoice.PDF"));
+        assert!(openable("photo.jpeg"));
+        assert!(!openable("setup.exe"));
+        assert!(!openable("run.sh"));
+        assert!(!openable("invoice.pdf.exe"));
+        assert!(!openable("README"));
     }
 
     #[test]

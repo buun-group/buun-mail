@@ -66,7 +66,7 @@ describe('a message with HTML and attachments', () => {
     expect(within(reader).getByText('1 remote image is blocked, so the sender cannot tell you opened this.')).toBeTruthy()
     fireEvent.click(within(reader).getByRole('button', { name: 'Load images' }))
     expect(within(reader).getByTitle('The message').getAttribute('srcdoc')).toContain('img-src data: https: http:')
-    expect(within(reader).getByRole('button', { name: 'Save INV-2026-11.pdf' })).toBeTruthy()
+    expect(within(reader).getByRole('button', { name: 'Preview INV-2026-11.pdf' })).toBeTruthy()
     fireEvent.click(within(reader).getByRole('button', { name: 'Show as text' }))
     expect(within(reader).queryByTitle('The message')).toBeNull()
   })
@@ -79,5 +79,21 @@ describe('the sender check', () => {
     fireEvent.click(await screen.findByText('Your invoice for November is ready'))
     const verified = await screen.findByRole('button', { name: /^Verified sender\. stripe\.com confirmed it sent this message\. SPF pass, DKIM pass, DMARC pass, checked by mx\.cloudflare\.net\.$/ })
     expect(verified.getAttribute('data-verdict')).toBe('verified')
+  })
+})
+
+describe('previewing an attachment', () => {
+  it('opens a window with the file, Open and Save', async () => {
+    HTMLDialogElement.prototype.showModal = function showModal(this: HTMLDialogElement) {
+      this.setAttribute('open', '')
+    }
+    render(<App />)
+    fireEvent.click(await screen.findByRole('button', { name: /Billing/ }))
+    fireEvent.click(await screen.findByText('Your invoice for November is ready'))
+    fireEvent.click(await screen.findByRole('button', { name: 'Preview INV-2026-11.pdf' }))
+    const window = await screen.findByRole('dialog', { name: 'INV-2026-11.pdf' })
+    expect(within(window).getByRole('button', { name: 'Open' })).toBeTruthy()
+    expect(within(window).getByRole('button', { name: 'Save' })).toBeTruthy()
+    expect(within(window).getByText('No preview for this kind of file.')).toBeTruthy()
   })
 })

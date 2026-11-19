@@ -272,3 +272,14 @@ export async function snoozeMessages(ids: string[], until: Date | null): Promise
 export async function listContacts(query: string): Promise<KnownContact[]> {
   return isTauri() ? invoke<KnownContact[]>(COMMANDS.listContacts, { query }) : preview.knownContacts(query)
 }
+
+/** One attachment's bytes for a preview, as base64 with its type. */
+export async function attachmentData(id: string, index: number): Promise<{ name: string; mime: string; base64: string }> {
+  if (isTauri()) return invoke(COMMANDS.attachmentData, { id, index })
+  return { name: 'INV-2026-11.pdf', mime: 'text/plain', base64: btoa('Invoice INV-2026-11\nAmount: $120.00\nDue: 1 December') }
+}
+
+/** Opens one attachment with the system's own app. Rejects for a program or script. */
+export async function openAttachment(id: string, index: number): Promise<void> {
+  if (isTauri()) await invoke(COMMANDS.openAttachment, { id, index })
+}

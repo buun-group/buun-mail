@@ -29,7 +29,7 @@ use buun_mail_routing::Router;
 use buun_mail_rules::{CheckedRule, Rule};
 use buun_mail_store::{Activity, Store};
 
-pub use export::ExportFormat;
+pub use export::{AttachmentDataDto, ExportFormat};
 
 use crate::error::AppError;
 use crate::paths::AppPaths;

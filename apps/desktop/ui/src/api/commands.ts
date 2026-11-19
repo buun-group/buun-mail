@@ -23,6 +23,8 @@ export const COMMANDS = {
   searchAll: 'search_all',
   snoozeMessages: 'snooze_messages',
   listContacts: 'list_contacts',
+  attachmentData: 'attachment_data',
+  openAttachment: 'open_attachment',
   openMessage: 'open_message',
   markAllRead: 'mark_all_read',
   importFiles: 'import_files',
