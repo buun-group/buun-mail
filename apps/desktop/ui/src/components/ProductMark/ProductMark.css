@@ -1,0 +1,25 @@
+.product-mark {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  background: var(--surface-plate);
+  box-shadow: var(--shadow-plate);
+  border-radius: var(--radius-md);
+}
+
+.product-mark img {
+  width: 70%;
+  height: 70%;
+  object-fit: contain;
+}
+
+.product-mark--sm {
+  width: 1.75rem;
+  height: 1.75rem;
+}
+
+.product-mark--md {
+  width: 3rem;
+  height: 3rem;
+  border-radius: var(--radius-lg);
+}

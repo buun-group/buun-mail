@@ -1,0 +1,137 @@
+/* Design tokens: Buun Group, light first. A subset of `@buun-group/ui` tokens (buungroup-app/packages/ui/src/styles/tokens.css),
+   same names, so a component moved between the two reads right. Only this file writes a colour.
+
+   1. Neutral is alpha: `--alpha-N` is black at N% in light and white at N% in dark.
+   2. Depth is a pressed sheet: a hairline of light on top, shade under it, a soft shadow beneath.
+   3. Buun orange is an accent, never the primary action, and never carries text: `--brand-text` does. */
+
+:root {
+  color-scheme: light;
+
+  --alpha-4: rgba(0, 0, 0, 0.04);
+  --alpha-6: rgba(0, 0, 0, 0.06);
+  --alpha-8: rgba(0, 0, 0, 0.08);
+  --alpha-12: rgba(0, 0, 0, 0.12);
+  --alpha-20: rgba(0, 0, 0, 0.2);
+
+  --brand-8: rgba(241, 135, 7, 0.08);
+  --brand-16: rgba(241, 135, 7, 0.16);
+  --brand-40: rgba(241, 135, 7, 0.4);
+  --brand-100: #f18707;
+  --brand-text: #9a5200;
+
+  --surface-body: #f9f9f9;
+  --surface-card: #fbfbfb;
+  --surface-card-hover: #ffffff;
+  --surface-sunken: #f2f2f2;
+  --surface-plate: #ffffff;
+  --surface-ink: #111111;
+
+  --border-faint: #ededed;
+  --border-muted: #e8e8e8;
+
+  --text-primary: #171717;
+  --text-secondary: #525252;
+  --text-muted: #6b6b6b;
+  --text-on-ink: #fafafa;
+  --text-on-ink-muted: #a8a8a8;
+
+  --action-primary: #262626;
+  --action-primary-text: #fafafa;
+
+  --emboss-light: rgba(255, 255, 255, 0.95);
+  --emboss-dark: rgba(0, 0, 0, 0.1);
+  --shadow-card: inset 0 1px 0 var(--emboss-light), 0 0 0 1px var(--alpha-8), 0 1px 2px rgba(0, 0, 0, 0.04), 0 10px 24px -12px rgba(0, 0, 0, 0.12);
+  --shadow-plate: inset 0 1px 0 var(--emboss-light), inset 0 -1px 0 var(--emboss-dark), 0 0 0 1px var(--alpha-8), 0 1px 2px rgba(0, 0, 0, 0.08), 0 6px 12px -6px rgba(0, 0, 0, 0.18);
+  --shadow-well: inset 0 1px 2px rgba(0, 0, 0, 0.1), inset 0 0 0 1px var(--alpha-8), 0 1px 0 var(--emboss-light);
+  --shadow-ink: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.5), 0 30px 60px -30px rgba(0, 0, 0, 0.55);
+  --ink-glow: rgba(241, 135, 7, 0.26);
+
+  /* Each product's own hue, as on buungroup.com. */
+  --tone-plotwork: #0f9488;
+  --tone-flung: #ff8f66;
+  --tone-gunspec: #2b2b2b;
+  --tone-destroy: #7c3aed;
+  --tone-cryptflare: #2563eb;
+  --tone-buun: #f18707;
+
+  --font-sans: 'Inter Variable', 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, Menlo, monospace;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+
+  --space-1: 0.25rem;
+  --space-1-5: 0.375rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-full: 9999px;
+
+  --sidebar-width: 16.5rem;
+  --list-width: 23rem;
+
+  --duration-fast: 120ms;
+  --duration-normal: 200ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --alpha-4: rgba(255, 255, 255, 0.04);
+  --alpha-6: rgba(255, 255, 255, 0.06);
+  --alpha-8: rgba(255, 255, 255, 0.08);
+  --alpha-12: rgba(255, 255, 255, 0.12);
+  --alpha-20: rgba(255, 255, 255, 0.2);
+
+  --brand-text: #ffb84d;
+
+  --surface-body: #0a0a0a;
+  --surface-card: #141414;
+  --surface-card-hover: #1a1a1a;
+  --surface-sunken: #0f0f0f;
+  --surface-plate: #f5f5f5;
+  --surface-ink: #141414;
+
+  --border-faint: #2a2a2a;
+  --border-muted: #333333;
+
+  --text-primary: #fafafa;
+  --text-secondary: #d4d4d4;
+  --text-muted: #a3a3a3;
+
+  --action-primary: #fafafa;
+  --action-primary-text: #171717;
+
+  --emboss-light: rgba(255, 255, 255, 0.08);
+  --emboss-dark: rgba(0, 0, 0, 0.7);
+  --shadow-card: inset 0 1px 0 var(--emboss-light), 0 0 0 1px var(--alpha-8), 0 10px 24px -12px rgba(0, 0, 0, 0.8);
+  --shadow-plate: inset 0 1px 0 rgba(255, 255, 255, 0.9), inset 0 -1px 0 rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(255, 255, 255, 0.16), 0 2px 4px rgba(0, 0, 0, 0.5), 0 8px 16px -6px rgba(0, 0, 0, 0.7);
+  --shadow-well: inset 0 1px 3px rgba(0, 0, 0, 0.85), inset 0 0 0 1px var(--alpha-8), 0 1px 0 var(--emboss-light);
+
+  --tone-plotwork: #2dd4bf;
+  --tone-flung: #ffa584;
+  --tone-gunspec: #e7e2da;
+  --tone-destroy: #a78bfa;
+  --tone-cryptflare: #6b9bff;
+  --tone-buun: #ffa22e;
+}
+
+.tone--plotwork { --tone: var(--tone-plotwork); }
+.tone--flung { --tone: var(--tone-flung); }
+.tone--gunspec { --tone: var(--tone-gunspec); }
+.tone--destroy { --tone: var(--tone-destroy); }
+.tone--cryptflare { --tone: var(--tone-cryptflare); }

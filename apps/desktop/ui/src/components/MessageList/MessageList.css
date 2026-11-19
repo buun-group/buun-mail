@@ -1,0 +1,108 @@
+.message-list {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+  border-right: 1px solid var(--border-faint);
+}
+
+.message-list__header {
+  padding: var(--space-4) var(--space-4) var(--space-3);
+  border-bottom: 1px solid var(--border-faint);
+}
+
+.message-list__header h1 {
+  margin: 0;
+  font-size: var(--text-lg);
+  letter-spacing: -0.01em;
+}
+
+.message-list__header p {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.message-list ul {
+  overflow-y: auto;
+  margin: 0;
+  padding: var(--space-2);
+  list-style: none;
+}
+
+.message-list__empty {
+  padding: var(--space-6) var(--space-4);
+  color: var(--text-muted);
+}
+
+.message-row {
+  position: relative;
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  text-align: left;
+  transition: background var(--duration-fast);
+}
+
+.message-row:hover {
+  background: var(--alpha-4);
+}
+
+.message-row--selected,
+.message-row--selected:hover {
+  background: var(--surface-card);
+  box-shadow: var(--shadow-card);
+}
+
+.message-row--unread::before {
+  content: '';
+  position: absolute;
+  inset: var(--space-3) auto var(--space-3) 0;
+  width: 3px;
+  border-radius: var(--radius-full);
+  background: var(--brand-100);
+}
+
+.message-row__top {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.message-row__from {
+  color: var(--text-secondary);
+}
+
+.message-row--unread .message-row__from,
+.message-row--unread .message-row__subject {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.message-row__time {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.message-row__subject {
+  overflow: hidden;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.message-row__preview {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  color: var(--text-muted);
+}
+
+.message-row__to {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+}

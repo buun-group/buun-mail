@@ -1,0 +1,39 @@
+# Buun Mail routing file.
+#
+# Each workspace claims addresses with `match`: an exact address (`sales@acme.com`) or every address at a domain
+# (`*@acme.com`). When both match, the exact address wins, whatever the order here. Mail nobody claims lands in
+# Unsorted, so nothing is lost.
+#
+# Folders are picked by sender, first match wins. A message with no matching folder stays in the workspace inbox.
+# The `id` is stored with every message: pick it once and never rename it.
+
+[[workspace]]
+id = "buun"
+name = "Buun Group"
+match = ["*@buungroup.com"]
+folders = [
+  { name = "Billing", from = "*@stripe.com" },
+  { name = "Infrastructure", from = "*@cloudflare.com" },
+]
+
+[[workspace]]
+id = "plotwork"
+name = "Plotwork"
+match = ["*@plotwork.dev"]
+folders = [{ name = "GitHub", from = "notifications@github.com" }]
+
+[[workspace]]
+id = "flung"
+name = "Flung"
+match = ["*@flung.dev"]
+
+[[workspace]]
+id = "gunspec"
+name = "GunSpec"
+match = ["*@gunspec.io"]
+
+[[workspace]]
+id = "personal"
+name = "Personal"
+match = ["*@personal.example", "accounts@buungroup.com"]
+folders = [{ name = "Receipts", from = "*@stripe.com" }]

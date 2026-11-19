@@ -1,0 +1,9 @@
+packages:
+  - apps/desktop/ui
+
+# Refuse a release younger than seven days (in minutes): the supply-chain cooldown from the dependency standard.
+minimumReleaseAge: 10080
+# Exact versions only.
+saveExact: true
+onlyBuiltDependencies:
+  - esbuild

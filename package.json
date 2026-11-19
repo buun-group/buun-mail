@@ -1,0 +1,23 @@
+{
+  "name": "buun-mail",
+  "private": true,
+  "packageManager": "pnpm@10.34.9",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "tauri dev --config apps/desktop/src-tauri/tauri.conf.json",
+    "dev:ui": "pnpm --filter @buun-mail/ui dev",
+    "build": "tauri build --config apps/desktop/src-tauri/tauri.conf.json",
+    "lint": "oxlint --deny-warnings && cargo clippy --workspace --all-targets -- -D warnings",
+    "format": "cargo fmt --all",
+    "typecheck": "pnpm --filter @buun-mail/ui typecheck",
+    "test": "pnpm --filter @buun-mail/ui test && cargo test --workspace",
+    "check": "cargo fmt --all --check && pnpm lint && pnpm typecheck && pnpm test"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "2.12.4",
+    "oxlint": "1.93.0",
+    "typescript": "7.0.2"
+  }
+}

@@ -1,0 +1,11 @@
+.app {
+  display: grid;
+  grid-template-columns: var(--sidebar-width) var(--list-width) minmax(0, 1fr);
+  height: 100%;
+  overflow: hidden;
+}
+
+.app-error {
+  padding: var(--space-8);
+  color: var(--text-secondary);
+}

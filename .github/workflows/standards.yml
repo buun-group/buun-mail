@@ -1,0 +1,69 @@
+# Copy this to .github/workflows/standards.yml in a project that uses the
+# standards as a submodule at .standards/. It lints the project's own tracked
+# files for AI-slop and proves the enforcement install is healthy (doctor).
+#
+# Easy disable, two ways:
+#   1. set the Actions variable RUN_STANDARDS_CI to "false"
+#   2. set env STANDARDS_CI to "false"
+
+name: standards
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  gates:
+    # RUN_STANDARDS_CI=false skips it everywhere; PREVIEW_CI=off skips a pull request into preview only.
+    if: ${{ vars.RUN_STANDARDS_CI != 'false' && (vars.PREVIEW_CI != 'off' || github.base_ref != 'preview') }}
+    runs-on: ${{ fromJSON(vars.CI_RUNS_ON || '"ubuntu-latest"') }}
+    env:
+      STANDARDS_CI: "true"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # The .standards submodule is a private repository of another organisation, so this repository's own token cannot
+      # read it. It is fetched with a read-only token of a GitHub App installed on that organisation, at the pinned commit.
+      - name: Find the standards commit this repository pins
+        id: standards
+        run: |
+          set -euo pipefail
+          sha=$(git ls-tree HEAD .standards | awk '{print $3}')
+          test -n "$sha" || { echo "::error::.standards is not a submodule in this commit."; exit 1; }
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+
+      - name: Mint a read-only token for the standards repository
+        id: standards-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          client-id: ${{ vars.STANDARDS_APP_CLIENT_ID }}
+          private-key: ${{ secrets.STANDARDS_APP_PRIVATE_KEY }}
+          owner: buun-group
+          repositories: standards
+          permission-contents: read
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: buun-group/standards
+          ref: ${{ steps.standards.outputs.sha }}
+          path: .standards
+          token: ${{ steps.standards-token.outputs.token }}
+          persist-credentials: false
+
+      # A self-hosted runner keeps what an earlier run installed, so the step installs only what is missing, and upgrades
+      # what pipx already holds. A machine without pipx installs it for the user with pip.
+      - name: Install semgrep (optional AST gate)
+        run: |
+          if command -v semgrep >/dev/null; then semgrep --version
+          elif command -v pipx >/dev/null; then pipx install semgrep || pipx upgrade semgrep
+          else python3 -m pip install --user semgrep
+          fi
+        continue-on-error: true
+      - name: Run standards gates
+        run: python3 .standards/claude/enforcement/ci.py

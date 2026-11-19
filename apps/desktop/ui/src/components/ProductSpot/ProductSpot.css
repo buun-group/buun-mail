@@ -1,0 +1,116 @@
+.product-spot {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+}
+
+.product-spot__title {
+  margin: 0;
+  font-size: var(--text-xs);
+  font-weight: 550;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.product-spot__card {
+  position: relative;
+  overflow: hidden;
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: var(--space-3);
+  border-radius: var(--radius-lg);
+  background: radial-gradient(120% 90% at 100% 0%, var(--ink-glow), transparent 60%), var(--surface-ink);
+  box-shadow: var(--shadow-ink);
+  color: var(--text-on-ink);
+  transition: transform var(--duration-normal) var(--ease-out);
+}
+
+.product-spot__card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 2px;
+  background: var(--tone);
+}
+
+.product-spot__card:hover {
+  transform: translateY(-1px);
+}
+
+.product-spot__body {
+  display: grid;
+  gap: var(--space-2);
+  animation: spot-in var(--duration-normal) var(--ease-out);
+}
+
+.product-spot__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.product-spot__head > span:last-child {
+  display: grid;
+}
+
+.product-spot__name {
+  font-weight: 600;
+}
+
+.product-spot__kind {
+  font-size: var(--text-xs);
+  color: var(--text-on-ink-muted);
+}
+
+.product-spot__line {
+  font-size: var(--text-sm);
+  font-weight: 550;
+  letter-spacing: -0.01em;
+}
+
+.product-spot__visit {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--tone);
+}
+
+.product-spot__picker {
+  display: flex;
+  justify-content: space-between;
+}
+
+.product-spot__pick {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-md);
+  opacity: 0.45;
+  filter: grayscale(1);
+  transition: opacity var(--duration-fast), filter var(--duration-fast), background var(--duration-fast);
+}
+
+.product-spot__pick img {
+  width: 1.1rem;
+  height: 1.1rem;
+  object-fit: contain;
+}
+
+.product-spot__pick:hover,
+.product-spot__pick--on {
+  opacity: 1;
+  filter: none;
+  background: var(--alpha-6);
+}
+
+@keyframes spot-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
