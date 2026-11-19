@@ -114,3 +114,16 @@ export interface GatewayStatus {
   received: number
   problem: string | null
 }
+
+/** A domain the gateway receives for, and whether Cloudflare really sends its mail there. */
+export interface GatewayDomain {
+  domain: string
+  routedHere: boolean | null
+  previously: string | null
+}
+
+/** A domain in the gateway's Cloudflare account that could be added, with what its catch-all does now. */
+export interface AvailableDomain {
+  domain: string
+  catchAllNow: string
+}

@@ -8,7 +8,7 @@ use std::time::Duration;
 use serde::Serialize;
 use tauri::AppHandle;
 
-use super::gateway::{GatewayClient, GatewayError};
+use super::gateway::{AvailableZone, GatewayClient, GatewayError, OwnedDomain};
 use super::settings::GatewaySettings;
 use crate::dto::MessageDto;
 use crate::error::AppError;
@@ -100,6 +100,48 @@ impl SyncService {
         *self.shared.settings.lock()? = None;
         *self.shared.status.lock()? = GatewayStatusDto::default();
         self.status()
+    }
+
+    /// The client for the saved gateway, or the reason there is none.
+    fn client(&self) -> Result<GatewayClient, String> {
+        let settings = self.shared.settings.lock().map_err(|_| AppError::Poisoned.to_string())?.clone();
+        settings.map(|saved| GatewayClient::new(&saved.url, &saved.token)).ok_or_else(|| "Connect a gateway first.".to_owned())
+    }
+
+    /// The domains this mailbox owns at the gateway.
+    ///
+    /// # Errors
+    ///
+    /// The reason in words when no gateway is connected or it cannot be reached.
+    pub fn domains(&self) -> Result<Vec<OwnedDomain>, String> {
+        self.client()?.domains().map_err(|error| error.to_string())
+    }
+
+    /// The domains the gateway could add.
+    ///
+    /// # Errors
+    ///
+    /// As for [`SyncService::domains`].
+    pub fn available_domains(&self) -> Result<Vec<AvailableZone>, String> {
+        self.client()?.available().map_err(|error| error.to_string())
+    }
+
+    /// Adds a domain at the gateway.
+    ///
+    /// # Errors
+    ///
+    /// The gateway's refusal in its own words.
+    pub fn add_domain(&self, domain: &str) -> Result<OwnedDomain, String> {
+        self.client()?.add_domain(domain).map_err(|error| error.to_string())
+    }
+
+    /// Removes a domain at the gateway, which restores its old catch-all.
+    ///
+    /// # Errors
+    ///
+    /// The gateway's refusal in its own words.
+    pub fn remove_domain(&self, domain: &str) -> Result<(), String> {
+        self.client()?.remove_domain(domain).map_err(|error| error.to_string())
     }
 
     /// Wakes the loop for a check now.

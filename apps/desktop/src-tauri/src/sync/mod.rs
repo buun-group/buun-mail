@@ -12,4 +12,5 @@ mod settings;
 #[cfg(test)]
 mod tests;
 
+pub use gateway::{AvailableZone, OwnedDomain};
 pub use service::{GatewayStatusDto, SyncService};

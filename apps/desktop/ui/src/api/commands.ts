@@ -21,6 +21,10 @@ export const COMMANDS = {
   connectGateway: 'connect_gateway',
   disconnectGateway: 'disconnect_gateway',
   checkGateway: 'check_gateway',
+  gatewayDomains: 'gateway_domains',
+  gatewayAvailableDomains: 'gateway_available_domains',
+  addGatewayDomain: 'add_gateway_domain',
+  removeGatewayDomain: 'remove_gateway_domain',
 } as const
 
 /** The files the import picker offers. */

@@ -70,6 +70,10 @@ pub fn run() {
             commands::connect_gateway,
             commands::disconnect_gateway,
             commands::check_gateway,
+            commands::gateway_domains,
+            commands::gateway_available_domains,
+            commands::add_gateway_domain,
+            commands::remove_gateway_domain,
         ])
         .run(tauri::generate_context!())
         .expect("the Buun Mail window could not start");

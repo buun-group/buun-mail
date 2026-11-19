@@ -15,7 +15,7 @@ use crate::dto::{ActivityDto, ImportReportDto, MessageDetailDto, MessageDto, Tag
 use crate::error::AppError;
 use crate::events;
 use crate::mailbox::{Actor, Mailbox};
-use crate::sync::{GatewayStatusDto, SyncService};
+use crate::sync::{AvailableZone, GatewayStatusDto, OwnedDomain, SyncService};
 
 /// Every workspace for the sidebar.
 #[tauri::command]
@@ -143,4 +143,37 @@ pub fn disconnect_gateway(sync: State<'_, SyncService>) -> Result<GatewayStatusD
 #[tauri::command]
 pub fn check_gateway(sync: State<'_, SyncService>) {
     sync.check_now();
+}
+
+/// The domains this mailbox owns at the gateway.
+#[tauri::command]
+pub fn gateway_domains(sync: State<'_, SyncService>) -> Result<Vec<OwnedDomain>, String> {
+    sync.domains()
+}
+
+/// The domains in the gateway's Cloudflare account that could be added.
+#[tauri::command]
+pub fn gateway_available_domains(sync: State<'_, SyncService>) -> Result<Vec<AvailableZone>, String> {
+    sync.available_domains()
+}
+
+/// Adds a domain at the gateway, and when asked, a workspace for it in the routing file.
+#[tauri::command]
+pub fn add_gateway_domain(
+    sync: State<'_, SyncService>,
+    mailbox: State<'_, Arc<Mailbox>>,
+    domain: String,
+    workspace_name: Option<String>,
+) -> Result<OwnedDomain, String> {
+    let added = sync.add_domain(&domain)?;
+    if let Some(name) = workspace_name.filter(|name| !name.trim().is_empty()) {
+        mailbox.ensure_workspace_for(&added.domain, name.trim(), &Actor::You).map_err(|error| error.to_string())?;
+    }
+    Ok(added)
+}
+
+/// Removes a domain at the gateway, which restores its old catch-all. The workspace stays.
+#[tauri::command]
+pub fn remove_gateway_domain(sync: State<'_, SyncService>, domain: String) -> Result<(), String> {
+    sync.remove_domain(&domain)
 }

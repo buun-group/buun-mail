@@ -36,7 +36,7 @@ fn fake_gateway(envelope_to: &'static str) -> FakeGateway {
                 .any(|header| header.field.as_str().as_str().eq_ignore_ascii_case("Authorization") && header.value.as_str() == format!("Bearer {TOKEN}"));
             let json = Header::from_bytes("Content-Type", "application/json").unwrap_or_else(|()| unreachable!("header"));
             let response = if !authorized {
-                Response::from_string("{}").with_status_code(401)
+                Response::from_string(r#"{"error":"unauthorized","message":"no"}"#).with_status_code(401)
             } else if request.url().starts_with("/v1/messages?") {
                 let pending = seen.lock().map_or(true, |done| done.is_empty());
                 let list = if pending {
@@ -56,6 +56,10 @@ fn fake_gateway(envelope_to: &'static str) -> FakeGateway {
                     done.push(body);
                 }
                 Response::from_string(r#"{"acknowledged":1}"#).with_header(json)
+            } else if request.url() == "/v1/domains" {
+                Response::from_string(r#"{"error":"refused","message":"That domain is not in this gateway's Cloudflare account."}"#)
+                    .with_status_code(404)
+                    .with_header(json)
             } else {
                 Response::from_string("{}").with_status_code(404)
             };
@@ -93,7 +97,8 @@ fn collects_files_by_the_envelope_recipient_and_acknowledges() -> Result<(), Gat
 fn says_when_the_token_is_refused() {
     let gateway = fake_gateway("hello@plotwork.dev");
     let (_folder, mailbox) = mailbox();
-    assert!(matches!(collect(&GatewayClient::new(&gateway.url, "bmg_wrong"), &mailbox), Err(GatewayError::Unauthorized)));
+    let result = collect(&GatewayClient::new(&gateway.url, "bmg_wrong"), &mailbox);
+    assert!(matches!(result, Err(GatewayError::Unauthorized)), "{result:?}");
 }
 
 /// Against a real gateway, run by hand: start `pnpm dev:mail-gateway` in buungroup-app, send it a message, then
@@ -106,5 +111,24 @@ fn live_gateway() -> Result<(), GatewayError> {
     let arrived = collect(&GatewayClient::new(&url, &token), &mailbox)?;
     assert!(!arrived.is_empty(), "send the gateway a message first");
     assert!(GatewayClient::new(&url, &token).waiting()?.is_empty(), "everything collected was acknowledged");
+    Ok(())
+}
+
+#[test]
+fn passes_the_gateway_refusal_on_in_its_own_words() {
+    let gateway = fake_gateway("hello@plotwork.dev");
+    let refused = GatewayClient::new(&gateway.url, TOKEN).add_domain("someone-else.com");
+    assert!(matches!(refused, Err(GatewayError::Refused(words)) if words == "That domain is not in this gateway's Cloudflare account."));
+}
+
+/// Reads the gateway's domains and the zones it could add, run by hand like [`live_gateway`]. Changes nothing.
+#[test]
+#[ignore = "needs a running mail gateway and a mailbox token"]
+fn live_gateway_domains() -> Result<(), GatewayError> {
+    let (Ok(url), Ok(token)) = (std::env::var("BUUN_GATEWAY_URL"), std::env::var("BUUN_GATEWAY_TOKEN")) else { return Ok(()) };
+    let client = GatewayClient::new(&url, &token);
+    let owned = client.domains()?;
+    let available = client.available()?;
+    assert!(!owned.is_empty() || !available.is_empty(), "the gateway reports neither owned nor available domains");
     Ok(())
 }

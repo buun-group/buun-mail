@@ -79,6 +79,11 @@ Gateway, paste the gateway's address and a mailbox token (`bmg_...`, from its `m
 30 seconds (or on Check now), files each message by the exact address it was sent to, and acknowledges it so the
 gateway forgets it. The address and token are kept in `gateway.json` in the config folder, readable by you only.
 
+Under the connected gateway, **Domains** lists the domains it receives for, whether Cloudflare really routes each one
+there, and adds or removes one from the gateway's Cloudflare account. Adding a domain says where its catch-all sends
+mail today, points it at the gateway, and can add a workspace for it to your routing file; removing it puts the old
+catch-all back.
+
 ## Agents
 
 Turn on Settings, Agents. The app then serves MCP at `http://127.0.0.1:28700/mcp` with a bearer token, and shows the

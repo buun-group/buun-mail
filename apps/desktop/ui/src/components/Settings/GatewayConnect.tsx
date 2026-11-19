@@ -7,6 +7,7 @@ import { isTauri } from '@tauri-apps/api/core'
 import { checkGateway, connectGateway, disconnectGateway, gatewayStatus } from '../../api/client'
 import type { GatewayStatus } from '../../api/types'
 import { formatFull } from '../../lib/time'
+import { GatewayDomains } from './GatewayDomains'
 
 /** How often the status refreshes while this panel is open, so the last check and count stay current. */
 const REFRESH_MS = 5_000
@@ -64,6 +65,7 @@ export function GatewayConnect({ onConnected, onStatus }: { onConnected: () => v
             {t('gateway.disconnect')}
           </button>
         </div>
+        <GatewayDomains onChanged={onConnected} />
       </div>
     )
   }

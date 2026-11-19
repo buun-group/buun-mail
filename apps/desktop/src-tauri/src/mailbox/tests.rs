@@ -146,3 +146,20 @@ fn refuses_a_rule_that_matches_everything() {
     let (_folder, mailbox) = mailbox();
     assert!(mailbox.save_rule(Rule::new("All", When::default(), vec![Action::MarkRead]), &Actor::You).is_err());
 }
+
+#[test]
+fn adds_a_workspace_for_a_new_domain_once_and_reloads() -> Result<(), AppError> {
+    let folder = tempfile::tempdir().unwrap_or_else(|error| unreachable!("temp folder: {error}"));
+    let routing = folder.path().join("workspaces.toml");
+    fs::write(&routing, EXAMPLE_ROUTING).unwrap_or_else(|error| unreachable!("routing file: {error}"));
+    let store = Store::open(&folder.path().join("store")).unwrap_or_else(|error| unreachable!("store: {error}"));
+    let mailbox = Mailbox::new(Router::from_toml(EXAMPLE_ROUTING)?, store, routing.clone())?;
+
+    assert!(mailbox.ensure_workspace_for("newbiz.example", "New business", &Actor::You)?);
+    assert!(!mailbox.ensure_workspace_for("newbiz.example", "Again", &Actor::You)?, "a domain already claimed is left alone");
+    assert!(!mailbox.ensure_workspace_for("buungroup.com", "Buun", &Actor::You)?, "the example file already claims it");
+    let text = fs::read_to_string(&routing).unwrap_or_default();
+    assert!(text.starts_with("# Buun Mail routing file."), "the file's own comments survive");
+    assert!(mailbox.workspaces()?.iter().any(|workspace| workspace.id == "newbiz-example" && workspace.name == "New business"));
+    Ok(())
+}

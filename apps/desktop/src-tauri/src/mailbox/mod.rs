@@ -6,11 +6,13 @@
 //! - `rules`: adding, editing, deleting and re-running rules
 //! - `import`: taking in `.eml` and `.mbox` files
 //! - `remote`: taking in one message from a source that knows its recipient, such as the mail gateway
+//! - `routing`: reloading the routing file, and adding a workspace for a newly connected domain
 
 mod change;
 mod import;
 mod read;
 mod remote;
+mod routing;
 mod rules;
 #[cfg(test)]
 mod tests;

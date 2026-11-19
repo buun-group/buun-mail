@@ -126,5 +126,28 @@
     "received_one": "{{count}} message collected since the app started",
     "received_other": "{{count}} messages collected since the app started",
     "desktopOnly": "Connecting works in the desktop app."
+  },
+  "domains": {
+    "title": "Domains",
+    "intro": "Mail to these domains comes to this gateway. Only domains in the gateway's Cloudflare account can be added.",
+    "none": "No domains yet. Add one below.",
+    "routed": "Receiving here",
+    "notRouted": "Not routed here",
+    "unknown": "Routing unknown",
+    "previously": "Before: {{rule}}",
+    "remove": "Remove",
+    "confirmRemove": "Remove {{domain}}? Its mail goes back to: {{rule}}.",
+    "confirmRemoveOff": "Remove {{domain}}? Its catch-all is switched off again.",
+    "keep": "Keep it",
+    "add": "Add a domain",
+    "choose": "Domain",
+    "pick": "Choose a domain",
+    "noneAvailable": "Every domain in the gateway's Cloudflare account is already connected.",
+    "warning": "All mail to @{{domain}} that no other Cloudflare rule names will come here instead of: {{rule}}. Removing the domain puts that back.",
+    "makeWorkspace": "Add a workspace for it",
+    "workspaceName": "Workspace name",
+    "addButton": "Add domain",
+    "adding": "Adding",
+    "loading": "Loading domains"
   }
 }

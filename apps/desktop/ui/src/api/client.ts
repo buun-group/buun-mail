@@ -4,7 +4,7 @@ import { openUrl } from '@tauri-apps/plugin-opener'
 
 import { COMMANDS, IMPORT_EXTENSIONS } from './commands'
 import { preview, previewDetail, previewMessages, previewWorkspaces } from './preview'
-import type { Activity, AgentStatus, GatewayStatus, ImportReport, Message, MessageDetail, Place, Rule, TagCount, Workspace } from './types'
+import type { Activity, AgentStatus, AvailableDomain, GatewayDomain, GatewayStatus, ImportReport, Message, MessageDetail, Place, Rule, TagCount, Workspace } from './types'
 
 /**
  * The one door to the Rust side. In the desktop app every call is a Tauri command; in a plain browser (`pnpm dev:ui`)
@@ -127,4 +127,24 @@ export async function disconnectGateway(): Promise<GatewayStatus> {
 /** Asks the sync to check the gateway now. */
 export async function checkGateway(): Promise<void> {
   if (isTauri()) await invoke(COMMANDS.checkGateway)
+}
+
+/** The domains the gateway receives for. */
+export async function gatewayDomains(): Promise<GatewayDomain[]> {
+  return invoke<GatewayDomain[]>(COMMANDS.gatewayDomains)
+}
+
+/** The domains the gateway could add. */
+export async function gatewayAvailableDomains(): Promise<AvailableDomain[]> {
+  return invoke<AvailableDomain[]>(COMMANDS.gatewayAvailableDomains)
+}
+
+/** Adds a domain at the gateway, and a workspace for it when a name is given. Rejects with the gateway's reason. */
+export async function addGatewayDomain(domain: string, workspaceName: string | null): Promise<GatewayDomain> {
+  return invoke<GatewayDomain>(COMMANDS.addGatewayDomain, { domain, workspaceName })
+}
+
+/** Removes a domain at the gateway, which restores its old catch-all. */
+export async function removeGatewayDomain(domain: string): Promise<void> {
+  await invoke(COMMANDS.removeGatewayDomain, { domain })
 }
