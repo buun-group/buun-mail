@@ -21,6 +21,8 @@ pub const EXAMPLE_ROUTING: &str = include_str!("../../../../config/workspaces.ex
 /// The two places the app reads and writes.
 #[derive(Debug, Clone)]
 pub struct AppPaths {
+    /// The config folder: the routing file and the agent settings.
+    pub config: PathBuf,
     /// The routing file.
     pub routing: PathBuf,
     /// The store folder.
@@ -37,7 +39,7 @@ impl AppPaths {
         let resolver = app.path();
         let config = resolver.app_config_dir().map_err(|error| missing("config folder", &error))?;
         let data = resolver.app_data_dir().map_err(|error| missing("data folder", &error))?;
-        Ok(Self { routing: config.join(ROUTING_FILE), store: data.join(STORE_DIR) })
+        Ok(Self { routing: config.join(ROUTING_FILE), store: data.join(STORE_DIR), config })
     }
 
     /// Reads the routing file, writing the example first when there is none yet.

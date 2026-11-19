@@ -28,6 +28,8 @@ mail-parser = "=1.0.1"
 rusqlite = { version = "=0.42.0", features = ["bundled"] }
 sha2 = "=0.11.1"
 tempfile = "=3.27.0"
+tiny_http = "=0.12.0"
+getrandom = "=0.4.3"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

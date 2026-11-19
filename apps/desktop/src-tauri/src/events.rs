@@ -8,6 +8,14 @@ use crate::dto::MessageDto;
 /// notifications work the same for an import, the Worker sync and IMAP.
 pub const MAIL_ARRIVED: &str = "mail-arrived";
 
+/// Mail, tags, rules or read state changed outside the window, such as by an agent. No payload: the window reloads.
+pub const MAIL_CHANGED: &str = "mail-changed";
+
+/// Tells the UI that something changed under it. Dropped on failure for the same reason as [`mail_arrived`].
+pub fn mail_changed(app: &AppHandle) {
+    let _ = app.emit(MAIL_CHANGED, ());
+}
+
 /// Tells the UI about new mail. Nothing is sent for an empty batch. A failure to emit is not worth failing the import
 /// for, so it is dropped: the mail is stored either way and shows on the next refresh.
 pub fn mail_arrived(app: &AppHandle, messages: &[MessageDto]) {

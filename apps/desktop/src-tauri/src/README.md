@@ -13,6 +13,7 @@ Code here follows:
 | Path | Purpose |
 |---|---|
 | `main.rs` | The binary; calls `run` |
+| `agent/` | The MCP server agents connect to: `settings` (on, port, token in `agent.json`), `protocol`, `tools`, `server` (local only, token, no web origins), `state` |
 | `lib.rs` | Builds the app: plugins, the mailbox as state, the commands |
 | `paths.rs` | Where the routing file and the store live on this platform; writes the example routing file on first run |
 | `ingest.rs` | Parse, route, run the rules on and store one message. Every mail source goes through it |
