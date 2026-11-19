@@ -43,7 +43,7 @@ export interface IntegrationField {
   hint?: IntegrationKey
 }
 
-export type IntegrationMethod = { kind: 'form'; fields: readonly IntegrationField[] } | { kind: 'oauth'; provider: string } | { kind: 'file'; accept: string } | { kind: 'gateway' }
+export type IntegrationMethod = { kind: 'form'; fields: readonly IntegrationField[] } | { kind: 'oauth'; provider: string } | { kind: 'file'; accept: string } | { kind: 'gateway' } | { kind: 'resend' }
 
 export interface Integration {
   id: IntegrationId
@@ -122,7 +122,7 @@ export const INTEGRATIONS: readonly Integration[] = [
     name: 'providers.resend.name',
     summary: 'providers.resend.summary',
     directions: ['send'],
-    method: { kind: 'form', fields: [{ ...API_KEY, sample: 're_...', hint: 'fields.resendKeyHint' }] },
+    method: { kind: 'resend' },
   },
   {
     id: 'ses',

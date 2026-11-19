@@ -4,6 +4,7 @@
  */
 import agents from '../locales/en/agents.json'
 import common from '../locales/en/common.json'
+import compose from '../locales/en/compose.json'
 import integrations from '../locales/en/integrations.json'
 import mail from '../locales/en/mail.json'
 import notifications from '../locales/en/notifications.json'
@@ -12,8 +13,8 @@ import rules from '../locales/en/rules.json'
 import settings from '../locales/en/settings.json'
 import sidebar from '../locales/en/sidebar.json'
 
-export const NAMESPACES = ['common', 'sidebar', 'mail', 'settings', 'notifications', 'rules', 'integrations', 'agents', 'products'] as const
+export const NAMESPACES = ['common', 'sidebar', 'mail', 'settings', 'notifications', 'rules', 'integrations', 'agents', 'products', 'compose'] as const
 
 export const resources = {
-  en: { common, sidebar, mail, settings, notifications, rules, integrations, agents, products },
+  en: { common, sidebar, mail, settings, notifications, rules, integrations, agents, products, compose },
 } as const

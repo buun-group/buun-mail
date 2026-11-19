@@ -43,8 +43,8 @@ export interface Message {
 /** Where a message sits: in its folder, archived, or in the trash. It keeps its workspace and folder throughout. */
 export type Shelf = 'active' | 'archived' | 'trashed'
 
-/** A list across every workspace. */
-export type MailView = 'starred' | 'archive' | 'trash'
+/** A list across every workspace. Drafts live on this computer only, so the Rust side never sees that view. */
+export type MailView = 'starred' | 'archive' | 'trash' | 'drafts'
 
 /** Where the list is pointed: one folder of one workspace. */
 export interface Place {
@@ -170,4 +170,47 @@ export interface GatewayDomain {
 export interface AvailableDomain {
   domain: string
   catchAllNow: string
+}
+
+/** A domain a sender may send from. Mirrors `SenderDomain`. */
+export interface SenderDomain {
+  name: string
+  /** Resend's word for its state (`verified`, `pending`, `failed`...), or `entered` when typed for a sending-only key. */
+  status: string
+}
+
+/** A connected sender, without its key. Mirrors `SenderDto`. */
+export interface Sender {
+  id: string
+  name: string
+  kind: 'resend'
+  /** The key's last four characters. */
+  keyHint: string
+  restricted: boolean
+  domains: SenderDomain[]
+  signature: string
+}
+
+/** A domain mail can be sent from now, and its sender's signature. Mirrors `SendableDto`. */
+export interface Sendable {
+  domain: string
+  signature: string
+}
+
+/** A message to send. Mirrors `DraftDto`. */
+export interface Draft {
+  from: Contact
+  to: Contact[]
+  cc: Contact[]
+  bcc: Contact[]
+  subject: string
+  text: string
+  /** The stored message this answers, for its thread. */
+  replyToMessage: string | null
+}
+
+/** Why a send failed, and whether the same message may go through later. Mirrors `SendFailure`. */
+export interface SendFailure {
+  retry: boolean
+  message: string
 }

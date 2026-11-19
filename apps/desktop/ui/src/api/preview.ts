@@ -1,4 +1,4 @@
-import type { Activity, AgentStatus, MailView, Message, MessageDetail, Place, Rule, TagCount, Workspace } from './types'
+import type { Activity, AgentStatus, Contact, Draft, MailView, Message, MessageDetail, Place, Rule, Sendable, Sender, TagCount, Workspace } from './types'
 
 /**
  * A small stand-in mailbox for `pnpm dev:ui`, where there is no Rust side, so the layout can be tuned in a plain
@@ -42,7 +42,7 @@ export function previewMessages(place: Place): Message[] {
 }
 
 export function previewView(view: MailView): Message[] {
-  const keep = { starred: (message: Message) => message.starred && message.shelf !== 'trashed', archive: (message: Message) => message.shelf === 'archived', trash: (message: Message) => message.shelf === 'trashed' }[view]
+  const keep = { starred: (message: Message) => message.starred && message.shelf !== 'trashed', archive: (message: Message) => message.shelf === 'archived', trash: (message: Message) => message.shelf === 'trashed', drafts: () => false }[view]
   return MESSAGES.filter(keep).map((message) => ({ ...message }))
 }
 
@@ -78,7 +78,40 @@ function found(id: string): Message {
   return message
 }
 
+/** The senders the preview keeps in memory: one, so compose and reply can be worked on in a browser. */
+const SENDERS: Sender[] = [{ id: 'preview-sender', name: 'Resend', kind: 'resend', keyHint: 'demo', restricted: false, domains: [{ name: 'buungroup.com', status: 'verified' }, { name: 'plotwork.dev', status: 'pending' }], signature: 'Sacha\nBuun Group' }]
+
 export const preview = {
+  senders: (): Sender[] => SENDERS.map((sender) => ({ ...sender })),
+  addSender: (name: string, key: string, domains: string[]): Sender[] => {
+    if (!key.startsWith('re_')) throw new Error('Resend refused the API key: API key is invalid')
+    SENDERS.push({ id: `preview-${SENDERS.length + 1}`, name: name || 'Resend', kind: 'resend', keyHint: key.slice(-4), restricted: domains.length > 0, domains: domains.map((domain) => ({ name: domain, status: 'entered' })), signature: '' })
+    return preview.senders()
+  },
+  updateSender: (id: string, change: { signature?: string; domains?: string[] }): Sender[] => {
+    const sender = SENDERS.find((item) => item.id === id)
+    if (sender !== undefined && change.signature !== undefined) sender.signature = change.signature
+    return preview.senders()
+  },
+  removeSender: (id: string): Sender[] => {
+    const at = SENDERS.findIndex((item) => item.id === id)
+    if (at !== -1) SENDERS.splice(at, 1)
+    return preview.senders()
+  },
+  sendable: (): Sendable[] => SENDERS.flatMap((sender) => sender.domains.filter((domain) => domain.status === 'verified' || domain.status === 'entered').map((domain) => ({ domain: domain.name, signature: sender.signature }))),
+  send: (draft: Draft): Message => {
+    const sent: Message = {
+      id: `sent-${Date.now()}`, workspace: 'buun', folder: 'Sent', fromName: draft.from.name ?? draft.from.address, from: draft.from.address, to: draft.to[0]?.address ?? '',
+      matched: null, folderMatched: null, subject: draft.subject, preview: draft.text.slice(0, 120), receivedAt: new Date().toISOString(), unread: false, starred: false, shelf: 'active', tags: [],
+    }
+    MESSAGES.push(sent)
+    return { ...sent }
+  },
+  contacts: (query: string): Contact[] => {
+    const seen = new Map<string, Contact>()
+    MESSAGES.forEach((message) => seen.set(message.from, { name: message.fromName, address: message.from }))
+    return [...seen.values()].filter((contact) => `${contact.name ?? ''} ${contact.address}`.toLowerCase().includes(query.toLowerCase())).slice(0, 8)
+  },
   change: (ids: string[], fields: Partial<Pick<Message, 'unread' | 'starred' | 'shelf'>>): Message[] => ids.map((id) => ({ ...Object.assign(found(id), fields) })),
   move: (id: string, place: Place): Message => ({ ...Object.assign(found(id), { workspace: place.workspace, folder: place.folder }) }),
   remove: (ids: string[]): number => {

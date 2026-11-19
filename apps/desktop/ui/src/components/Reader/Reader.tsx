@@ -8,10 +8,11 @@ import { MessageHtml } from './MessageHtml'
 import { Avatar } from '../Avatar/Avatar'
 import type { Theme } from '../../constants/ui'
 import type { MessageActions } from '../../hooks/useMessageActions'
-import { EXPORT_GLYPHS, IconArchive, IconBack, IconCopy, IconExport, IconReplyAll, IconDelete, IconExternal, IconInbox, IconMarkRead, IconPutBack, IconReply, IconRoute, IconStar, IconStarred, IconText } from '../../icons'
+import { EXPORT_GLYPHS, IconArchive, IconBack, IconCopy, IconExport, IconForward, IconReplyAll, IconDelete, IconExternal, IconInbox, IconMarkRead, IconPutBack, IconReply, IconRoute, IconStar, IconStarred, IconText } from '../../icons'
 import { openExternal } from '../../api/client'
 import { copyWithToast } from '../../lib/copy'
-import { canSendAs, domainOf } from '../../lib/sending'
+import type { ComposeMode } from '../../lib/compose'
+import { domainOf } from '../../lib/sending'
 import { formatFull } from '../../lib/time'
 import { EXPORT_FORMATS } from '../../constants/ui'
 import { tokenize } from '../../lib/tokens'
@@ -46,6 +47,11 @@ interface ReaderProps {
   backTo: string
   /** Opens Settings at Integrations, where a sending integration is connected. */
   onOpenIntegrations: () => void
+  /** Whether this message can be answered from the address it was sent to, and whether anything can send at all. */
+  canReply: boolean
+  canForward: boolean
+  /** Starts a reply, reply all or forward of the open message. */
+  onCompose: (mode: ComposeMode) => void
 }
 
 /** Why a message is where it is, in one plain sentence from the rules the router used. */
@@ -58,21 +64,21 @@ function RouteNote({ message, workspace }: { message: Message; workspace: Worksp
 }
 
 /**
- * Reply and Reply all. Until a sending integration covers the domain the message was sent to, they are greyed out,
- * say which domain needs one, and open Integrations when clicked.
+ * Reply, Reply all and Forward. Until a sending integration covers the domain the message was sent to, Reply and Reply
+ * all are greyed out, say which domain needs one, and open Integrations when clicked; Forward needs any sender.
  */
-function ReplyTools({ address, onOpenIntegrations }: { address: string; onOpenIntegrations: () => void }): ReactNode {
+function ReplyTools({ address, canReply, canForward, onCompose, onOpenIntegrations }: { address: string; canReply: boolean; canForward: boolean; onCompose: (mode: ComposeMode) => void; onOpenIntegrations: () => void }): ReactNode {
   const { t } = useTranslation('mail')
-  const sendable = canSendAs(address)
   const why = t('reader.needsSending', { domain: domainOf(address) })
   const tools = [
-    { id: 'reply', label: t('reader.reply'), Glyph: IconReply },
-    { id: 'reply-all', label: t('reader.replyAll'), Glyph: IconReplyAll },
+    { id: 'reply' as const, label: t('reader.reply'), Glyph: IconReply, on: canReply, key: 'R' },
+    { id: 'replyAll' as const, label: t('reader.replyAll'), Glyph: IconReplyAll, on: canReply, key: 'A' },
+    { id: 'forward' as const, label: t('reader.forward'), Glyph: IconForward, on: canForward, key: 'F' },
   ]
   return (
     <>
-      {tools.map(({ id, label, Glyph }) => (
-        <TipButton key={id} tip={sendable ? label : why} className="reader__tool" aria-disabled={!sendable || undefined} aria-label={label} onClick={sendable ? undefined : onOpenIntegrations}>
+      {tools.map(({ id, label, Glyph, on, key }) => (
+        <TipButton key={id} tip={on ? `${label} (${key})` : why} className="reader__tool" aria-disabled={!on || undefined} aria-label={label} onClick={on ? () => onCompose(id) : onOpenIntegrations}>
           <Glyph aria-hidden="true" />
         </TipButton>
       ))}
@@ -123,7 +129,7 @@ function Fields({ message, recipients }: { message: Message; recipients: Recipie
 }
 
 /** The open message. With nothing open, the other Buun Group products. */
-export function Reader({ message, body, recipients, detail, workspace, theme, onAddTag, onRemoveTag, tagSuggestions, actions, onBack, backTo, onOpenIntegrations }: ReaderProps): ReactNode {
+export function Reader({ message, body, recipients, detail, workspace, theme, onAddTag, onRemoveTag, tagSuggestions, actions, onBack, backTo, onOpenIntegrations, canReply, canForward, onCompose }: ReaderProps): ReactNode {
   const { t } = useTranslation('mail')
   const article = useRef<HTMLElement | null>(null)
   const bodyText = useRef<HTMLDivElement | null>(null)
@@ -203,7 +209,7 @@ export function Reader({ message, body, recipients, detail, workspace, theme, on
             <span className="reader__divider" aria-hidden="true" />
           </>
         )}
-        <ReplyTools address={message.to} onOpenIntegrations={onOpenIntegrations} />
+        <ReplyTools address={message.to} canReply={canReply} canForward={canForward} onCompose={onCompose} onOpenIntegrations={onOpenIntegrations} />
         {message.shelf === 'active' ? (
           <TipButton tip={`${t('reader.archive')} (E)`} className="reader__tool" aria-label={t('reader.archive')} onClick={() => actions.archive(message)}>
             <IconArchive aria-hidden="true" />

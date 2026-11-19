@@ -43,10 +43,12 @@ interface SettingsProps {
   /** Called after an import adds mail, so the mailbox reloads. */
   onImported: () => void
   notifications: Notifications
+  /** Called when a sender is connected, changed or removed, so what can send is read again. */
+  onSendersChanged: () => void
 }
 
 /** Settings in a native modal dialog: sections down the left, the chosen one on the right. Escape closes it. */
-export function Settings({ open, onClose, preferences, workspaces, looks, onLook, section, onSection, editing, onEditing, onImported, notifications }: SettingsProps): ReactNode {
+export function Settings({ open, onClose, preferences, workspaces, looks, onLook, section, onSection, editing, onEditing, onImported, notifications, onSendersChanged }: SettingsProps): ReactNode {
   const { t } = useTranslation('settings')
   const dialog = useRef<HTMLDialogElement | null>(null)
 
@@ -83,7 +85,7 @@ export function Settings({ open, onClose, preferences, workspaces, looks, onLook
           {section === 'notifications' && <NotificationsSection notifications={notifications} workspaces={workspaces} />}
           {section === 'workspaces' && <WorkspacesSection workspaces={workspaces} looks={looks} onLook={onLook} editing={editing} onEditing={onEditing} theme={preferences.theme} />}
           {section === 'rules' && <RulesSection workspaces={workspaces} onChanged={onImported} />}
-          {section === 'integrations' && <IntegrationsSection onImported={onImported} theme={preferences.theme} />}
+          {section === 'integrations' && <IntegrationsSection onImported={onImported} onSendersChanged={onSendersChanged} theme={preferences.theme} />}
           {section === 'agents' && <AgentsSection />}
         </div>
       </div>

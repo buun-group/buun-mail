@@ -863,3 +863,76 @@ label.settings__label {
     animation: none;
   }
 }
+
+.connect__field textarea {
+  min-height: 4.5rem;
+  padding: var(--space-2) var(--space-3);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--surface-card);
+  box-shadow: var(--shadow-well);
+  color: var(--text-primary);
+  font: inherit;
+  resize: vertical;
+  outline: none;
+}
+
+.connect__field textarea:focus-visible {
+  box-shadow: var(--shadow-well), 0 0 0 2px var(--brand-40);
+}
+
+.senders {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.sender {
+  display: grid;
+  gap: var(--space-3);
+  padding-bottom: var(--space-5);
+  border-bottom: 1px solid var(--border-faint);
+}
+
+.sender__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.sender__domains {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-radius: var(--radius-md);
+  box-shadow: inset 0 0 0 1px var(--border-faint);
+}
+
+.sender-domain {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+}
+
+.sender-domain + .sender-domain {
+  border-top: 1px solid var(--border-faint);
+}
+
+.sender-domain__state {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+.sender-domain__state[data-tone='done'] svg {
+  color: var(--status-success-fg);
+}
+
+.sender-domain__state[data-tone='problem'] svg {
+  color: var(--status-danger-fg);
+}

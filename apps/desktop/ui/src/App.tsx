@@ -15,7 +15,14 @@ import { Sidebar } from './components/Sidebar/Sidebar'
 import { INBOX_LABEL, SETTINGS_SHORTCUT } from './constants/ui'
 import type { SettingsSection } from './constants/ui'
 import { useFolded } from './hooks/useFolded'
+import { openMessage } from './api/client'
+import type { Message } from './api/types'
+import { Compose } from './components/Compose/Compose'
+import { DraftsList } from './components/Compose/DraftsList'
+import { useCompose } from './hooks/useCompose'
 import { useMailbox } from './hooks/useMailbox'
+import { useSending } from './hooks/useSending'
+import type { ComposeMode } from './lib/compose'
 import { readLastPlace, writeLastPlace } from './lib/lastPlace'
 import { useMailKeys } from './hooks/useMailKeys'
 import { useMessageActions } from './hooks/useMessageActions'
@@ -64,8 +71,33 @@ export function App(): ReactNode {
   const openWorkspace = mailbox.workspaces.find((item) => item.id === mailbox.selected?.message.workspace)
   const workspaceName = (id: string): string => mailbox.workspaces.find((item) => item.id === id)?.name ?? id
   const notifications = useNotifications(workspaceName)
-  const actions = useMessageActions(mailbox, workspaceName)
-  useMailKeys(mailbox.selected?.message ?? null, mailbox.messages, mailbox.select, actions, preferences.readingPane === 'off' ? mailbox.close : null)
+  const sending = useSending()
+  const compose = useCompose(mailbox.workspaces, sending.sendable, () => mailbox.refresh())
+  /** Starts a reply, reply all or forward of `message`, reading its text first when it is not the open one. */
+  const composeFor = (mode: ComposeMode, message: Message): void => {
+    const open = mailbox.selected
+    if (open !== null && open.message.id === message.id && open.body !== null) {
+      compose.start(mode, { message, body: open.body, recipients: open.recipients })
+      return
+    }
+    openMessage(message.id)
+      .then((detail) => compose.start(mode, { message: detail.message, body: detail.body, recipients: detail.recipients }))
+      .catch(() => compose.start(mode, { message, body: message.preview, recipients: null }))
+  }
+  const actions = useMessageActions(mailbox, workspaceName, { canReply: (message) => sending.can(message.to), canForward: sending.any, start: composeFor })
+  // Lifts the toasts above the compose panel while it is open.
+  useEffect(() => {
+    if (compose.open === null) delete document.documentElement.dataset['composing']
+    else document.documentElement.dataset['composing'] = compose.minimized ? 'min' : 'true'
+  }, [compose.open, compose.minimized])
+  useMailKeys(mailbox.selected?.message ?? null, mailbox.messages, mailbox.select, actions, preferences.readingPane === 'off' ? mailbox.close : null, {
+    compose: () => {
+      if (sending.any) compose.start('new', null)
+    },
+    reply: (mode, message) => {
+      if (mode === 'forward' ? sending.any : sending.can(message.to)) composeFor(mode, message)
+    },
+  })
 
   const openIntegrations = (): void => {
     setSection('integrations')
@@ -116,11 +148,17 @@ export function App(): ReactNode {
         collapsed={preferences.sidebarCollapsed}
         onOpen={mailbox.open}
         onOpenView={mailbox.openView}
+        onCompose={() => (sending.any ? compose.start('new', null) : openIntegrations())}
+        canCompose={sending.any}
+        draftCount={compose.drafts.length}
         onFold={folded.toggle}
         onEditIcon={editIcon}
         onResetIcon={(id) => looks.set(id, null)}
         onMarkAllRead={mailbox.markAllRead}
       />
+      {mailbox.view === 'drafts' ? (
+        <DraftsList compose={compose} />
+      ) : (
       <MessageList
         workspace={workspace}
         place={mailbox.place}
@@ -141,6 +179,7 @@ export function App(): ReactNode {
         onQuery={mailbox.setQuery}
         wide={preferences.readingPane === 'off'}
       />
+      )}
       <Reader
         message={mailbox.selected?.message ?? null}
         body={mailbox.selected?.body ?? null}
@@ -154,6 +193,11 @@ export function App(): ReactNode {
         actions={actions}
         onBack={preferences.readingPane === 'off' ? mailbox.close : null}
         onOpenIntegrations={openIntegrations}
+        canReply={mailbox.selected !== null && sending.can(mailbox.selected.message.to)}
+        canForward={sending.any}
+        onCompose={(mode) => {
+          if (mailbox.selected !== null) composeFor(mode, mailbox.selected.message)
+        }}
         backTo={mailbox.view === null ? (mailbox.place?.folder ?? t(INBOX_LABEL)) : t(`views.${mailbox.view}`)}
       />
       <Settings
@@ -169,7 +213,9 @@ export function App(): ReactNode {
         onEditing={setEditing}
         onImported={mailbox.refresh}
         notifications={notifications}
+        onSendersChanged={sending.refresh}
       />
+      <Compose compose={compose} workspaces={mailbox.workspaces} sendable={sending.sendable} />
       <Toasts toasts={notifications.toasts} workspaceName={workspaceName} onOpen={(message) => (notifications.isTest(message.id) ? undefined : mailbox.reveal(message))} onDismiss={notifications.dismissToast} />
       <Confirm request={actions.confirmation} cancelLabel={t('actions.cancel')} onClose={actions.closeConfirmation} />
       {preferences.grain && <Grain />}

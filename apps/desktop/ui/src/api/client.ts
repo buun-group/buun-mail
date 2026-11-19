@@ -5,7 +5,7 @@ import { openUrl } from '@tauri-apps/plugin-opener'
 import type { ExportFormat } from '../constants/ui'
 import { COMMANDS, IMPORT_EXTENSIONS } from './commands'
 import { preview, previewDetail, previewMessages, previewView, previewWorkspaces } from './preview'
-import type { Activity, AgentStatus, AvailableDomain, CheckReport, GatewayDomain, GatewayStatus, ImportReport, MailView, Message, MessageDetail, Place, Rule, Shelf, TagCount, Workspace } from './types'
+import type { Activity, AgentStatus, AvailableDomain, CheckReport, Contact, Draft, Sendable, Sender, GatewayDomain, GatewayStatus, ImportReport, MailView, Message, MessageDetail, Place, Rule, Shelf, TagCount, Workspace } from './types'
 
 /**
  * The one door to the Rust side. In the desktop app every call is a Tauri command; in a plain browser (`pnpm dev:ui`)
@@ -22,6 +22,7 @@ export async function listMessages(place: Place): Promise<Message[]> {
 
 /** Starred, archived or trashed messages across every workspace. */
 export async function listView(view: MailView): Promise<Message[]> {
+  if (view === 'drafts') return []
   return isTauri() ? invoke<Message[]>(COMMANDS.listView, { view }) : previewView(view)
 }
 
@@ -209,4 +210,44 @@ export async function addGatewayDomain(id: string, domain: string, via: GatewayD
 /** Removes a domain at one gateway, which restores its old catch-all when it had one. */
 export async function removeGatewayDomain(id: string, domain: string): Promise<void> {
   await invoke(COMMANDS.removeGatewayDomain, { id, domain })
+}
+
+/** Every connected sender, without keys. */
+export async function listSenders(): Promise<Sender[]> {
+  return isTauri() ? invoke<Sender[]>(COMMANDS.listSenders) : preview.senders()
+}
+
+/** Connects a Resend key. `domains` is only needed for a sending-only key. Rejects with Resend's reason. */
+export async function addResendSender(name: string, key: string, domains: string[]): Promise<Sender[]> {
+  return isTauri() ? invoke<Sender[]>(COMMANDS.addResendSender, { name, key, domains }) : preview.addSender(name, key, domains)
+}
+
+/** Asks Resend again for every key's domains. */
+export async function refreshSenders(): Promise<Sender[]> {
+  return isTauri() ? invoke<Sender[]>(COMMANDS.refreshSenders) : preview.senders()
+}
+
+/** Changes a sender's signature, or a sending-only key's domains. */
+export async function updateSender(id: string, change: { signature?: string; domains?: string[] }): Promise<Sender[]> {
+  return isTauri() ? invoke<Sender[]>(COMMANDS.updateSender, { id, signature: change.signature ?? null, domains: change.domains ?? null }) : preview.updateSender(id, change)
+}
+
+/** Forgets a sender. */
+export async function removeSender(id: string): Promise<Sender[]> {
+  return isTauri() ? invoke<Sender[]>(COMMANDS.removeSender, { id }) : preview.removeSender(id)
+}
+
+/** The domains mail can be sent from now. */
+export async function sendableDomains(): Promise<Sendable[]> {
+  return isTauri() ? invoke<Sendable[]>(COMMANDS.sendableDomains) : preview.sendable()
+}
+
+/** Sends a draft. Resolves to the copy kept in Sent; rejects with a `SendFailure`. */
+export async function sendMessage(draft: Draft): Promise<Message> {
+  return isTauri() ? invoke<Message>(COMMANDS.sendMessage, { draft }) : preview.send(draft)
+}
+
+/** People to suggest as recipients. */
+export async function suggestContacts(query: string): Promise<Contact[]> {
+  return isTauri() ? invoke<Contact[]>(COMMANDS.suggestContacts, { query }) : preview.contacts(query)
 }

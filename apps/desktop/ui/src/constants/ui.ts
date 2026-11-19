@@ -10,6 +10,8 @@ export const STORAGE_KEYS = {
   readingPane: 'buun-mail:reading-pane',
   rememberPlace: 'buun-mail:remember-place',
   lastPlace: 'buun-mail:last-place',
+  drafts: 'buun-mail:drafts',
+  outbox: 'buun-mail:outbox',
   looks: 'buun-mail:workspace-looks',
 } as const
 

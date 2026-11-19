@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { importFiles, listGateways } from '../../api/client'
+import { importFiles, listGateways, listSenders } from '../../api/client'
 import type { ImportReport } from '../../api/types'
 import { DIRECTIONS, INTEGRATIONS, NOT_WIRED_NOTE } from '../../constants/integrations'
 import type { Direction, Integration } from '../../constants/integrations'
@@ -11,6 +11,7 @@ import { BUUN_GROUP } from '../../constants/products'
 import type { Theme } from '../../constants/ui'
 import { IconCaret, IconReceive, IconSend, INTEGRATION_GLYPHS } from '../../icons'
 import { Gateways } from './Gateways'
+import { ResendConnect } from './ResendConnect'
 
 const DIRECTION_WORDS = {
   receive: { title: 'directions.receive', glyph: IconReceive },
@@ -18,10 +19,16 @@ const DIRECTION_WORDS = {
 } as const satisfies Record<Direction, { title: string; glyph: typeof IconSend }>
 
 /** Where mail comes from and how it goes out, in two lists. Each row opens its own connect form; one is open at a time. */
-export function IntegrationsSection({ onImported, theme }: { onImported: () => void; theme: Theme }): ReactNode {
+export function IntegrationsSection({ onImported, onSendersChanged, theme }: { onImported: () => void; onSendersChanged: () => void; theme: Theme }): ReactNode {
   const { t } = useTranslation('integrations')
   const [open, setOpen] = useState<string | null>(null)
   const [gatewayCount, setGatewayCount] = useState(0)
+  const [senderCount, setSenderCount] = useState(0)
+  useEffect(() => {
+    listSenders()
+      .then((list) => setSenderCount(list.length))
+      .catch(() => setSenderCount(0))
+  }, [])
   useEffect(() => {
     listGateways()
       .then((list) => setGatewayCount(list.length))
@@ -41,7 +48,7 @@ export function IntegrationsSection({ onImported, theme }: { onImported: () => v
             <ul className="settings__list">
               {INTEGRATIONS.filter((integration) => integration.directions.includes(direction)).map((integration) => {
                 const key = `${direction}-${integration.id}`
-                return <IntegrationRow key={key} rowKey={key} integration={integration} open={open === key} onToggle={() => setOpen(open === key ? null : key)} onImported={onImported} gatewayCount={gatewayCount} onGatewayCount={setGatewayCount} theme={theme} />
+                return <IntegrationRow key={key} rowKey={key} integration={integration} open={open === key} onToggle={() => setOpen(open === key ? null : key)} onImported={onImported} gatewayCount={gatewayCount} onGatewayCount={setGatewayCount} senderCount={senderCount} onSenderCount={setSenderCount} onSendersChanged={onSendersChanged} theme={theme} />
               })}
             </ul>
           </section>
@@ -59,10 +66,13 @@ interface RowProps {
   onImported: () => void
   gatewayCount: number
   onGatewayCount: (count: number) => void
+  senderCount: number
+  onSenderCount: (count: number) => void
+  onSendersChanged: () => void
   theme: Theme
 }
 
-function IntegrationRow({ rowKey, integration, open, onToggle, onImported, gatewayCount, onGatewayCount, theme }: RowProps): ReactNode {
+function IntegrationRow({ rowKey, integration, open, onToggle, onImported, gatewayCount, onGatewayCount, senderCount, onSenderCount, onSendersChanged, theme }: RowProps): ReactNode {
   const { t } = useTranslation('integrations')
   const Glyph = INTEGRATION_GLYPHS[integration.id]
   const panel = `integration-${rowKey}`
@@ -76,12 +86,12 @@ function IntegrationRow({ rowKey, integration, open, onToggle, onImported, gatew
           <span className="settings__label">{t(integration.name)}</span>
           <span className="settings__hint">{t(integration.summary)}</span>
         </span>
-        <span className="integration__state">{integration.method.kind === 'file' ? t('state.ready') : integration.method.kind === 'gateway' ? (gatewayCount > 0 ? t('state.gateways', { count: gatewayCount }) : t('state.connectHere')) : t('state.notConnected')}</span>
+        <span className="integration__state">{integration.method.kind === 'file' ? t('state.ready') : integration.method.kind === 'gateway' ? (gatewayCount > 0 ? t('state.gateways', { count: gatewayCount }) : t('state.connectHere')) : integration.method.kind === 'resend' ? (senderCount > 0 ? t('state.senders', { count: senderCount }) : t('state.connectHere')) : t('state.notConnected')}</span>
         <IconCaret aria-hidden="true" className="integration__caret" />
       </button>
       {open && (
         <div id={panel} className="integration__panel">
-          {integration.method.kind === 'file' ? <FileImport onImported={onImported} /> : integration.method.kind === 'gateway' ? <Gateways onChanged={onImported} onCount={onGatewayCount} /> : <ConnectForm integration={integration} idPrefix={rowKey} />}
+          {integration.method.kind === 'file' ? <FileImport onImported={onImported} /> : integration.method.kind === 'gateway' ? <Gateways onChanged={onImported} onCount={onGatewayCount} /> : integration.method.kind === 'resend' ? <ResendConnect onChanged={onSendersChanged} onCount={onSenderCount} /> : <ConnectForm integration={integration} idPrefix={rowKey} />}
         </div>
       )}
     </li>

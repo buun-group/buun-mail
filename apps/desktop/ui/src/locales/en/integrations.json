@@ -9,7 +9,9 @@
     "notConnected": "Not connected",
     "connectHere": "Open to connect",
     "gateways_one": "{{count}} gateway",
-    "gateways_other": "{{count}} gateways"
+    "gateways_other": "{{count}} gateways",
+    "senders_one": "{{count}} key",
+    "senders_other": "{{count}} keys"
   },
   "oauthNote": "Opens {{provider}} in your browser to sign in. Buun Mail never sees your password.",
   "signIn": "Sign in with {{provider}}",
@@ -175,5 +177,27 @@
     "addedToast": "{{domain}} added",
     "removedToast": "{{domain}} removed",
     "failedToast": "That did not work"
+  },
+  "resend": {
+    "connectTitle": "Connect Resend",
+    "connectAnother": "Connect another Resend key",
+    "hint": "A full-access key brings its domains with it. Any address on a verified domain can send, so replies go out from the address the mail was sent to.",
+    "keyEnding": "Key ending {{hint}}",
+    "domains": "Domains",
+    "ready": "Ready to send",
+    "pending": "Waiting for DNS",
+    "failed": "Verification failed",
+    "noDomains": "No domains on this account yet. Add one at Resend, then refresh.",
+    "signature": "Signature",
+    "signaturePlaceholder": "Added under new messages and replies sent through this key",
+    "signatureSaved": "Signature saved",
+    "refresh": "Refresh domains",
+    "refreshed": "Domains refreshed",
+    "refreshFailed": "Resend could not be asked",
+    "remove": "Remove",
+    "removed": "{{name}} removed",
+    "connected": "Resend connected",
+    "domainsLabel": "Domains this key may send from",
+    "domainsHint": "This key may only send, so Resend will not list its domains. Separate them with commas."
   }
 }

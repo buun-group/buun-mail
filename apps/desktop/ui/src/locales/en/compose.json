@@ -1,0 +1,54 @@
+{
+  "title": {
+    "new": "New message",
+    "reply": "Reply",
+    "replyAll": "Reply all",
+    "forward": "Forward"
+  },
+  "label": "Write a message",
+  "fields": {
+    "from": "From",
+    "to": "To",
+    "cc": "Cc",
+    "bcc": "Bcc",
+    "subject": "Subject",
+    "body": "Message"
+  },
+  "fromOther": "Another address",
+  "fromOtherHint": "Any address on {{domains}}",
+  "fromNotSendable": "No connected sender covers {{domain}}.",
+  "addCc": "Cc",
+  "addBcc": "Bcc",
+  "recipientsLabel": "{{field}} recipients",
+  "removeRecipient": "Remove {{address}}",
+  "recipientPlaceholder": "Name or address",
+  "subjectPlaceholder": "Subject",
+  "send": "Send",
+  "sendHint": "Send (Ctrl Enter)",
+  "discard": "Discard",
+  "minimize": "Minimise",
+  "restore": "Open",
+  "close": "Close, keeping the draft",
+  "saved": "Draft saved",
+  "noSubject": "(no subject)",
+  "noRecipients": "Add at least one recipient.",
+  "sending": "Sending in a moment",
+  "sent": "Sent",
+  "queued": "Not sent yet; it will go when Resend can be reached",
+  "refused": "Not sent",
+  "discarded": "Draft discarded",
+  "quoteLine": "On {{when}}, {{who}} wrote:",
+  "forward": {
+    "title": "Forwarded message",
+    "date": "Date"
+  },
+  "drafts": {
+    "title": "Drafts",
+    "empty": "No drafts. A message you start and close stays here until you send or discard it.",
+    "delete": "Delete draft",
+    "to": "To {{who}}",
+    "nobody": "No recipients yet",
+    "waiting_one": "{{count}} message waits to be sent",
+    "waiting_other": "{{count}} messages wait to be sent"
+  }
+}

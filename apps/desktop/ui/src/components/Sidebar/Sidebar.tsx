@@ -45,6 +45,11 @@ interface SidebarProps {
   collapsed: boolean
   onOpen: (place: Place) => void
   onOpenView: (view: MailView) => void
+  /** Opens a new message; null when nothing can send yet. */
+  onCompose: () => void
+  canCompose: boolean
+  /** How many drafts are saved, shown beside Drafts. */
+  draftCount: number
   onFold: (id: string) => void
   onEditIcon: (id: string) => void
   onResetIcon: (id: string) => void
@@ -53,6 +58,7 @@ interface SidebarProps {
 
 /** The lists across every workspace, in sidebar order. */
 const VIEWS = [
+  { id: 'drafts', glyph: IconRename },
   { id: 'starred', glyph: IconStar },
   { id: 'archive', glyph: IconArchive },
   { id: 'trash', glyph: IconDelete },
@@ -62,7 +68,7 @@ const VIEWS = [
  * Every workspace and its folders, the open one marked. Collapsed, it is a rail of icons; pointing at it, scrolling
  * over it or tabbing into it slides it open over the list, and it folds back when the pointer and focus leave.
  */
-export function Sidebar({ workspaces, place, view, theme, looks, folded, collapsed, onOpen, onOpenView, onFold, onEditIcon, onResetIcon, onMarkAllRead }: SidebarProps): ReactNode {
+export function Sidebar({ workspaces, place, view, theme, looks, folded, collapsed, onOpen, onOpenView, onCompose, canCompose, draftCount, onFold, onEditIcon, onResetIcon, onMarkAllRead }: SidebarProps): ReactNode {
   const { t } = useTranslation(['sidebar', 'common', 'mail'])
   // Why rename is off: names live in the routing file, which settings cannot edit yet.
   const needsEditor = t('menu.needsEditor')
@@ -112,10 +118,10 @@ export function Sidebar({ workspaces, place, view, theme, looks, folded, collaps
     <div className="sidebar-slot">
       <nav ref={nav} className="sidebar" aria-label={t('nav.label')} data-collapsed={collapsed} data-rail={rail} data-peek={peek}>
         <header className="sidebar__top">
-          <button type="button" className="sidebar__compose" disabled aria-label={t('nav.compose')}>
+          <TipButton tip={canCompose ? (rail ? t('nav.compose') : null) : t('nav.composeNeedsSending')} side="right" className="sidebar__compose" aria-disabled={!canCompose || undefined} aria-label={t('nav.compose')} onClick={onCompose}>
             <IconCompose aria-hidden="true" />
             <span className="sidebar__text">{t('nav.compose')}</span>
-          </button>
+          </TipButton>
         </header>
 
         <div className="sidebar__list">
@@ -185,6 +191,7 @@ export function Sidebar({ workspaces, place, view, theme, looks, folded, collaps
                     <TipButton tip={rail ? label : null} side="right" className="sidebar__folder" aria-current={view === item.id ? 'page' : undefined} aria-label={rail ? label : undefined} onClick={() => onOpenView(item.id)}>
                       <item.glyph aria-hidden="true" />
                       <span className="sidebar__folder-name sidebar__text">{label}</span>
+                      {item.id === 'drafts' && draftCount > 0 && <span className="sidebar__count">{draftCount}</span>}
                     </TipButton>
                   </li>
                 )

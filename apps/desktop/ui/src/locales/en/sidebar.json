@@ -17,7 +17,8 @@
     "folderUnread_one": "{{workspace}}, {{folder}}, {{count}} unread",
     "folderUnread_other": "{{workspace}}, {{folder}}, {{count}} unread",
     "unreadAfterCount_one": " unread",
-    "unreadAfterCount_other": " unread"
+    "unreadAfterCount_other": " unread",
+    "composeNeedsSending": "Connect a sending integration, such as Resend, in Settings to write mail."
   },
   "menu": {
     "open": "Open",

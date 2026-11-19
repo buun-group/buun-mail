@@ -8,8 +8,9 @@ import type { Message, Place, Shelf } from '../api/types'
 import type { Confirmation } from '../components/Confirm/Confirm'
 import type { MenuItem } from '../components/ContextMenu/ContextMenu'
 import { INBOX_LABEL } from '../constants/ui'
+import type { ComposeMode } from '../lib/compose'
 import type { ExportFormat } from '../constants/ui'
-import { IconArchive, IconCopy, IconExport, IconDelete, IconFolder, IconInbox, IconMarkRead, IconPutBack, IconStar, IconStarred } from '../icons'
+import { IconArchive, IconCopy, IconExport, IconForward, IconReply, IconReplyAll, IconDelete, IconFolder, IconInbox, IconMarkRead, IconPutBack, IconStar, IconStarred } from '../icons'
 import { copyWithToast } from '../lib/copy'
 import { toast } from '../lib/feedback'
 import type { Mailbox } from './useMailbox'
@@ -39,7 +40,7 @@ const reason = (error: unknown): string => (error instanceof Error ? error.messa
  * Everything a person can do to a message: read state, stars, archive, trash, moves and deleting for good. Each change
  * updates the list, opens the next message when the open one leaves, and says what happened, with Undo where it can.
  */
-export function useMessageActions(mailbox: Mailbox, workspaceName: (id: string) => string): MessageActions {
+export function useMessageActions(mailbox: Mailbox, workspaceName: (id: string) => string, writing?: { canReply: (message: Message) => boolean; canForward: boolean; start: (mode: ComposeMode, message: Message) => void }): MessageActions {
   const { t } = useTranslation(['mail', 'common'])
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null)
   const say = (text: string, glyph?: IconType, undo?: () => void): void => {
@@ -158,10 +159,19 @@ export function useMessageActions(mailbox: Mailbox, workspaceName: (id: string) 
   const menu = (message: Message): MenuItem[] => {
     const folders = mailbox.workspaces.find((workspace) => workspace.id === message.workspace)?.folders ?? []
     const elsewhere = folders.filter((folder) => folder.name !== message.folder)
+    const reply: MenuItem[] =
+      writing === undefined
+        ? []
+        : [
+            { id: 'reply', label: t('actions.reply'), glyph: IconReply, onSelect: () => writing.start('reply', message), ...(writing.canReply(message) ? {} : { disabledReason: t('reader.needsSending', { domain: message.to.split('@')[1] ?? message.to }) }), separated: true },
+            { id: 'reply-all', label: t('actions.replyAll'), glyph: IconReplyAll, onSelect: () => writing.start('replyAll', message), ...(writing.canReply(message) ? {} : { disabledReason: t('reader.needsSending', { domain: message.to.split('@')[1] ?? message.to }) }) },
+            { id: 'forward', label: t('actions.forward'), glyph: IconForward, onSelect: () => writing.start('forward', message), ...(writing.canForward ? {} : { disabledReason: t('reader.needsSending', { domain: message.to.split('@')[1] ?? message.to }) }) },
+          ]
     const common: MenuItem[] = [
       { id: 'open', label: t('actions.open'), glyph: IconMarkRead, onSelect: () => mailbox.select(message) },
       { id: 'read', label: message.unread ? t('actions.markRead') : t('actions.markUnread'), glyph: message.unread ? IconMarkRead : IconInbox, onSelect: () => toggleRead(message) },
       { id: 'star', label: message.starred ? t('actions.unstar') : t('actions.star'), glyph: message.starred ? IconStarred : IconStar, onSelect: () => toggleStar(message) },
+      ...reply,
     ]
     const copy: MenuItem[] = [
       { id: 'copy-sender', label: t('actions.copySender'), glyph: IconCopy, onSelect: () => void copyWithToast(message.from), separated: true },

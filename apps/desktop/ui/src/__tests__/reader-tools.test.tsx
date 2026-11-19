@@ -44,13 +44,16 @@ describe('reopening where you left off', () => {
 })
 
 describe('the reader toolbar', () => {
-  it('greys out Reply and Reply all until sending is connected, and opens Integrations', async () => {
+  it('greys out Reply and Reply all where no sender covers the domain, and opens Integrations', async () => {
     render(<App />)
-    fireEvent.click(await screen.findByText('Quote for the booking site'))
+    const plotwork = await screen.findByRole('region', { name: 'Plotwork' })
+    fireEvent.click(within(plotwork).getByRole('button', { name: /Inbox/ }))
+    fireEvent.click(await screen.findByText('Sequence diagrams in the board'))
     const reader = screen.getByRole('region', { name: 'Reader' })
     const reply = await within(reader).findByRole('button', { name: 'Reply' })
     expect(reply.getAttribute('aria-disabled')).toBe('true')
     expect(within(reader).getByRole('button', { name: 'Reply all' }).getAttribute('aria-disabled')).toBe('true')
+    expect(within(reader).getByRole('button', { name: 'Forward' }).getAttribute('aria-disabled')).toBeNull()
     fireEvent.click(reply)
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Integrations' })).toBeTruthy())
   })
