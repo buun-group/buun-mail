@@ -6,6 +6,7 @@ export const STORAGE_KEYS = {
   sidebar: 'buun-mail:sidebar',
   folded: 'buun-mail:folded-workspaces',
   notifications: 'buun-mail:notifications',
+  language: 'buun-mail:language',
   looks: 'buun-mail:workspace-looks',
 } as const
 

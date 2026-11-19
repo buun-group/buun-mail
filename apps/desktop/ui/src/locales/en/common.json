@@ -1,0 +1,12 @@
+{
+  "appName": "Buun Mail",
+  "inbox": "Inbox",
+  "unsorted": "Unsorted",
+  "close": "Close",
+  "cancel": "Cancel",
+  "copy": "Copy",
+  "loading": "Loading",
+  "time": {
+    "yesterday": "Yesterday"
+  }
+}

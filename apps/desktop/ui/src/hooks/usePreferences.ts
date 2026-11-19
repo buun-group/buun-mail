@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 
 import { DENSITIES, STORAGE_KEYS, THEME_PREFERENCES } from '../constants/ui'
+import { applyLanguage, storedLanguage } from '../i18n'
+import { resolveLanguage } from '../i18n/languages'
+import type { LanguagePreference } from '../i18n/languages'
 import type { Density, Theme, ThemePreference } from '../constants/ui'
 
 function read<T extends string>(key: string, allowed: readonly T[], fallback: T): T {
@@ -40,10 +43,12 @@ export interface Preferences {
   density: Density
   grain: boolean
   sidebarCollapsed: boolean
+  language: LanguagePreference
   setThemePreference: (value: ThemePreference) => void
   setDensity: (value: Density) => void
   setGrain: (value: boolean) => void
   setSidebarCollapsed: (value: boolean) => void
+  setLanguage: (value: LanguagePreference) => void
 }
 
 const ON_OFF = ['on', 'off'] as const
@@ -54,6 +59,7 @@ export function usePreferences(): Preferences {
   const [density, setDensityState] = useState<Density>(() => read(STORAGE_KEYS.density, DENSITIES, 'comfortable'))
   const [grain, setGrainState] = useState<boolean>(() => read(STORAGE_KEYS.grain, ON_OFF, 'on') === 'on')
   const [sidebarCollapsed, setSidebarState] = useState<boolean>(() => read(STORAGE_KEYS.sidebar, ['open', 'collapsed'] as const, 'open') === 'collapsed')
+  const [language, setLanguageState] = useState<LanguagePreference>(storedLanguage)
   const system = useSystemTheme()
   const theme = themePreference === 'system' ? system : themePreference
 
@@ -68,6 +74,7 @@ export function usePreferences(): Preferences {
     density,
     grain,
     sidebarCollapsed,
+    language,
     setThemePreference: (value) => {
       setThemePreferenceState(value)
       write(STORAGE_KEYS.theme, value)
@@ -83,6 +90,11 @@ export function usePreferences(): Preferences {
     setSidebarCollapsed: (value) => {
       setSidebarState(value)
       write(STORAGE_KEYS.sidebar, value ? 'collapsed' : 'open')
+    },
+    setLanguage: (value) => {
+      setLanguageState(value)
+      write(STORAGE_KEYS.language, value)
+      applyLanguage(resolveLanguage(value))
     },
   }
 }
