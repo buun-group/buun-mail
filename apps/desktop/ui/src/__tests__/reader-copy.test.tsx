@@ -71,3 +71,13 @@ describe('a message with HTML and attachments', () => {
     expect(within(reader).queryByTitle('The message')).toBeNull()
   })
 })
+
+describe('the sender check', () => {
+  it('shows a verified sender with each check in its tip, and warns on a failed one', async () => {
+    render(<App />)
+    fireEvent.click(await screen.findByRole('button', { name: /Billing/ }))
+    fireEvent.click(await screen.findByText('Your invoice for November is ready'))
+    const verified = await screen.findByRole('button', { name: /^Verified sender\. stripe\.com confirmed it sent this message\. SPF pass, DKIM pass, DMARC pass, checked by mx\.cloudflare\.net\.$/ })
+    expect(verified.getAttribute('data-verdict')).toBe('verified')
+  })
+})

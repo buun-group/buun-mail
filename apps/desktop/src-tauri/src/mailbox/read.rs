@@ -2,7 +2,7 @@
 
 use std::collections::BTreeSet;
 
-use buun_mail_message::{attachments, body_text, html_view, recipients};
+use buun_mail_message::{attachments, authentication, body_text, html_view, recipients};
 use buun_mail_routing::{UNSORTED_NAME, UNSORTED_WORKSPACE};
 use buun_mail_store::{Placement, UnreadCount, View};
 
@@ -158,5 +158,6 @@ fn detail(message: MessageDto, raw: &[u8]) -> MessageDetailDto {
         recipients: recipients(raw).into(),
         html: html_view(raw).map(|view| HtmlDto { html: view.html, remote: view.remote }),
         attachments: attachments(raw).into_iter().map(Into::into).collect(),
+        authentication: authentication(raw).map(Into::into),
     }
 }

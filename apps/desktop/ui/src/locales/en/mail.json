@@ -187,5 +187,18 @@
     "count_other": "{{count}} messages",
     "open": "Open the message from {{who}}, {{when}}",
     "sentBy": "You"
+  },
+  "auth": {
+    "verified": "Verified sender",
+    "failed": "Could not verify sender",
+    "unclear": "Sender not confirmed",
+    "detail": "SPF {{spf}}, DKIM {{dkim}}, DMARC {{dmarc}}, checked by {{by}}.",
+    "failedDetail": "The sender's domain did not confirm this message. Treat its links and requests with care.",
+    "verifiedDetail": "{{domain}} confirmed it sent this message.",
+    "none": "none",
+    "pass": "pass",
+    "fail": "fail",
+    "other": "unclear",
+    "someone": "the receiving server"
   }
 }

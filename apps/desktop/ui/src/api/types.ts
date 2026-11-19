@@ -64,6 +64,17 @@ export interface MessageDetail {
   /** Its HTML, inline images embedded, or null for a plain-text message. */
   html: { html: string; remote: number } | null
   attachments: Attachment[]
+  /** SPF, DKIM and DMARC as the receiving server found them, or null when the message does not say. */
+  authentication: Authentication | null
+}
+
+/** Mirrors `AuthenticationDto`. */
+export interface Authentication {
+  verdict: 'verified' | 'failed' | 'unclear'
+  by: string | null
+  spf: 'pass' | 'fail' | 'other' | null
+  dkim: 'pass' | 'fail' | 'other' | null
+  dmarc: 'pass' | 'fail' | 'other' | null
 }
 
 /** One attachment of an open message. Mirrors `AttachmentDto`. */

@@ -5,6 +5,7 @@ import { Trans, useTranslation } from 'react-i18next'
 import type { Contact, Message, MessageDetail, Recipients, Workspace } from '../../api/types'
 import { Attachments } from './Attachments'
 import { Conversation } from './Conversation'
+import { SenderCheck } from './SenderCheck'
 import { MessageHtml } from './MessageHtml'
 import { Avatar } from '../Avatar/Avatar'
 import type { Theme } from '../../constants/ui'
@@ -264,7 +265,10 @@ export function Reader({ message, body, recipients, detail, workspace, theme, on
         <div className="reader__sender">
           <Avatar name={message.fromName} address={message.from} theme={theme} size="lg" />
           <div className="reader__who">
-            <span className="reader__from">{message.fromName}</span>
+            <span className="reader__from">
+              {message.fromName}
+              <SenderCheck authentication={detail?.authentication ?? null} from={message.from} />
+            </span>
             <Copyable text={message.from} kind="email" className="reader__address" />
           </div>
           <time className="reader__when" dateTime={message.receivedAt}>

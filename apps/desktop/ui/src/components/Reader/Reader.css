@@ -103,10 +103,45 @@
 }
 
 .reader__from {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
   overflow: hidden;
   font-weight: 650;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+.sender-check {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 1px var(--space-2) 1px var(--space-1-5);
+  border-radius: var(--radius-sm);
+  background: var(--alpha-4);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: help;
+}
+
+.sender-check svg {
+  font-size: var(--text-sm);
+}
+
+.sender-check[data-verdict='verified'] svg {
+  color: var(--status-success-fg);
+}
+
+.sender-check[data-verdict='failed'] {
+  color: var(--status-danger-fg);
+}
+
+.sender-check:focus-visible {
+  outline: 2px solid var(--brand-100);
+  outline-offset: 1px;
 }
 
 .reader__who .reader__address {

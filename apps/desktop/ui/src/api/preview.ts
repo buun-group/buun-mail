@@ -61,7 +61,8 @@ export function previewDetail(id: string): MessageDetail {
       ? { html: '<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;color:#1a1a1a"><img src="https://stripe.example/logo.png" width="96" alt="Stripe"><h1 style="font-size:22px">Your invoice is ready</h1><p>Invoice <strong>INV-2026-11</strong> for <strong>$120.00</strong> is due on 1 December.</p><p><a href="https://dashboard.stripe.com/invoices" style="background:#635bff;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none">View invoice</a></p></div>', remote: 1 }
       : null
   const attachments = message.id === 'p1' ? [{ index: 0, name: 'INV-2026-11.pdf', mime: 'application/pdf', size: 48_213, inline: false }] : []
-  return { message: { ...message }, body: message.preview, recipients: { to: [{ name: null, address: message.to }], cc, replyTo: [] }, html, attachments }
+  const authentication = message.id === 'p1' ? { verdict: 'verified' as const, by: 'mx.cloudflare.net', spf: 'pass' as const, dkim: 'pass' as const, dmarc: 'pass' as const } : message.id === 'p3' ? { verdict: 'failed' as const, by: 'mx.cloudflare.net', spf: 'fail' as const, dkim: 'fail' as const, dmarc: null } : null
+  return { message: { ...message }, body: message.preview, recipients: { to: [{ name: null, address: message.to }], cc, replyTo: [] }, html, attachments, authentication }
 }
 
 /** The rules, tags and agent status the preview keeps in memory, so those screens can be worked on in a browser. */

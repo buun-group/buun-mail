@@ -167,6 +167,43 @@ pub struct MessageDetailDto {
     pub html: Option<HtmlDto>,
     /// Its attachments, in order.
     pub attachments: Vec<AttachmentDto>,
+    /// What the receiving server found when it checked the sender, when the message says.
+    pub authentication: Option<AuthenticationDto>,
+}
+
+/// SPF, DKIM and DMARC as the receiving server found them, and the verdict, in plain words for the UI.
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct AuthenticationDto {
+    /// `verified`, `failed` or `unclear`.
+    pub verdict: &'static str,
+    /// The server that checked.
+    pub by: Option<String>,
+    /// Each check: `pass`, `fail`, `other`, or absent.
+    pub spf: Option<&'static str>,
+    /// DKIM.
+    pub dkim: Option<&'static str>,
+    /// DMARC.
+    pub dmarc: Option<&'static str>,
+}
+
+impl From<buun_mail_message::Authentication> for AuthenticationDto {
+    fn from(found: buun_mail_message::Authentication) -> Self {
+        use buun_mail_message::{Check, Verdict};
+        let word = |check: Option<Check>| {
+            check.map(|check| match check {
+                Check::Pass => "pass",
+                Check::Fail => "fail",
+                Check::Other => "other",
+            })
+        };
+        let verdict = match found.verdict() {
+            Verdict::Verified => "verified",
+            Verdict::Failed => "failed",
+            Verdict::Unclear => "unclear",
+        };
+        Self { verdict, spf: word(found.spf), dkim: word(found.dkim), dmarc: word(found.dmarc), by: found.by }
+    }
 }
 
 /// A message's HTML, ready for the reader's sealed frame.
