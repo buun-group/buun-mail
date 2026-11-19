@@ -105,3 +105,12 @@ export interface AgentStatus {
   token: string
   problem: string | null
 }
+
+/** The mail gateway connection, as Settings shows it. Mirrors `GatewayStatusDto` in `src-tauri/src/sync/service.rs`. */
+export interface GatewayStatus {
+  connected: boolean
+  url: string | null
+  lastChecked: string | null
+  received: number
+  problem: string | null
+}

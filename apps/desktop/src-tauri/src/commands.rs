@@ -15,6 +15,7 @@ use crate::dto::{ActivityDto, ImportReportDto, MessageDetailDto, MessageDto, Tag
 use crate::error::AppError;
 use crate::events;
 use crate::mailbox::{Actor, Mailbox};
+use crate::sync::{GatewayStatusDto, SyncService};
 
 /// Every workspace for the sidebar.
 #[tauri::command]
@@ -118,4 +119,28 @@ pub fn set_agent_enabled(agent: State<'_, AgentState>, enabled: bool) -> Result<
 #[tauri::command]
 pub fn regenerate_agent_token(agent: State<'_, AgentState>) -> Result<AgentStatusDto, AppError> {
     agent.regenerate_token()
+}
+
+/// The mail gateway connection's status.
+#[tauri::command]
+pub fn gateway_status(sync: State<'_, SyncService>) -> Result<GatewayStatusDto, AppError> {
+    sync.status()
+}
+
+/// Checks and saves a mail gateway address and token, then starts collecting.
+#[tauri::command]
+pub fn connect_gateway(sync: State<'_, SyncService>, url: String, token: String) -> Result<GatewayStatusDto, String> {
+    sync.connect(&url, &token)
+}
+
+/// Forgets the mail gateway.
+#[tauri::command]
+pub fn disconnect_gateway(sync: State<'_, SyncService>) -> Result<GatewayStatusDto, AppError> {
+    sync.disconnect()
+}
+
+/// Checks the mail gateway now.
+#[tauri::command]
+pub fn check_gateway(sync: State<'_, SyncService>) {
+    sync.check_now();
 }

@@ -5,10 +5,12 @@
 //! - `change`: tags, moves, read state
 //! - `rules`: adding, editing, deleting and re-running rules
 //! - `import`: taking in `.eml` and `.mbox` files
+//! - `remote`: taking in one message from a source that knows its recipient, such as the mail gateway
 
 mod change;
 mod import;
 mod read;
+mod remote;
 mod rules;
 #[cfg(test)]
 mod tests;

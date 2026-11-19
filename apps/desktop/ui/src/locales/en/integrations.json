@@ -6,7 +6,9 @@
   },
   "state": {
     "ready": "Ready",
-    "notConnected": "Not connected"
+    "notConnected": "Not connected",
+    "connectHere": "Open to connect",
+    "connected": "Connected"
   },
   "oauthNote": "Opens {{provider}} in your browser to sign in. Buun Mail never sees your password.",
   "signIn": "Sign in with {{provider}}",
@@ -77,6 +79,10 @@
     "smtp": {
       "name": "SMTP",
       "summary": "Any server that relays mail over TLS."
+    },
+    "gateway": {
+      "name": "Buun Mail Gateway",
+      "summary": "Your domains through the Buun Group mail gateway. Mail waits there until this app collects it, with its exact recipient."
     }
   },
   "fields": {
@@ -105,5 +111,20 @@
     "sesSecretHint": "An IAM user with ses:SendRawEmail only.",
     "mailgunDomain": "Sending domain",
     "mailgunRegionPlaceholder": "us or eu"
+  },
+  "gateway": {
+    "urlLabel": "Gateway address",
+    "tokenLabel": "Mailbox token",
+    "tokenHint": "Starts with bmg_. Shown once when the mailbox was made.",
+    "connect": "Connect",
+    "connecting": "Checking",
+    "disconnect": "Disconnect",
+    "checkNow": "Check now",
+    "connected": "Connected to {{url}}",
+    "lastChecked": "Last checked {{time}}",
+    "neverChecked": "Not checked yet",
+    "received_one": "{{count}} message collected since the app started",
+    "received_other": "{{count}} messages collected since the app started",
+    "desktopOnly": "Connecting works in the desktop app."
   }
 }

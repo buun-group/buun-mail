@@ -13,6 +13,7 @@ import {
   PiCameraLight,
   PiChartBarLight,
   PiChatCircleLight,
+  PiCloudArrowDownLight,
   PiCloudLight,
   PiCodeLight,
   PiFunnelLight,
@@ -126,6 +127,7 @@ export function isWorkspaceGlyph(key: string | null | undefined): key is Workspa
 
 /** Company logos where Simple Icons has one; Phosphor where it does not (Outlook, SES) or there is no company. */
 export const INTEGRATION_GLYPHS: Record<IntegrationId, IconType> = {
+  gateway: PiCloudArrowDownLight,
   cloudflare: SiCloudflare,
   gmail: SiGmail,
   outlook: PiMicrosoftOutlookLogoLight,

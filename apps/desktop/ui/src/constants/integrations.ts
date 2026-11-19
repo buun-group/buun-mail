@@ -8,6 +8,7 @@ import type { ParseKeys } from 'i18next'
  */
 
 export const INTEGRATION_IDS = [
+  'gateway',
   'cloudflare',
   'gmail',
   'outlook',
@@ -42,7 +43,7 @@ export interface IntegrationField {
   hint?: IntegrationKey
 }
 
-export type IntegrationMethod = { kind: 'form'; fields: readonly IntegrationField[] } | { kind: 'oauth'; provider: string } | { kind: 'file'; accept: string }
+export type IntegrationMethod = { kind: 'form'; fields: readonly IntegrationField[] } | { kind: 'oauth'; provider: string } | { kind: 'file'; accept: string } | { kind: 'gateway' }
 
 export interface Integration {
   id: IntegrationId
@@ -60,6 +61,7 @@ const IMAP_LOGIN: readonly IntegrationField[] = [
 ]
 
 export const INTEGRATIONS: readonly Integration[] = [
+  { id: 'gateway', name: 'providers.gateway.name', summary: 'providers.gateway.summary', directions: ['receive'], method: { kind: 'gateway' } },
   {
     id: 'cloudflare',
     name: 'providers.cloudflare.name',

@@ -22,7 +22,8 @@ The envelope recipient survives the hop, so placing a message is a table lookup,
 | Tags, rules (tag, move, mark read, quiet on arrival), activity log | Done |
 | Notifications: header bell, toasts, desktop notifications, per-workspace mute | Done |
 | Agent access: MCP server on 127.0.0.1, token, 15 tools, setup for Claude Code, Cursor, VS Code | Done |
-| Catch-all Email Worker storing mail for the client to pull | Next |
+| Buun Mail Gateway sync: collect mail from the gateway in buungroup-app (`apps/mail-gateway`), checked every 30 seconds | Done |
+| Live push from the gateway over WebSocket, sealed messages at rest | Next |
 | Search | After |
 | Reply and compose as the right address (Resend, SPF, DKIM, DMARC per domain) | After |
 | IMAP pull for Gmail, Outlook and Proton Bridge | Last |
@@ -69,6 +70,14 @@ Builds are unsigned until the Apple and Windows signing secrets are added, so ma
 | [`packaging`](packaging/README.md) | Arch PKGBUILD, the Linux desktop entry, which installer to pick |
 | [`config/workspaces.example.toml`](config/workspaces.example.toml) | The routing file format, with comments |
 | `.standards/` | The [Buun Group coding standards](https://github.com/buun-group/standards), a submodule |
+
+## Mail gateway
+
+Mail for your domains is received by the Buun Mail Gateway, a Cloudflare Email Worker in
+`buungroup-app/apps/mail-gateway`, which holds it until this app collects it. In Settings, Integrations, Buun Mail
+Gateway, paste the gateway's address and a mailbox token (`bmg_...`, from its `mailbox:create`). The app checks every
+30 seconds (or on Check now), files each message by the exact address it was sent to, and acknowledges it so the
+gateway forgets it. The address and token are kept in `gateway.json` in the config folder, readable by you only.
 
 ## Agents
 

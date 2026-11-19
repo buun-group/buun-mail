@@ -3,6 +3,7 @@
 //!
 //! - `agent`: the MCP server agents connect to, off until turned on
 //! - `paths`: where the routing file and the store live on this platform
+//! - `sync`: collecting mail from the Buun Mail Gateway
 //! - `ingest`: parse, route and store one message; every mail source goes through it
 //! - `mailbox`: what the UI and agents read and change, on top of the store
 //! - `commands`: the thin Tauri commands
@@ -18,6 +19,7 @@ mod events;
 mod ingest;
 mod mailbox;
 mod paths;
+mod sync;
 
 use std::sync::Arc;
 
@@ -42,6 +44,7 @@ pub fn run() {
             let paths = AppPaths::resolve(app.handle())?;
             let mailbox = Arc::new(Mailbox::open(&paths)?);
             app.manage(agent::AgentState::open(paths.config.clone(), Arc::clone(&mailbox), Some(app.handle().clone()))?);
+            app.manage(sync::SyncService::start(paths.config.clone(), Arc::clone(&mailbox), Some(app.handle().clone())));
             app.manage(mailbox);
             Ok(())
         })
@@ -63,6 +66,10 @@ pub fn run() {
             commands::agent_status,
             commands::set_agent_enabled,
             commands::regenerate_agent_token,
+            commands::gateway_status,
+            commands::connect_gateway,
+            commands::disconnect_gateway,
+            commands::check_gateway,
         ])
         .run(tauri::generate_context!())
         .expect("the Buun Mail window could not start");

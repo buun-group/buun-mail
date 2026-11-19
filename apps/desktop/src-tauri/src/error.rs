@@ -26,6 +26,9 @@ pub enum AppError {
         /// What went wrong.
         source: std::io::Error,
     },
+    /// A message could not be read as mail.
+    #[error("{0}")]
+    Unreadable(String),
     /// A lock was poisoned by a panic elsewhere; restarting the app clears it.
     #[error("the mailbox is unavailable after an earlier failure; restart Buun Mail")]
     Poisoned,

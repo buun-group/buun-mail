@@ -28,6 +28,7 @@ tauri-plugin-notification.workspace = true
 tauri-plugin-opener.workspace = true
 thiserror.workspace = true
 tiny_http.workspace = true
+ureq.workspace = true
 
 [lints]
 workspace = true

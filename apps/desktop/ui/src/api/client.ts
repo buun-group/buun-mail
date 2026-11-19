@@ -4,7 +4,7 @@ import { openUrl } from '@tauri-apps/plugin-opener'
 
 import { COMMANDS, IMPORT_EXTENSIONS } from './commands'
 import { preview, previewDetail, previewMessages, previewWorkspaces } from './preview'
-import type { Activity, AgentStatus, ImportReport, Message, MessageDetail, Place, Rule, TagCount, Workspace } from './types'
+import type { Activity, AgentStatus, GatewayStatus, ImportReport, Message, MessageDetail, Place, Rule, TagCount, Workspace } from './types'
 
 /**
  * The one door to the Rust side. In the desktop app every call is a Tauri command; in a plain browser (`pnpm dev:ui`)
@@ -107,4 +107,24 @@ export async function setAgentEnabled(enabled: boolean): Promise<AgentStatus> {
 /** Makes a new agent token. */
 export async function regenerateAgentToken(): Promise<AgentStatus> {
   return isTauri() ? invoke<AgentStatus>(COMMANDS.regenerateAgentToken) : preview.agent()
+}
+
+/** The mail gateway connection. In a plain browser it is never connected. */
+export async function gatewayStatus(): Promise<GatewayStatus> {
+  return isTauri() ? invoke<GatewayStatus>(COMMANDS.gatewayStatus) : { connected: false, url: null, lastChecked: null, received: 0, problem: null }
+}
+
+/** Checks and saves a gateway address and token. Rejects with the gateway's reason when it refuses. */
+export async function connectGateway(url: string, token: string): Promise<GatewayStatus> {
+  return invoke<GatewayStatus>(COMMANDS.connectGateway, { url, token })
+}
+
+/** Forgets the gateway. */
+export async function disconnectGateway(): Promise<GatewayStatus> {
+  return invoke<GatewayStatus>(COMMANDS.disconnectGateway)
+}
+
+/** Asks the sync to check the gateway now. */
+export async function checkGateway(): Promise<void> {
+  if (isTauri()) await invoke(COMMANDS.checkGateway)
 }
