@@ -22,14 +22,13 @@ The envelope recipient survives the hop, so placing a message is a table lookup,
 | Tags, rules (tag, move, mark read, quiet on arrival), activity log | Done |
 | Notifications: header bell, toasts, desktop notifications, per-workspace mute | Done |
 | Agent access: MCP server on 127.0.0.1, token, 15 tools, setup for Claude Code, Cursor, VS Code | Done |
-| Buun Mail Gateway sync: collect mail from the gateway in buungroup-app (`apps/mail-gateway`), checked every 30 seconds; several gateways and relayed domains | Done |
-| Reading: HTML mail in a sealed frame with remote images blocked until allowed, attachments, To, Cc and Reply-To, sender verification (SPF, DKIM, DMARC) | Done |
-| Organising: archive, trash, stars, read state, moves, quick actions, right-click menus, export (`.eml`, JSON, CSV, text) | Done |
+| Buun Mail Gateway sync: several gateways and relayed domains, mail arriving the moment it lands over a WebSocket, with a 30-second check behind it | Done |
+| IMAP collection: Gmail, iCloud, Fastmail and Zoho with app passwords, Proton Mail Bridge, any server; never marked read there | Done |
+| Reading: HTML mail in a sealed frame with remote images blocked until allowed, attachment previews (documents open in your own app, programs never), To, Cc and Reply-To, sender verification (SPF, DKIM, DMARC) | Done |
+| Organising: archive, trash, stars, snooze, read state, moves, quick actions, right-click menus, selecting several at once, contacts, export (`.eml`, JSON, CSV, text) | Done |
 | Conversations, and search across every folder's full text (SQLite FTS5) | Done |
-| Writing: compose, reply, reply all and forward through Resend as any address on a verified domain, Sent folder, drafts, undo send, an outbox that retries, signatures | Done |
-| Live push from the gateway over WebSocket, sealed messages at rest | Next |
-| SMTP sending, attachments on outgoing mail | Next |
-| IMAP pull for Gmail, Outlook and Proton Bridge | Last |
+| Writing: compose, reply, reply all and forward through Resend or any SMTP server, attachments (forwards carry the original's), Sent folder, drafts, undo send, an outbox that retries, signatures | Done |
+| Outlook.com sign-in (needs a Microsoft app registration), sealed messages at rest | Next |
 
 ## Sending with Resend
 
