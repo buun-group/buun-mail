@@ -18,5 +18,6 @@ Code here follows:
 | `ingest.rs` | Parse, route and store one message. Every mail source goes through it |
 | `mailbox.rs` | What the UI reads and changes: workspaces with counts, messages, open, mark read, import |
 | `commands.rs` | The thin Tauri commands |
+| `events.rs` | What the Rust side tells the UI unasked: `mail-arrived` |
 | `dto.rs` | The shapes sent to the UI, mirrored in `ui/src/api/types.ts` |
 | `error.rs` | `AppError`, sent to the UI as its message |

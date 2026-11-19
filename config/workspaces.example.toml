@@ -29,6 +29,13 @@ icon = "plotwork"
 match = ["*@plotwork.dev"]
 folders = [{ name = "GitHub", from = "notifications@github.com", icon = "github" }]
 
+# An environment is its own workspace: mail to the preview domain stays apart from production.
+[[workspace]]
+id = "plotwork-preview"
+name = "Plotwork preview"
+icon = "wrench"
+match = ["*@preview.plotwork.dev"]
+
 [[workspace]]
 id = "flung"
 name = "Flung"

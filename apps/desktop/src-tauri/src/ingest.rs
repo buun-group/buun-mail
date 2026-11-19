@@ -32,12 +32,13 @@ pub struct Incoming<'a> {
     pub received_at: i64,
 }
 
-/// Parses, routes and stores one message.
+/// Parses, routes and stores one message. Returns the stored record when it was new, `None` when the same bytes were
+/// already stored, so callers can announce only what actually arrived.
 ///
 /// # Errors
 ///
 /// [`IngestError`] when the message cannot be read or routed, or the store fails.
-pub fn ingest(incoming: Incoming<'_>, router: &Router, store: &Store) -> Result<Inserted, IngestError> {
+pub fn ingest(incoming: Incoming<'_>, router: &Router, store: &Store) -> Result<Option<MessageRecord>, IngestError> {
     let parsed = parse(incoming.raw, incoming.received_at)?;
     let to = incoming.envelope_to.map_or_else(|| parsed.recipient.clone(), str::to_lowercase);
     let envelope = Envelope {
@@ -59,7 +60,10 @@ pub fn ingest(incoming: Incoming<'_>, router: &Router, store: &Store) -> Result<
         message_id: parsed.message_id,
         unread: true,
     };
-    Ok(store.insert(&record, incoming.raw)?)
+    Ok(match store.insert(&record, incoming.raw)? {
+        Inserted::New => Some(record),
+        Inserted::Duplicate => None,
+    })
 }
 
 /// A file's messages: every message in an `.mbox`, or the file itself when it is one message.

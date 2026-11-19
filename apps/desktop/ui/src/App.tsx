@@ -3,6 +3,8 @@ import { useCallback, useState } from 'react'
 import type { ReactNode } from 'react'
 
 import { Grain } from './components/Grain/Grain'
+import { NotificationBell } from './components/NotificationBell/NotificationBell'
+import { Toasts } from './components/Toasts/Toasts'
 import { MessageList } from './components/MessageList/MessageList'
 import { Reader } from './components/Reader/Reader'
 import { Settings } from './components/Settings/Settings'
@@ -11,6 +13,7 @@ import { SETTINGS_SHORTCUT } from './constants/ui'
 import type { SettingsSection } from './constants/ui'
 import { useFolded } from './hooks/useFolded'
 import { useMailbox } from './hooks/useMailbox'
+import { useNotifications } from './hooks/useNotifications'
 import { usePreferences } from './hooks/usePreferences'
 import { useShortcut } from './hooks/useShortcut'
 import { useWorkspaceLooks } from './hooks/useWorkspaceLooks'
@@ -34,6 +37,12 @@ export function App(): ReactNode {
   }
   useShortcut(SETTINGS_SHORTCUT, openSettings)
   const workspace = mailbox.workspaces.find((item) => item.id === mailbox.place?.workspace)
+  const workspaceName = (id: string): string => mailbox.workspaces.find((item) => item.id === id)?.name ?? id
+  const notifications = useNotifications(workspaceName)
+  const openNotificationSettings = (): void => {
+    setSection('notifications')
+    setSettingsOpen(true)
+  }
 
   if (mailbox.error !== null) {
     return (
@@ -58,6 +67,18 @@ export function App(): ReactNode {
         onEditIcon={editIcon}
         onResetIcon={(id) => looks.set(id, null)}
         onMarkAllRead={mailbox.markAllRead}
+        bell={
+          <NotificationBell
+            feed={notifications.feed}
+            unseen={notifications.unseen}
+            quiet={!notifications.prefs.toasts && !notifications.prefs.desktop}
+            workspaceName={workspaceName}
+            onOpenMessage={mailbox.reveal}
+            onSeen={notifications.markAllSeen}
+            onClear={notifications.clear}
+            onSettings={openNotificationSettings}
+          />
+        }
       />
       <MessageList workspace={workspace} place={mailbox.place} messages={mailbox.messages} selectedId={mailbox.selected?.message.id ?? null} onSelect={mailbox.select} />
       <Reader message={mailbox.selected?.message ?? null} body={mailbox.selected?.body ?? null} workspace={workspace} theme={preferences.theme} />
@@ -69,7 +90,9 @@ export function App(): ReactNode {
         editing={editing}
         onEditing={setEditing}
         onImported={mailbox.refresh}
+        notifications={notifications}
       />
+      <Toasts toasts={notifications.toasts} workspaceName={workspaceName} onOpen={mailbox.reveal} onDismiss={notifications.dismissToast} />
       {preferences.grain && <Grain />}
       <Splash done={mailbox.ready} />
     </div>

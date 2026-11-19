@@ -5,12 +5,14 @@
 //! - `ingest`: parse, route and store one message; every mail source goes through it
 //! - `mailbox`: what the UI reads and changes, on top of the store
 //! - `commands`: the thin Tauri commands
+//! - `events`: what the Rust side tells the UI unasked, such as new mail
 //! - `dto`: the shapes sent to the UI
 //! - `error`: the one error the commands return
 
 mod commands;
 mod dto;
 mod error;
+mod events;
 mod ingest;
 mod mailbox;
 mod paths;
@@ -31,6 +33,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_notification::init())
         .setup(|app| {
             let paths = AppPaths::resolve(app.handle())?;
             app.manage(Mailbox::open(&paths)?);

@@ -5,6 +5,7 @@ export const STORAGE_KEYS = {
   grain: 'buun-mail:grain',
   sidebar: 'buun-mail:sidebar',
   folded: 'buun-mail:folded-workspaces',
+  notifications: 'buun-mail:notifications',
   looks: 'buun-mail:workspace-looks',
 } as const
 
@@ -31,8 +32,17 @@ export const UNSORTED_WORKSPACE = 'unsorted'
 export const INBOX_LABEL = 'Inbox'
 
 /** The settings sections, in tab order. */
-export const SETTINGS_SECTIONS = ['general', 'workspaces', 'integrations'] as const
+export const SETTINGS_SECTIONS = ['general', 'notifications', 'workspaces', 'integrations'] as const
 export type SettingsSection = (typeof SETTINGS_SECTIONS)[number]
 
 /** The key that opens settings with Ctrl or Cmd, as in most desktop apps. */
 export const SETTINGS_SHORTCUT = ','
+
+/** How many arrivals the bell keeps. */
+export const NOTIFICATION_FEED_LIMIT = 30
+
+/** How long a toast stays before it leaves on its own. */
+export const TOAST_MS = 6_000
+
+/** At most this many toasts show at once; older ones leave first. */
+export const TOAST_LIMIT = 3

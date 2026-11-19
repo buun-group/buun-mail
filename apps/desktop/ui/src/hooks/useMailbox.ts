@@ -14,6 +14,8 @@ export interface Mailbox {
   error: string | null
   open: (place: Place) => void
   select: (message: Message) => void
+  /** Opens a message's folder and the message, from a notification. */
+  reveal: (message: Message) => void
   markAllRead: (place: Place, wholeWorkspace: boolean) => void
   /** Reloads the workspaces and the open folder, after an import or anything else that changes the store. */
   refresh: () => void
@@ -97,6 +99,10 @@ export function useMailbox(): Mailbox {
       setSelectedId(null)
     },
     select,
+    reveal: (target) => {
+      setPlace({ workspace: target.workspace, folder: target.folder })
+      select(target)
+    },
     markAllRead: (target, wholeWorkspace) => {
       markAllRead(target, wholeWorkspace)
         .then(refresh)

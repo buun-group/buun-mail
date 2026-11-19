@@ -50,6 +50,8 @@ interface SidebarProps {
   onEditIcon: (id: string) => void
   onResetIcon: (id: string) => void
   onMarkAllRead: (place: Place, wholeWorkspace: boolean) => void
+  /** The bell, drawn by the app so the sidebar does not need to know about notifications. */
+  bell: ReactNode
 }
 
 const THEME_NAMES: Record<ThemePreference, string> = { system: 'Match system', light: 'Light', dark: 'Dark' }
@@ -78,7 +80,7 @@ function menuPoint(event: MouseEvent | KeyboardEvent): { x: number; y: number } 
  * Every workspace and its folders, the open one marked. Collapsed, it is a rail of icons; pointing at it, scrolling
  * over it or tabbing into it slides it open over the list, and it folds back when the pointer and focus leave.
  */
-export function Sidebar({ workspaces, place, theme, themePreference, onThemePreference, looks, folded, collapsed, onCollapse, onOpen, onSettings, onFold, onEditIcon, onResetIcon, onMarkAllRead }: SidebarProps): ReactNode {
+export function Sidebar({ workspaces, place, theme, themePreference, onThemePreference, looks, folded, collapsed, onCollapse, onOpen, onSettings, onFold, onEditIcon, onResetIcon, onMarkAllRead, bell }: SidebarProps): ReactNode {
   const nav = useRef<HTMLElement | null>(null)
   const [peek, setPeek] = usePeek(nav, collapsed)
   const rail = collapsed && !peek
@@ -132,6 +134,7 @@ export function Sidebar({ workspaces, place, theme, themePreference, onThemePref
             <span className="sidebar__text">Buun Mail</span>
           </span>
           <span className="sidebar__tools">
+            {bell}
             <TipButton
               className="sidebar__icon sidebar__tool"
               onClick={() => onThemePreference(upcoming)}

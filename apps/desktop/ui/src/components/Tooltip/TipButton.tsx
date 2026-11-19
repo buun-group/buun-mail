@@ -2,16 +2,16 @@ import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 
+import { placeNear } from '../../lib/place'
+import type { Side } from '../../lib/place'
+
 import './Tooltip.css'
 
 /** How long the pointer rests on a button before its tip shows. Focus shows it at once. */
 const HOVER_DELAY_MS = 400
 
-/** The gap kept between the tip and its button, and between the tip and the window's edge. */
+/** The gap kept between the tip and its button. */
 const GAP = 6
-const EDGE = 8
-
-type Side = 'below' | 'above' | 'right'
 
 interface TipButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   /** The words the tip shows, or null for none (when the button's own label is already on screen). */
@@ -81,16 +81,7 @@ function Tip({ id, anchor, side, text }: { id: string; anchor: DOMRect; side: Si
   useLayoutEffect(() => {
     const element = tip.current
     if (element === null) return
-    const { width, height } = element.getBoundingClientRect()
-    const fitsBelow = anchor.bottom + GAP + height <= window.innerHeight - EDGE
-    const wanted =
-      side === 'right'
-        ? { left: anchor.right + GAP, top: anchor.top + (anchor.height - height) / 2 }
-        : { left: anchor.left + (anchor.width - width) / 2, top: side === 'below' && fitsBelow ? anchor.bottom + GAP : anchor.top - GAP - height }
-    setPlace({
-      left: Math.min(Math.max(wanted.left, EDGE), window.innerWidth - width - EDGE),
-      top: Math.min(Math.max(wanted.top, EDGE), window.innerHeight - height - EDGE),
-    })
+    setPlace(placeNear(anchor, element.getBoundingClientRect(), side, GAP))
   }, [anchor, side])
 
   return (

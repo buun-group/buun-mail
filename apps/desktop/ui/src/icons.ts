@@ -5,9 +5,9 @@
 import type { IconType } from 'react-icons'
 import {
   PiAirplaneLight,
+  PiBellLight,
   PiAmazonLogoLight,
   PiBankLight,
-  PiBellLight,
   PiBriefcaseLight,
   PiBuildingsLight,
   PiCameraLight,
@@ -65,6 +65,8 @@ export {
   PiImageLight as IconImage,
   PiArrowCounterClockwiseLight as IconReset,
   PiSidebarSimpleLight as IconSidebar,
+  PiBellLight as IconBell,
+  PiBellSlashLight as IconBellOff,
   PiMinusLight as IconMinimize,
   PiSquareLight as IconMaximize,
   PiCopySimpleLight as IconRestore,
@@ -134,4 +136,4 @@ export const THEME_GLYPHS: Record<ThemePreference, IconType> = { system: PiDeskt
 
 export const DENSITY_GLYPHS: Record<Density, IconType> = { comfortable: PiRowsLight, compact: PiListLight }
 
-export const SECTION_GLYPHS: Record<SettingsSection, IconType> = { general: PiGearSixLight, workspaces: PiStackSimpleLight, integrations: PiPlugsConnectedLight }
+export const SECTION_GLYPHS: Record<SettingsSection, IconType> = { general: PiGearSixLight, notifications: PiBellLight, workspaces: PiStackSimpleLight, integrations: PiPlugsConnectedLight }

@@ -4,17 +4,20 @@ import type { ReactNode } from 'react'
 import type { Workspace } from '../../api/types'
 import { SETTINGS_SECTIONS } from '../../constants/ui'
 import type { SettingsSection } from '../../constants/ui'
+import type { Notifications } from '../../hooks/useNotifications'
 import type { Preferences } from '../../hooks/usePreferences'
 import type { WorkspaceLook, WorkspaceLooks } from '../../hooks/useWorkspaceLooks'
 import { IconClose, SECTION_GLYPHS } from '../../icons'
 import { GeneralSection } from './GeneralSection'
 import { IntegrationsSection } from './IntegrationsSection'
+import { NotificationsSection } from './NotificationsSection'
 import { WorkspacesSection } from './WorkspacesSection'
 
 import './Settings.css'
 
 const SECTION_LABELS: Record<SettingsSection, string> = {
   general: 'General',
+  notifications: 'Notifications',
   workspaces: 'Workspaces',
   integrations: 'Integrations',
 }
@@ -33,10 +36,11 @@ interface SettingsProps {
   onEditing: (id: string | null) => void
   /** Called after an import adds mail, so the mailbox reloads. */
   onImported: () => void
+  notifications: Notifications
 }
 
 /** Settings in a native modal dialog: sections down the left, the chosen one on the right. Escape closes it. */
-export function Settings({ open, onClose, preferences, workspaces, looks, onLook, section, onSection, editing, onEditing, onImported }: SettingsProps): ReactNode {
+export function Settings({ open, onClose, preferences, workspaces, looks, onLook, section, onSection, editing, onEditing, onImported, notifications }: SettingsProps): ReactNode {
   const dialog = useRef<HTMLDialogElement | null>(null)
 
   useEffect(() => {
@@ -69,6 +73,7 @@ export function Settings({ open, onClose, preferences, workspaces, looks, onLook
         </header>
         <div className="settings__body">
           {section === 'general' && <GeneralSection preferences={preferences} />}
+          {section === 'notifications' && <NotificationsSection notifications={notifications} workspaces={workspaces} />}
           {section === 'workspaces' && <WorkspacesSection workspaces={workspaces} looks={looks} onLook={onLook} editing={editing} onEditing={onEditing} theme={preferences.theme} />}
           {section === 'integrations' && <IntegrationsSection onImported={onImported} />}
         </div>

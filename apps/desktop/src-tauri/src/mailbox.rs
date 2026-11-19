@@ -8,7 +8,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use buun_mail_message::body_text;
 use buun_mail_routing::{Router, UNSORTED_NAME, UNSORTED_WORKSPACE};
-use buun_mail_store::{Inserted, Placement, Store, UnreadCount};
+use buun_mail_store::{Placement, Store, UnreadCount};
 
 use crate::dto::{FolderDto, ImportFailureDto, ImportReportDto, MessageDetailDto, MessageDto, WorkspaceDto};
 use crate::error::AppError;
@@ -131,16 +131,18 @@ impl Mailbox {
         Ok(self.store.lock()?.mark_all_read(placement, whole_workspace)?)
     }
 
-    /// Imports `.eml` and `.mbox` files. One bad message never stops the rest; each failure is reported.
+    /// Imports `.eml` and `.mbox` files. One bad message never stops the rest; each failure is reported. Returns the
+    /// report and the messages that were new, newest first, for notifications.
     ///
     /// # Errors
     ///
     /// [`AppError`] only when the mailbox itself is unavailable.
-    pub fn import_files(&self, files: &[PathBuf]) -> Result<ImportReportDto, AppError> {
+    pub fn import_files(&self, files: &[PathBuf]) -> Result<(ImportReportDto, Vec<MessageDto>), AppError> {
         let router = self.router.read()?;
         let store = self.store.lock()?;
         let now = unix_now();
         let mut report = ImportReportDto::default();
+        let mut arrived = Vec::new();
 
         for file in files {
             let name = file.file_name().map_or_else(|| file.display().to_string(), |name| name.to_string_lossy().into_owned());
@@ -155,8 +157,11 @@ impl Mailbox {
             let many = messages.len() > 1;
             for (index, raw) in messages.iter().enumerate() {
                 match ingest(Incoming { raw, envelope_to: None, received_at: now }, &router, &store) {
-                    Ok(Inserted::New) => report.added += 1,
-                    Ok(Inserted::Duplicate) => report.duplicates += 1,
+                    Ok(Some(record)) => {
+                        report.added += 1;
+                        arrived.push(MessageDto::from(record));
+                    }
+                    Ok(None) => report.duplicates += 1,
                     Err(error) => {
                         let source = if many { format!("{name}, message {}", index + 1) } else { name.clone() };
                         report.failed.push(ImportFailureDto { source, reason: error.to_string() });
@@ -164,7 +169,8 @@ impl Mailbox {
                 }
             }
         }
-        Ok(report)
+        arrived.sort_by(|a, b| b.received_at.cmp(&a.received_at));
+        Ok((report, arrived))
     }
 }
 
@@ -217,9 +223,11 @@ mod tests {
     fn imports_and_routes_eml_files_once() -> Result<(), AppError> {
         let (folder, mailbox) = mailbox();
         let files = [file(&folder, "stripe.eml", STRIPE), file(&folder, "client.eml", CLIENT)];
-        let first = mailbox.import_files(&files)?;
+        let (first, arrived) = mailbox.import_files(&files)?;
+        assert_eq!(arrived.len(), 2);
         assert_eq!((first.added, first.duplicates), (2, 0));
-        let again = mailbox.import_files(&files)?;
+        let (again, arrived) = mailbox.import_files(&files)?;
+        assert_eq!(arrived, []);
         assert_eq!((again.added, again.duplicates), (0, 2));
 
         let receipts = mailbox.messages(&placement("personal", Some("Receipts")))?;
@@ -233,7 +241,7 @@ mod tests {
     fn splits_an_mbox_and_reports_what_failed() -> Result<(), AppError> {
         let (folder, mailbox) = mailbox();
         let mbox = format!("From a Thu Nov 19 07:42:00 2026\n{}\nFrom b Thu Nov 19 07:43:00 2026\nSubject: no sender\n\nx\n", CLIENT.replace("\r\n", "\n"));
-        let report = mailbox.import_files(&[file(&folder, "export.mbox", &mbox), folder.path().join("missing.eml")])?;
+        let (report, _) = mailbox.import_files(&[file(&folder, "export.mbox", &mbox), folder.path().join("missing.eml")])?;
         assert_eq!(report.added, 1);
         let sources: Vec<_> = report.failed.iter().map(|failure| failure.source.as_str()).collect();
         assert_eq!(sources, ["export.mbox, message 2", "missing.eml"]);

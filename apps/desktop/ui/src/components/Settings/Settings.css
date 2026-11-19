@@ -64,7 +64,8 @@
   color: var(--text-primary);
 }
 
-.settings__group + .settings__group {
+.settings__group + .settings__group,
+.settings__rows + .settings__group {
   margin-top: var(--space-8);
 }
 

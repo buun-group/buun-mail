@@ -5,10 +5,11 @@
 use std::path::PathBuf;
 
 use buun_mail_store::Placement;
-use tauri::State;
+use tauri::{AppHandle, State};
 
 use crate::dto::{ImportReportDto, MessageDetailDto, MessageDto, WorkspaceDto};
 use crate::error::AppError;
+use crate::events;
 use crate::mailbox::Mailbox;
 
 /// Every workspace for the sidebar.
@@ -35,10 +36,12 @@ pub fn mark_all_read(mailbox: State<'_, Mailbox>, workspace: String, folder: Opt
     mailbox.mark_all_read(&Placement { workspace, folder }, whole_workspace)
 }
 
-/// Imports `.eml` and `.mbox` files the person picked.
+/// Imports `.eml` and `.mbox` files the person picked, and announces what arrived.
 #[tauri::command]
-pub fn import_files(mailbox: State<'_, Mailbox>, paths: Vec<PathBuf>) -> Result<ImportReportDto, AppError> {
-    mailbox.import_files(&paths)
+pub fn import_files(app: AppHandle, mailbox: State<'_, Mailbox>, paths: Vec<PathBuf>) -> Result<ImportReportDto, AppError> {
+    let (report, arrived) = mailbox.import_files(&paths)?;
+    events::mail_arrived(&app, &arrived);
+    Ok(report)
 }
 
 /// Where the routing file lives.
