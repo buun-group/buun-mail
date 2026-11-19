@@ -25,6 +25,7 @@ export const COMMANDS = {
   listContacts: 'list_contacts',
   attachmentData: 'attachment_data',
   openAttachment: 'open_attachment',
+  describeFiles: 'describe_files',
   openMessage: 'open_message',
   markAllRead: 'mark_all_read',
   importFiles: 'import_files',

@@ -327,3 +327,16 @@ pub fn open_attachment(app: AppHandle, mailbox: State<'_, Arc<Mailbox>>, id: Str
     let path = mailbox.attachment_to_open(&id, index)?;
     app.opener().open_path(path.display().to_string(), None::<&str>).map_err(|error| AppError::Unreadable(error.to_string()))
 }
+
+/// Each picked file's name and size, for the compose window's attachment list.
+#[tauri::command]
+pub fn describe_files(paths: Vec<PathBuf>) -> Vec<(String, String, u64)> {
+    paths
+        .iter()
+        .filter_map(|path| {
+            let size = std::fs::metadata(path).ok()?.len();
+            let name = path.file_name()?.to_string_lossy().into_owned();
+            Some((path.display().to_string(), name, size))
+        })
+        .collect()
+}

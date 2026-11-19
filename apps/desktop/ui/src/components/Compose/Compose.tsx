@@ -2,9 +2,14 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { isTauri } from '@tauri-apps/api/core'
+
+import { pickFilesToSend } from '../../api/client'
 import type { Contact, Sendable, Workspace } from '../../api/types'
 import type { Compose as ComposeApi } from '../../hooks/useCompose'
-import { IconClose, IconDelete, IconMinimize, IconRestore, IconSend } from '../../icons'
+import { IconAttachment, IconClose, IconDelete, IconMinimize, IconRestore, IconSend } from '../../icons'
+import { toast } from '../../lib/feedback'
+import { readableSize } from '../Reader/Attachments'
 import { contactLine, fromChoices, isAddress } from '../../lib/compose'
 import { canSendAs, domainOf } from '../../lib/sending'
 import { Select } from '../Select/Select'
@@ -80,7 +85,10 @@ export function Compose({ compose, workspaces, sendable }: ComposeProps): ReactN
   const choices = fromChoices(workspaces, sendable, null)
   if (draft.from.address !== '' && !choices.some((choice) => choice.address === draft.from.address) && isAddress(draft.from.address)) choices.unshift(draft.from)
   const fromOk = isAddress(draft.from.address) && canSendAs(draft.from.address, sendable)
-  const ready = fromOk && draft.to.length + draft.cc.length + draft.bcc.length > 0
+  const files = draft.attachments ?? []
+  const totalSize = files.reduce((sum, file) => sum + file.size, 0)
+  const tooLarge = totalSize > 35 * 1024 * 1024
+  const ready = fromOk && draft.to.length + draft.cc.length + draft.bcc.length > 0 && !tooLarge
   const title = t(`title.${open.mode}`)
 
   if (compose.minimized) {
@@ -185,6 +193,25 @@ export function Compose({ compose, workspaces, sendable }: ComposeProps): ReactN
       </label>
       <textarea ref={body} id="compose-body" className="compose__body" value={draft.text} onChange={(event) => set({ text: event.target.value })} spellCheck />
 
+      {files.length > 0 && (
+        <ul className="compose__files" aria-label={t('files', { count: files.length })}>
+          {files.map((file, index) => (
+            <li key={`${file.name}-${index}`} className="compose__file">
+              <IconAttachment aria-hidden="true" />
+              <span className="compose__file-name">{file.name}</span>
+              <span className="compose__file-size">{readableSize(file.size)}</span>
+              <button type="button" className="recipient__remove" aria-label={t('removeFile', { name: file.name })} onClick={() => set({ attachments: files.filter((_, at) => at !== index) })}>
+                <IconClose aria-hidden="true" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {tooLarge && (
+        <p role="alert" className="compose__error">
+          {t('tooLarge', { size: readableSize(totalSize) })}
+        </p>
+      )}
       {compose.error !== null && (
         <p role="alert" className="compose__error">
           {compose.error}
@@ -200,6 +227,19 @@ export function Compose({ compose, workspaces, sendable }: ComposeProps): ReactN
           {ready ? t('sendHint') : fromOk ? t('noRecipients') : ''}
         </span>
         <span className="compose__saved">{t('saved')}</span>
+        <button
+          type="button"
+          className="compose__icon"
+          aria-label={t('attach')}
+          onClick={() =>
+            void pickFilesToSend().then((picked) => {
+              if (picked.length > 0) set({ attachments: [...files, ...picked] })
+              else if (!isTauri()) toast({ text: t('attachDesktopOnly'), tone: 'info' })
+            })
+          }
+        >
+          <IconAttachment aria-hidden="true" />
+        </button>
         <button type="button" className="compose__icon compose__icon--danger" aria-label={t('discard')} onClick={compose.discard}>
           <IconDelete aria-hidden="true" />
         </button>

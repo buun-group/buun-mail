@@ -68,3 +68,19 @@ describe('writing mail', () => {
     await waitFor(() => expect((screen.getByLabelText('Subject') as HTMLInputElement).value).toBe('Plans for Friday'))
   })
 })
+
+describe('forwarding with attachments', () => {
+  it('carries the original files into the forward, each removable', async () => {
+    render(<App />)
+    fireEvent.click(await screen.findByRole('button', { name: /Billing/ }))
+    fireEvent.click(await screen.findByText('Your invoice for November is ready'))
+    const reader = screen.getByRole('region', { name: 'Reader' })
+    await within(reader).findByRole('button', { name: 'Preview INV-2026-11.pdf' })
+    fireEvent.click(within(reader).getByRole('button', { name: 'Forward' }))
+    const panel = await screen.findByRole('region', { name: 'Write a message' })
+    const files = within(panel).getByRole('list', { name: '1 file' })
+    expect(within(files).getByText('INV-2026-11.pdf')).toBeTruthy()
+    fireEvent.click(within(files).getByRole('button', { name: 'Remove INV-2026-11.pdf' }))
+    expect(within(panel).queryByRole('list', { name: '1 file' })).toBeNull()
+  })
+})

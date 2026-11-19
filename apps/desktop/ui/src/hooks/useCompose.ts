@@ -109,6 +109,7 @@ export function useCompose(workspaces: readonly Workspace[], sendable: readonly 
       subject: original === null ? '' : mode === 'forward' ? forwardSubject(original.message.subject) : replySubject(original.message.subject),
       text: startingText(signature, carried),
       replyToMessage: original !== null && mode !== 'forward' ? original.message.id : null,
+      attachments: original !== null && mode === 'forward' ? (original.attachments ?? []).filter((file) => !file.inline).map((file) => ({ name: file.name, size: file.size, fromMessage: [original.message.id, file.index] as [string, number] })) : [],
     }
     show({ id: newId(), mode, draft, updatedAt: new Date().toISOString() })
   }

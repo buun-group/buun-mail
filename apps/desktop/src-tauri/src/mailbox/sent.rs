@@ -23,6 +23,15 @@ const CONTACTS_SHOWN: usize = 1_000;
 const SEARCH_RESULTS: usize = 200;
 
 impl Mailbox {
+    /// One stored message's original bytes, for carrying its attachments into a forward.
+    ///
+    /// # Errors
+    ///
+    /// [`AppError`] for an unknown id, or when the store cannot be read.
+    pub fn raw_of(&self, id: &str) -> Result<Vec<u8>, AppError> {
+        Ok(self.store.lock()?.raw(id)?)
+    }
+
     /// The ids a reply to message `id` carries.
     ///
     /// # Errors

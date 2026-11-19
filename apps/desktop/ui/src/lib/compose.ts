@@ -1,4 +1,4 @@
-import type { Contact, Draft, Message, Recipients, Sendable, Workspace } from '../api/types'
+import type { Attachment, Contact, Draft, Message, Recipients, Sendable, Workspace } from '../api/types'
 import { canSendAs, domainOf, signatureFor } from './sending'
 import { formatFull } from './time'
 
@@ -19,6 +19,8 @@ export interface Original {
   message: Message
   body: string
   recipients: Recipients | null
+  /** Its attachments, carried into a forward. */
+  attachments?: Attachment[]
 }
 
 const ADDRESS = /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/u

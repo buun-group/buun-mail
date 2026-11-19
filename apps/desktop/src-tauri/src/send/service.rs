@@ -4,10 +4,10 @@ use std::collections::BTreeMap;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
-use buun_mail_message::{Contact, Outgoing, build, new_message_id, reply_references};
+use buun_mail_message::{Contact, Outgoing, OutgoingAttachment, build, mime_for, new_message_id, reply_references};
 use serde::{Deserialize, Serialize};
 
-use super::resend::{Domains, RESEND_API, ResendClient, ResendEmail, ResendError};
+use super::resend::{Domains, RESEND_API, ResendAttachment, ResendClient, ResendEmail, ResendError};
 use super::settings::{self, SenderDomain, SenderKind, SenderSettings};
 use crate::dto::MessageDto;
 use crate::error::AppError;
@@ -64,7 +64,27 @@ pub struct DraftDto {
     /// The stored message this answers, for its thread.
     #[serde(default)]
     pub reply_to_message: Option<String>,
+    /// Files to send with it: from this computer, or carried from a stored message (a forward).
+    #[serde(default)]
+    pub attachments: Vec<FileInput>,
 }
+
+/// A file to send: a path on this computer, or an attachment of a stored message.
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct FileInput {
+    /// Its file name, as shown and sent.
+    pub name: String,
+    /// A file on this computer.
+    #[serde(default)]
+    pub path: Option<String>,
+    /// A stored message's id and the attachment's position in it.
+    #[serde(default)]
+    pub from_message: Option<(String, usize)>,
+}
+
+/// The most a message's files may add up to: what Resend takes, with room for the text.
+const ATTACHMENTS_LIMIT: usize = 35 * 1024 * 1024;
 
 /// An address and, optionally, a name, from the compose window.
 #[derive(Debug, Clone, Deserialize)]
@@ -267,6 +287,7 @@ impl SendService {
             let _ = write!(hex, "{byte:02x}");
             hex
         });
+        let attachments = self.read_files(&draft.attachments)?;
         let outgoing = Outgoing {
             from: Contact { name: draft.from.name.clone().filter(|name| !name.trim().is_empty()), address: from.clone() },
             to,
@@ -279,6 +300,7 @@ impl SendService {
             references: reply_references(&answered),
             message_id: new_message_id(&from, &unique),
             date: now,
+            attachments,
         };
         let mut headers = BTreeMap::new();
         if let Some(id) = &outgoing.in_reply_to {
@@ -295,11 +317,43 @@ impl SendService {
             subject: outgoing.subject.clone(),
             text: outgoing.text.clone(),
             headers,
+            attachments: outgoing
+                .attachments
+                .iter()
+                .map(|file| {
+                    use base64::Engine as _;
+                    ResendAttachment { filename: file.name.clone(), content: base64::engine::general_purpose::STANDARD.encode(&file.bytes) }
+                })
+                .collect(),
         };
         match sender.kind {
             SenderKind::Resend => ResendClient::new(&self.0.api, &sender.api_key).send(&email, &outgoing.message_id)?,
         };
         Ok(self.0.mailbox.keep_sent(&build(&outgoing), &from)?)
+    }
+
+    /// Reads each file to send, from this computer or from a stored message, keeping the total within what Resend takes.
+    fn read_files(&self, files: &[FileInput]) -> Result<Vec<OutgoingAttachment>, SendFailure> {
+        let mut read = Vec::with_capacity(files.len());
+        let mut total = 0;
+        for file in files {
+            let bytes = match (&file.path, &file.from_message) {
+                (Some(path), _) => std::fs::read(path).map_err(|error| SendFailure::refused(format!("{} could not be read: {error}", file.name)))?,
+                (None, Some((id, index))) => {
+                    let raw = self.0.mailbox.raw_of(id)?;
+                    buun_mail_message::attachment(&raw, *index)
+                        .map(|(_, bytes)| bytes)
+                        .ok_or_else(|| SendFailure::refused(format!("{} is no longer in the message.", file.name)))?
+                }
+                (None, None) => continue,
+            };
+            total += bytes.len();
+            if total > ATTACHMENTS_LIMIT {
+                return Err(SendFailure::refused("The attachments add up to more than 35 MB, more than can be sent at once."));
+            }
+            read.push(OutgoingAttachment { mime: mime_for(&file.name).to_owned(), name: file.name.clone(), bytes });
+        }
+        Ok(read)
     }
 
     /// The domains some connected sender can send from, each with that sender's signature.
@@ -396,6 +450,8 @@ mod tests {
         let original = b"From: A client <c@client.example>\r\nTo: hello@flung.dev\r\nSubject: Quote\r\nMessage-ID: <q1@client.example>\r\n\r\nPlease quote\r\n";
         let taken = mailbox.take_in(original, "hello@flung.dev", 1_795_000_000).ok().flatten().map(|message| message.id).unwrap_or_default();
 
+        let notes = folder.path().join("notes.txt");
+        std::fs::write(&notes, b"see attached").unwrap_or_else(|error| unreachable!("notes: {error}"));
         let service = SendService::with_api(folder.path().to_path_buf(), Arc::clone(&mailbox), &fake_resend());
         let senders = service.add_resend("Flung", "re_full_key_1234", &[]).unwrap_or_default();
         assert_eq!(senders.first().map(|sender| sender.key_hint.as_str()), Some("1234"));
@@ -409,11 +465,16 @@ mod tests {
             subject: "Re: Quote".to_owned(),
             text: "Here it is.".to_owned(),
             reply_to_message: Some(taken),
+            attachments: vec![FileInput { name: "notes.txt".to_owned(), path: Some(notes.display().to_string()), from_message: None }],
         };
         let delivered = service.send(&draft).unwrap_or_else(|failure| unreachable!("send: {}", failure.message));
         assert_eq!((delivered.workspace.as_str(), delivered.folder.as_deref(), delivered.unread), ("flung", Some("Sent"), false));
         let kept = mailbox.messages(&Placement { workspace: "flung".to_owned(), folder: Some("Sent".to_owned()) }).unwrap_or_default();
         assert_eq!(kept.len(), 1);
+        assert_eq!(
+            buun_mail_message::attachments(&mailbox.raw_of(&kept[0].id).unwrap_or_default()).first().map(|file| file.name.clone()),
+            Some("notes.txt".to_owned())
+        );
         assert_eq!(mailbox.thread_of(&kept[0].id).ok().and_then(|ids| ids.references.first().cloned()), Some("q1@client.example".to_owned()));
 
         let conversation = mailbox.thread(delivered.thread_id.as_deref().unwrap_or_default()).unwrap_or_default();

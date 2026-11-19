@@ -5,7 +5,7 @@ import { openUrl } from '@tauri-apps/plugin-opener'
 import type { ExportFormat } from '../constants/ui'
 import { COMMANDS, IMPORT_EXTENSIONS } from './commands'
 import { preview, previewDetail, previewMessages, previewView, previewWorkspaces } from './preview'
-import type { Activity, AgentStatus, AvailableDomain, CheckReport, Contact, Draft, KnownContact, Sendable, Sender, GatewayDomain, GatewayStatus, ImportReport, MailView, Message, MessageDetail, Place, Rule, Shelf, TagCount, Workspace } from './types'
+import type { Activity, AgentStatus, AvailableDomain, CheckReport, Contact, Draft, FileToSend, KnownContact, Sendable, Sender, GatewayDomain, GatewayStatus, ImportReport, MailView, Message, MessageDetail, Place, Rule, Shelf, TagCount, Workspace } from './types'
 
 /**
  * The one door to the Rust side. In the desktop app every call is a Tauri command; in a plain browser (`pnpm dev:ui`)
@@ -282,4 +282,13 @@ export async function attachmentData(id: string, index: number): Promise<{ name:
 /** Opens one attachment with the system's own app. Rejects for a program or script. */
 export async function openAttachment(id: string, index: number): Promise<void> {
   if (isTauri()) await invoke(COMMANDS.openAttachment, { id, index })
+}
+
+/** Asks for files to attach and describes them. Resolves to none when cancelled or in a plain browser. */
+export async function pickFilesToSend(): Promise<FileToSend[]> {
+  if (!isTauri()) return []
+  const picked = await open({ multiple: true, directory: false })
+  if (picked === null || picked.length === 0) return []
+  const described = await invoke<[string, string, number][]>(COMMANDS.describeFiles, { paths: picked })
+  return described.map(([path, name, size]) => ({ name, size, path }))
 }

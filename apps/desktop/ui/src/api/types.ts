@@ -224,6 +224,16 @@ export interface Draft {
   text: string
   /** The stored message this answers, for its thread. */
   replyToMessage: string | null
+  /** Files sent with it. */
+  attachments: FileToSend[]
+}
+
+/** A file to send: from this computer (`path`), or an attachment of a stored message (`fromMessage`). Mirrors `FileInput`. */
+export interface FileToSend {
+  name: string
+  size: number
+  path?: string
+  fromMessage?: [string, number]
 }
 
 /** Why a send failed, and whether the same message may go through later. Mirrors `SendFailure`. */

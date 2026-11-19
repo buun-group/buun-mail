@@ -5,7 +5,7 @@
   bottom: 0;
   z-index: 180;
   display: grid;
-  grid-template-rows: auto auto minmax(10rem, 1fr) auto auto;
+  grid-template-rows: auto auto minmax(8rem, 1fr) auto auto auto auto;
   width: min(38rem, calc(100vw - 2rem));
   height: min(36rem, calc(100vh - 5rem));
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
@@ -345,4 +345,41 @@ html[data-composing='min'] .toasts {
   border-bottom: 1px solid var(--border-faint);
   font-size: var(--text-sm);
   color: var(--text-secondary);
+}
+
+.compose__files {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1-5);
+  margin: 0;
+  padding: var(--space-2) var(--space-4) 0;
+  list-style: none;
+}
+
+.compose__file {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  max-width: 16rem;
+  padding: 3px 3px 3px var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--alpha-8);
+  font-size: var(--text-sm);
+}
+
+.compose__file svg {
+  flex: none;
+  color: var(--text-muted);
+}
+
+.compose__file-name {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.compose__file-size {
+  flex: none;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
 }

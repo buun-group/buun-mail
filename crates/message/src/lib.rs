@@ -24,7 +24,7 @@ mod recipient;
 mod time;
 
 pub use auth::{Authentication, Check, Verdict, authentication};
-pub use compose::{Outgoing, ThreadIds, build, new_message_id, reply_references, thread_ids};
+pub use compose::{Outgoing, OutgoingAttachment, ThreadIds, build, mime_for, new_message_id, reply_references, thread_ids};
 pub use content::{AttachmentInfo, HtmlView, attachment, attachments, html_view};
 pub use error::MessageError;
 pub use id::content_id;

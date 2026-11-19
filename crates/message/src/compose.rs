@@ -31,6 +31,45 @@ pub struct Outgoing {
     pub message_id: String,
     /// When it was written, Unix seconds.
     pub date: i64,
+    /// Files sent with it.
+    pub attachments: Vec<OutgoingAttachment>,
+}
+
+/// A file sent with a message.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct OutgoingAttachment {
+    /// Its file name.
+    pub name: String,
+    /// Its media type, such as `application/pdf`.
+    pub mime: String,
+    /// Its bytes.
+    pub bytes: Vec<u8>,
+}
+
+/// A media type for a file name, from its extension; `application/octet-stream` when unknown.
+#[must_use]
+pub fn mime_for(name: &str) -> &'static str {
+    let extension = name.rsplit_once('.').map(|(_, extension)| extension.to_ascii_lowercase()).unwrap_or_default();
+    match extension.as_str() {
+        "pdf" => "application/pdf",
+        "png" => "image/png",
+        "jpg" | "jpeg" => "image/jpeg",
+        "gif" => "image/gif",
+        "webp" => "image/webp",
+        "txt" | "md" => "text/plain",
+        "csv" => "text/csv",
+        "json" => "application/json",
+        "ics" => "text/calendar",
+        "zip" => "application/zip",
+        "doc" => "application/msword",
+        "docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "xls" => "application/vnd.ms-excel",
+        "xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "ppt" => "application/vnd.ms-powerpoint",
+        "pptx" => "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        "eml" => "message/rfc822",
+        _ => "application/octet-stream",
+    }
 }
 
 /// The ids a reply needs from the message it answers: that message's own id, and the references it carried.
@@ -114,6 +153,9 @@ pub fn build(outgoing: &Outgoing) -> Vec<u8> {
     if !outgoing.references.is_empty() {
         message = message.references(outgoing.references.clone());
     }
+    for file in &outgoing.attachments {
+        message = message.attachment(file.mime.clone(), file.name.clone(), file.bytes.clone());
+    }
     message.write_to_vec().unwrap_or_default()
 }
 
@@ -146,6 +188,7 @@ mod tests {
             references: reply_references(&answered),
             message_id: new_message_id("buun-mail@flung.dev", "abc123"),
             date: 1_795_000_000,
+            attachments: vec![OutgoingAttachment { name: "quote.pdf".to_owned(), mime: mime_for("quote.pdf").to_owned(), bytes: b"%PDF-1.4 quote".to_vec() }],
         };
         let raw = build(&outgoing);
         let text = String::from_utf8_lossy(&raw);
@@ -153,6 +196,8 @@ mod tests {
         assert!(text.contains("<one@b.com>") && text.contains("References:"));
         assert!(text.contains("Message-ID: <abc123.buun-mail@flung.dev>"));
         assert_eq!(body_text(&raw), "Thanks!");
+        let carried = crate::content::attachments(&raw);
+        assert_eq!(carried.first().map(|file| (file.name.as_str(), file.mime.as_str())), Some(("quote.pdf", "application/pdf")));
         let back = recipients(&raw);
         assert_eq!(back.to.first().map(|contact| contact.address.as_str()), Some("a@b.com"));
         assert_eq!(back.cc.first().and_then(|contact| contact.name.as_deref()), Some("Ops"));
@@ -172,6 +217,7 @@ mod tests {
             references: Vec::new(),
             message_id: new_message_id("hi@acme.com", "x1"),
             date: 1_795_000_000,
+            attachments: Vec::new(),
         });
         let text = String::from_utf8_lossy(&raw);
         assert!(!text.contains("In-Reply-To") && !text.contains("References") && !text.contains("Cc:"));

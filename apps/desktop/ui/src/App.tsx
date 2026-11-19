@@ -78,11 +78,11 @@ export function App(): ReactNode {
   const composeFor = (mode: ComposeMode, message: Message): void => {
     const open = mailbox.selected
     if (open !== null && open.message.id === message.id && open.body !== null) {
-      compose.start(mode, { message, body: open.body, recipients: open.recipients })
+      compose.start(mode, { message, body: open.body, recipients: open.recipients, attachments: open.detail?.attachments ?? [] })
       return
     }
     openMessage(message.id)
-      .then((detail) => compose.start(mode, { message: detail.message, body: detail.body, recipients: detail.recipients }))
+      .then((detail) => compose.start(mode, { message: detail.message, body: detail.body, recipients: detail.recipients, attachments: detail.attachments }))
       .catch(() => compose.start(mode, { message, body: message.preview, recipients: null }))
   }
   const actions = useMessageActions(mailbox, workspaceName, { canReply: (message) => sending.can(message.to), canForward: sending.any, start: composeFor })

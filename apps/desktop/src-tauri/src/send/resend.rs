@@ -68,6 +68,18 @@ pub struct ResendEmail {
     /// Extra headers: In-Reply-To and References for a reply.
     #[serde(skip_serializing_if = "std::collections::BTreeMap::is_empty")]
     pub headers: std::collections::BTreeMap<String, String>,
+    /// Files sent with it.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub attachments: Vec<ResendAttachment>,
+}
+
+/// One file as Resend takes it: its name and its bytes as base64.
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+pub struct ResendAttachment {
+    /// The file name.
+    pub filename: String,
+    /// The bytes, base64.
+    pub content: String,
 }
 
 /// A client for one API key.
@@ -213,6 +225,7 @@ mod tests {
             subject: "Re: Hi".to_owned(),
             text: "Thanks".to_owned(),
             headers: std::collections::BTreeMap::from([("In-Reply-To".to_owned(), "<one@b.com>".to_owned())]),
+            attachments: vec![ResendAttachment { filename: "quote.pdf".to_owned(), content: "JVBERg==".to_owned() }],
         };
         let (url, posted) = fake((200, "{}"), (200, r#"{"id":"em_1"}"#));
         assert_eq!(ResendClient::new(&url, "re_full").send(&email, "key-1"), Ok("em_1".to_owned()));
@@ -222,6 +235,7 @@ mod tests {
         assert_eq!(body["headers"]["In-Reply-To"], "<one@b.com>");
         assert_eq!(body["from"], "Flung <hi@flung.dev>");
         assert!(body.get("cc").is_none());
+        assert_eq!(body["attachments"][0]["filename"], "quote.pdf");
 
         let (url, _) = fake((200, "{}"), (422, r#"{"name":"validation_error","message":"The flung.dev domain is not verified"}"#));
         assert!(matches!(ResendClient::new(&url, "re").send(&email, "k"), Err(ResendError::Refused(reason)) if reason.contains("not verified")));

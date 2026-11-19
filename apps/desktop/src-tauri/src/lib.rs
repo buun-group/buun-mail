@@ -105,6 +105,7 @@ pub fn run() {
             commands::list_contacts,
             commands::attachment_data,
             commands::open_attachment,
+            commands::describe_files,
             commands::open_message,
             commands::mark_all_read,
             commands::tag_message,
