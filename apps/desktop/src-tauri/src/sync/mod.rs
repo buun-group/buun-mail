@@ -8,6 +8,7 @@
 //! - `service`: the background loop that checks every gateway every half minute, or at once when asked
 
 mod gateway;
+mod push;
 mod service;
 mod settings;
 #[cfg(test)]

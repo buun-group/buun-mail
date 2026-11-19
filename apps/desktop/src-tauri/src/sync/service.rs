@@ -103,6 +103,8 @@ impl SyncService {
         });
         let looping = Arc::clone(&shared);
         thread::spawn(move || run(&looping));
+        let watching = Arc::clone(&shared);
+        thread::spawn(move || keep_listening(&watching));
         Self { shared, config_folder }
     }
 
@@ -234,6 +236,37 @@ fn statuses(shared: &Shared) -> Result<Vec<GatewayStatusDto>, AppError> {
             }
         })
         .collect())
+}
+
+/// Keeps one live listener per gateway: started for a new gateway, ended when its gateway is removed or its token
+/// changes. Looks every [`INTERVAL`].
+fn keep_listening(shared: &Arc<Shared>) {
+    let running: Arc<Mutex<std::collections::HashSet<String>>> = Arc::default();
+    loop {
+        let gateways = shared.gateways.lock().map(|gateways| gateways.clone()).unwrap_or_default();
+        for gateway in gateways {
+            let fresh = running.lock().is_ok_and(|mut set| set.insert(gateway.id.clone()));
+            if !fresh {
+                continue;
+            }
+            let shared = Arc::clone(shared);
+            let running = Arc::clone(&running);
+            thread::spawn(move || {
+                let wake = || {
+                    if let Ok(mut woken) = shared.woken.lock() {
+                        *woken = true;
+                        shared.wake.notify_all();
+                    }
+                };
+                let still_here = || shared.gateways.lock().is_ok_and(|now| now.iter().any(|kept| kept.id == gateway.id && kept.token == gateway.token));
+                super::push::listen(&gateway.url, &gateway.token, &wake, &still_here);
+                if let Ok(mut set) = running.lock() {
+                    set.remove(&gateway.id);
+                }
+            });
+        }
+        thread::sleep(INTERVAL);
+    }
 }
 
 /// The loop: check every gateway when woken or every [`INTERVAL`].
