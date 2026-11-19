@@ -48,7 +48,7 @@ export interface Preferences {
 
 const ON_OFF = ['on', 'off'] as const
 
-/** Theme, density and grain, remembered per person and written to `<html data-theme data-density data-grain>`. */
+/** Theme, density, grain and sidebar, remembered per person. Theme and density are written to `<html data-theme data-density>`. */
 export function usePreferences(): Preferences {
   const [themePreference, setThemePreferenceState] = useState<ThemePreference>(() => read(STORAGE_KEYS.theme, THEME_PREFERENCES, 'system'))
   const [density, setDensityState] = useState<Density>(() => read(STORAGE_KEYS.density, DENSITIES, 'comfortable'))
@@ -60,8 +60,7 @@ export function usePreferences(): Preferences {
   useEffect(() => {
     document.documentElement.dataset['theme'] = theme
     document.documentElement.dataset['density'] = density
-    document.documentElement.dataset['grain'] = grain ? 'on' : 'off'
-  }, [theme, density, grain])
+  }, [theme, density])
 
   return {
     themePreference,

@@ -187,10 +187,3 @@
   --row-gap: 1px;
 }
 
-/* Paper grain off in settings. Set as variables, not by hiding the pseudo-elements: WebKit does not restyle a body
-   pseudo-element when an attribute on <html> changes, but it always follows a variable. */
-:root[data-grain='off'],
-:root[data-grain='off'][data-theme='dark'] {
-  --grain-opacity: 0;
-  --grain-over-opacity: 0;
-}

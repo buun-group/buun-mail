@@ -1,0 +1,18 @@
+.grain {
+  position: fixed;
+  inset: 0;
+  background: var(--grain-image) 0 0 / 200px 200px;
+  filter: var(--grain-filter);
+  pointer-events: none;
+}
+
+.grain--under {
+  z-index: 0;
+  opacity: var(--grain-opacity);
+}
+
+.grain--over {
+  z-index: 100;
+  opacity: var(--grain-over-opacity);
+  mix-blend-mode: overlay;
+}

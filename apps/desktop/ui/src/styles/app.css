@@ -3,6 +3,7 @@
   grid-template-columns: var(--sidebar-width) var(--list-width) minmax(0, 1fr);
   height: 100%;
   overflow: hidden;
+  isolation: isolate;
   transition: grid-template-columns var(--duration-normal) var(--ease-out);
 }
 
@@ -19,4 +20,10 @@
 .bm-splash {
   --bm-splash-ground: var(--surface-body);
   color: var(--text-primary);
+}
+
+/* The panes sit over the under-grain. */
+.app > :not(.grain) {
+  position: relative;
+  z-index: 1;
 }

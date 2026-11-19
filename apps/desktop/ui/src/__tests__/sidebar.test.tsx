@@ -70,7 +70,9 @@ describe('general settings', () => {
   it('turns the paper grain off', async () => {
     await ready()
     fireEvent.click(screen.getByRole('button', { name: 'Settings' }))
+    expect(document.querySelectorAll('.grain')).toHaveLength(2)
     fireEvent.click(screen.getByRole('switch', { name: 'Paper grain' }))
-    expect(document.documentElement.dataset['grain']).toBe('off')
+    expect(document.querySelectorAll('.grain')).toHaveLength(0)
+    expect(localStorage.getItem('buun-mail:grain')).toBe('off')
   })
 })

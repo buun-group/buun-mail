@@ -2,6 +2,7 @@ import { Splash } from '@buun-mail/brand/react'
 import { useCallback, useState } from 'react'
 import type { ReactNode } from 'react'
 
+import { Grain } from './components/Grain/Grain'
 import { MessageList } from './components/MessageList/MessageList'
 import { Reader } from './components/Reader/Reader'
 import { Settings } from './components/Settings/Settings'
@@ -67,6 +68,7 @@ export function App(): ReactNode {
         editing={editing}
         onEditing={setEditing}
       />
+      {preferences.grain && <Grain />}
       <Splash done={mailbox.ready} />
     </div>
   )

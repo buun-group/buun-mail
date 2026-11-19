@@ -24,34 +24,6 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* A fine grain under everything, and the same grain blended over it so flat panels carry the tooth too. Never takes a
-   press. The same treatment as buungroup.com. */
-body::before,
-body::after {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background: var(--grain-image) 0 0 / 200px 200px;
-  filter: var(--grain-filter);
-  pointer-events: none;
-}
-
-body::before {
-  z-index: 0;
-  opacity: var(--grain-opacity);
-}
-
-body::after {
-  z-index: 100;
-  opacity: var(--grain-over-opacity);
-  mix-blend-mode: overlay;
-}
-
-#root {
-  position: relative;
-  z-index: 1;
-}
-
 button {
   font: inherit;
   color: inherit;
