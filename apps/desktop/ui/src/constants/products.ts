@@ -1,11 +1,11 @@
 /**
  * The Buun Group products this client shows, in the words buungroup.com uses for them
- * (`buungroup-app/apps/site/src/locales/en/products.json`). The ids match `PRODUCTS` in `@buun-group/core`.
+ * (`buungroup-app/apps/site/src/locales/en/products.json`). Destroy Network appears as dissolve.email, its rebrand.
  * A product added here also gets its site in `src-tauri/capabilities/default.json`, or the app cannot open it; a test
  * holds the two in step.
  */
 
-export const PRODUCT_IDS = ['plotwork', 'flung', 'gunspec', 'destroy', 'cryptflare'] as const
+export const PRODUCT_IDS = ['plotwork', 'flung', 'gunspec', 'dissolve', 'cryptflare'] as const
 
 export type ProductId = (typeof PRODUCT_IDS)[number]
 
@@ -52,14 +52,14 @@ export const PRODUCTS: readonly Product[] = [
     mark: { light: '/products/gunspec.png', dark: '/products/gunspec-dark.png' },
   },
   {
-    id: 'destroy',
-    name: 'Destroy Network',
+    id: 'dissolve',
+    name: 'dissolve.email',
     kind: 'Disposable email',
     heading: ['An inbox', 'that forgets.'],
     body: 'A disposable address in one click, for the sign-up you do not trust. Use it in the browser, from the extension or through the API, and let it go when you are done.',
     points: ['An address in one click', 'A browser extension', 'An API for your tests'],
-    href: 'https://destroy.network',
-    mark: { light: '/products/destroy.png', dark: '/products/destroy-dark.png' },
+    href: 'https://dissolve.email',
+    mark: { light: '/products/dissolve.svg', dark: '/products/dissolve-dark.svg' },
   },
   {
     id: 'cryptflare',
@@ -73,3 +73,10 @@ export const PRODUCTS: readonly Product[] = [
   },
 ]
 
+
+/** Buun Group itself: the footer's logo, which opens the group site. */
+export const BUUN_GROUP = {
+  name: 'Buun Group',
+  href: 'https://buungroup.com',
+  logo: { light: '/buun-group.svg', dark: '/buun-group-dark.svg' },
+} as const

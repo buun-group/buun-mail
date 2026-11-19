@@ -1,32 +1,49 @@
 import { useState } from 'react'
 import type { ReactNode } from 'react'
 
-import { INTEGRATIONS, NOT_WIRED_NOTE } from '../../constants/integrations'
-import type { Integration, IntegrationId } from '../../constants/integrations'
-import { IconCaret, INTEGRATION_GLYPHS } from '../../icons'
+import { DIRECTIONS, INTEGRATIONS, NOT_WIRED_NOTE } from '../../constants/integrations'
+import type { Direction, Integration } from '../../constants/integrations'
+import { IconCaret, IconReceive, IconSend, INTEGRATION_GLYPHS } from '../../icons'
 
-/** Where mail comes from. Each row opens its own connect form; one is open at a time. */
+const DIRECTION_WORDS: Record<Direction, { title: string; glyph: typeof IconSend }> = {
+  receive: { title: 'Receive mail', glyph: IconReceive },
+  send: { title: 'Send mail', glyph: IconSend },
+}
+
+/** Where mail comes from and how it goes out, in two lists. Each row opens its own connect form; one is open at a time. */
 export function IntegrationsSection(): ReactNode {
-  const [open, setOpen] = useState<IntegrationId | null>(null)
+  const [open, setOpen] = useState<string | null>(null)
   return (
     <>
-      <p className="settings__intro">Bring your domains in through Cloudflare, or pull an existing mailbox. Everything lands in the workspaces your routing file defines.</p>
-      <ul className="settings__list">
-        {INTEGRATIONS.map((integration) => (
-          <IntegrationRow key={integration.id} integration={integration} open={open === integration.id} onToggle={() => setOpen(open === integration.id ? null : integration.id)} />
-        ))}
-      </ul>
+      <p className="settings__intro">Bring your domains in through Cloudflare or pull an existing mailbox, then pick how replies go out. Each reply leaves from the address the message was sent to.</p>
+      {DIRECTIONS.map((direction) => {
+        const { title, glyph: Glyph } = DIRECTION_WORDS[direction]
+        return (
+          <section key={direction} className="settings__group" aria-labelledby={`direction-${direction}`}>
+            <h4 id={`direction-${direction}`} className="settings__group-title">
+              <Glyph aria-hidden="true" />
+              {title}
+            </h4>
+            <ul className="settings__list">
+              {INTEGRATIONS.filter((integration) => integration.directions.includes(direction)).map((integration) => {
+                const key = `${direction}-${integration.id}`
+                return <IntegrationRow key={key} rowKey={key} integration={integration} open={open === key} onToggle={() => setOpen(open === key ? null : key)} />
+              })}
+            </ul>
+          </section>
+        )
+      })}
     </>
   )
 }
 
-function IntegrationRow({ integration, open, onToggle }: { integration: Integration; open: boolean; onToggle: () => void }): ReactNode {
+function IntegrationRow({ rowKey, integration, open, onToggle }: { rowKey: string; integration: Integration; open: boolean; onToggle: () => void }): ReactNode {
   const Glyph = INTEGRATION_GLYPHS[integration.id]
-  const panel = `integration-${integration.id}`
+  const panel = `integration-${rowKey}`
   return (
     <li className="integration" data-open={open}>
       <button type="button" className="integration__head" aria-expanded={open} aria-controls={panel} onClick={onToggle}>
-        <span className="integration__glyph" aria-hidden="true">
+        <span className={`integration__glyph logo--${integration.id}`} aria-hidden="true">
           <Glyph />
         </span>
         <span className="integration__words">
@@ -38,21 +55,21 @@ function IntegrationRow({ integration, open, onToggle }: { integration: Integrat
       </button>
       {open && (
         <div id={panel} className="integration__panel">
-          <ConnectForm integration={integration} />
+          <ConnectForm integration={integration} idPrefix={rowKey} />
         </div>
       )}
     </li>
   )
 }
 
-function ConnectForm({ integration }: { integration: Integration }): ReactNode {
+function ConnectForm({ integration, idPrefix }: { integration: Integration; idPrefix: string }): ReactNode {
   const [picked, setPicked] = useState<string | null>(null)
   const { method } = integration
   return (
     <form className="connect" onSubmit={(event) => event.preventDefault()}>
       {method.kind === 'form' &&
         method.fields.map((field) => {
-          const id = `${integration.id}-${field.id}`
+          const id = `${idPrefix}-${field.id}`
           return (
             <div key={field.id} className="connect__field">
               <label htmlFor={id}>{field.label}</label>
@@ -65,7 +82,7 @@ function ConnectForm({ integration }: { integration: Integration }): ReactNode {
       {method.kind === 'file' && (
         <label className="connect__drop">
           <input
-            id={`${integration.id}-file`}
+            id={`${idPrefix}-file`}
             type="file"
             accept={method.accept}
             multiple

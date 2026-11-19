@@ -55,6 +55,25 @@
   --tone-cryptflare: #2563eb;
   --tone-buun: #f18707;
 
+  /* Grain: the paper tooth buungroup.com has, under the whole window and blended over it. */
+  --grain-image: url('/grain.svg');
+  --grain-opacity: 0.22;
+  --grain-over-opacity: 0.35;
+  --grain-filter: none;
+
+  /* Company logos, in each company's own colour. Dark brands flip to near white in dark mode. */
+  --logo-cloudflare: #f38020;
+  --logo-gmail: #ea4335;
+  --logo-outlook: #0078d4;
+  --logo-proton: #6d4aff;
+  --logo-icloud: #3693f3;
+  --logo-zoho: #e42527;
+  --logo-resend: #000000;
+  --logo-ses: #dd8b00;
+  --logo-mailgun: #f06b66;
+  --logo-brevo: #0b996e;
+  --logo-sparkpost: #fa6423;
+
   --font-sans: 'Geist Variable', ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-mono: 'Geist Mono Variable', ui-monospace, Menlo, monospace;
 
@@ -125,6 +144,13 @@
   --shadow-plate: inset 0 1px 0 rgba(255, 255, 255, 0.9), inset 0 -1px 0 rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(255, 255, 255, 0.16), 0 2px 4px rgba(0, 0, 0, 0.5), 0 8px 16px -6px rgba(0, 0, 0, 0.7);
   --shadow-well: inset 0 1px 3px rgba(0, 0, 0, 0.85), inset 0 0 0 1px var(--alpha-8), 0 1px 0 var(--emboss-light);
 
+  --grain-opacity: 0.28;
+  --grain-over-opacity: 0.22;
+  --grain-filter: invert(1);
+  --logo-resend: #fafafa;
+  --logo-outlook: #4aa3ff;
+  --logo-proton: #9b85ff;
+
   --tone-plotwork: #2dd4bf;
   --tone-flung: #ffa584;
   --tone-gunspec: #e7e2da;
@@ -132,6 +158,18 @@
   --tone-cryptflare: #6b9bff;
   --tone-buun: #ffa22e;
 }
+
+.logo--cloudflare { --logo: var(--logo-cloudflare); }
+.logo--gmail { --logo: var(--logo-gmail); }
+.logo--outlook { --logo: var(--logo-outlook); }
+.logo--proton { --logo: var(--logo-proton); }
+.logo--icloud { --logo: var(--logo-icloud); }
+.logo--zoho { --logo: var(--logo-zoho); }
+.logo--resend { --logo: var(--logo-resend); }
+.logo--ses { --logo: var(--logo-ses); }
+.logo--mailgun { --logo: var(--logo-mailgun); }
+.logo--brevo { --logo: var(--logo-brevo); }
+.logo--sparkpost { --logo: var(--logo-sparkpost); }
 
 .tone--plotwork { --tone: var(--tone-plotwork); }
 .tone--flung { --tone: var(--tone-flung); }

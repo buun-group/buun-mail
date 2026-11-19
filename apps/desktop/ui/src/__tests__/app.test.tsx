@@ -37,7 +37,7 @@ describe('the app in a browser', () => {
     await screen.findByText('Quote for the booking site')
     fireEvent.keyDown(window, { key: ',', ctrlKey: true })
     fireEvent.click(screen.getByRole('button', { name: 'Integrations' }))
-    for (const integration of INTEGRATIONS) expect(screen.getByText(integration.name)).toBeTruthy()
+    for (const integration of INTEGRATIONS) expect(screen.getAllByText(integration.name)).toHaveLength(integration.directions.length)
   })
 
   it('opens a connect form that says it is not wired up yet', async () => {

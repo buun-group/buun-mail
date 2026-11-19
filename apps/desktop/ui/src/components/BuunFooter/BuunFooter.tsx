@@ -1,16 +1,18 @@
 import type { ReactNode } from 'react'
 
 import { openExternal } from '../../api/client'
-import { PRODUCTS } from '../../constants/products'
+import { BUUN_GROUP, PRODUCTS } from '../../constants/products'
 import type { Theme } from '../../constants/ui'
 
 import './BuunFooter.css'
 
-/** The sidebar's foot: who makes the app, and the other Buun Group products as a row of marks that open their sites. */
-export function BuunFooter({ theme, label = 'Buun Group' }: { theme: Theme; label?: string }): ReactNode {
+/** The sidebar's foot: the Buun Group logo, which opens the group site, and the other products as a row of marks. */
+export function BuunFooter({ theme }: { theme: Theme }): ReactNode {
   return (
     <footer className="buun-footer">
-      <span className="buun-footer__label">{label}</span>
+      <button type="button" className="buun-footer__group" aria-label={`${BUUN_GROUP.name}, opens ${new URL(BUUN_GROUP.href).host}`} data-name={BUUN_GROUP.name} onClick={() => void openExternal(BUUN_GROUP.href)}>
+        <img src={BUUN_GROUP.logo[theme]} alt="" />
+      </button>
       <ul className="buun-footer__marks">
         {PRODUCTS.map((product) => (
           <li key={product.id}>

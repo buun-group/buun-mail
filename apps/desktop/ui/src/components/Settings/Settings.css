@@ -36,6 +36,9 @@
 }
 
 .settings__tab {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
   height: 1.875rem;
   padding: 0 var(--space-2);
   border-radius: var(--radius-sm);
@@ -47,9 +50,37 @@
   background: var(--alpha-4);
 }
 
+.settings__tab svg {
+  font-size: var(--text-base);
+  color: var(--text-muted);
+}
+
 .settings__tab[aria-current='page'] {
   background: var(--alpha-8);
   color: var(--text-primary);
+}
+
+.settings__tab[aria-current='page'] svg {
+  color: var(--text-primary);
+}
+
+.settings__group + .settings__group {
+  margin-top: var(--space-8);
+}
+
+.settings__group-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.settings__group-title svg {
+  font-size: var(--text-base);
+  color: var(--text-muted);
 }
 
 .settings__panel {
@@ -175,7 +206,9 @@
 }
 
 .segmented__option span {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1-5);
   padding: var(--space-1) var(--space-3);
   border-radius: calc(var(--radius-md) - 2px);
   color: var(--text-secondary);
@@ -212,9 +245,10 @@
   width: 2rem;
   height: 2rem;
   border-radius: var(--radius-md);
-  background: var(--alpha-6);
-  font-size: var(--text-base);
-  color: var(--text-secondary);
+  background: var(--surface-card-hover);
+  box-shadow: 0 0 0 1px var(--alpha-8), 0 1px 2px var(--alpha-8);
+  font-size: 1.0625rem;
+  color: var(--logo, var(--text-secondary));
 }
 
 .integration__words {

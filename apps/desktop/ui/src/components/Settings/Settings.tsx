@@ -5,7 +5,7 @@ import type { Workspace } from '../../api/types'
 import { SETTINGS_SECTIONS } from '../../constants/ui'
 import type { SettingsSection } from '../../constants/ui'
 import type { Preferences } from '../../hooks/usePreferences'
-import { IconClose } from '../../icons'
+import { IconClose, SECTION_GLYPHS } from '../../icons'
 import { GeneralSection } from './GeneralSection'
 import { IntegrationsSection } from './IntegrationsSection'
 import { WorkspacesSection } from './WorkspacesSection'
@@ -41,11 +41,15 @@ export function Settings({ open, onClose, preferences, workspaces }: SettingsPro
     <dialog ref={dialog} className="settings" aria-labelledby="settings-title" onClose={onClose}>
       <nav className="settings__nav" aria-label="Settings sections">
         <h2 id="settings-title">Settings</h2>
-        {SETTINGS_SECTIONS.map((id) => (
-          <button key={id} type="button" className="settings__tab" aria-current={id === section ? 'page' : undefined} onClick={() => setSection(id)}>
-            {SECTION_LABELS[id]}
-          </button>
-        ))}
+        {SETTINGS_SECTIONS.map((id) => {
+          const Glyph = SECTION_GLYPHS[id]
+          return (
+            <button key={id} type="button" className="settings__tab" aria-current={id === section ? 'page' : undefined} onClick={() => setSection(id)}>
+              <Glyph aria-hidden="true" />
+              {SECTION_LABELS[id]}
+            </button>
+          )
+        })}
       </nav>
       <div className="settings__panel">
         <header className="settings__head">
