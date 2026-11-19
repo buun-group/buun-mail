@@ -31,9 +31,14 @@ The envelope recipient survives the hop, so placing a message is a table lookup,
 | `pnpm dev` | The desktop app, UI hot-reloading on http://localhost:28600 |
 | `pnpm dev:ui` | The UI alone in a browser, on a preview mailbox, no Rust build. Fastest way to tune the look |
 | `pnpm check` | `cargo fmt --check`, oxlint, clippy (pedantic, warnings fail), `tsc`, vitest, `cargo test`. CI runs the same |
-| `pnpm build` | A release bundle for this platform |
+| `pnpm build` | This machine's installers, into `target/release/bundle/` |
+| `pnpm dev:brand` | The brand preview on http://localhost:28610 |
+| `pnpm brand:build` | Rebuilds the brand kit from the mark's geometry |
 
 Linux needs the WebKitGTK libraries Tauri uses: `libwebkit2gtk-4.1-dev libgtk-3-dev librsvg2-dev`.
+
+Releases: a `v*` tag builds installers for Linux (x86_64 and arm64: `.deb`, `.rpm`, `.AppImage`), macOS (Apple silicon
+and Intel: `.dmg`) and Windows (`.msi`, setup `.exe`) into a draft release. Arch builds from `packaging/arch/PKGBUILD`.
 
 ## Layout
 
@@ -41,6 +46,8 @@ Linux needs the WebKitGTK libraries Tauri uses: `libwebkit2gtk-4.1-dev libgtk-3-
 |---|---|
 | [`crates/routing`](crates/routing/README.md) | Pure routing: which workspace and folder a message belongs to. No I/O |
 | [`apps/desktop`](apps/desktop/README.md) | The Tauri app: Rust shell in `src-tauri`, React UI in `ui` |
+| [`packages/brand`](packages/brand/README.md) | The brand kit: mark, lockups, icons, social card, motion |
+| [`packaging`](packaging/README.md) | Arch PKGBUILD, the Linux desktop entry, which installer to pick |
 | [`config/workspaces.example.toml`](config/workspaces.example.toml) | The routing file format, with comments |
 | `.standards/` | The [Buun Group coding standards](https://github.com/buun-group/standards), a submodule |
 

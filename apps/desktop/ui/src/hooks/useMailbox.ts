@@ -5,6 +5,8 @@ import type { Message, Place, Workspace } from '../api/types'
 
 export interface Mailbox {
   workspaces: Workspace[]
+  /** True once the workspaces have loaded. */
+  ready: boolean
   place: Place | null
   messages: Message[]
   selected: Message | null
@@ -16,6 +18,7 @@ export interface Mailbox {
 /** Loads the workspaces once, then the messages of whichever folder is open. Opens the first inbox to start. */
 export function useMailbox(): Mailbox {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([])
+  const [ready, setReady] = useState(false)
   const [place, setPlace] = useState<Place | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -25,6 +28,7 @@ export function useMailbox(): Mailbox {
     listWorkspaces()
       .then((found) => {
         setWorkspaces(found)
+        setReady(true)
         const first = found[0]
         if (first !== undefined) setPlace({ workspace: first.id, folder: null })
       })
@@ -48,6 +52,7 @@ export function useMailbox(): Mailbox {
 
   return {
     workspaces,
+    ready,
     place,
     messages,
     selected: messages.find((message) => message.id === selectedId) ?? null,

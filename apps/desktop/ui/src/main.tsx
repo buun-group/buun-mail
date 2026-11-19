@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 
 import { App } from './App'
 
+import '@buun-mail/brand/motion.css'
 import './styles/base.css'
 
 const root = document.getElementById('root')

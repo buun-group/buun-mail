@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Buun Mail
+Comment=Every address you run, in one inbox
+Exec=buun-mail
+Icon=buun-mail
+Terminal=false
+Categories=Network;Email;
+Keywords=mail;email;inbox;cloudflare;
+StartupWMClass=buun-mail

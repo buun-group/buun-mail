@@ -14,3 +14,9 @@
   padding: var(--space-8);
   color: var(--text-secondary);
 }
+
+/* The launch screen sits on the app's own ground. */
+.bm-splash {
+  --bm-splash-ground: var(--surface-body);
+  color: var(--text-primary);
+}

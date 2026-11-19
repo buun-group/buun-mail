@@ -1,3 +1,4 @@
+import { Mark } from '@buun-mail/brand/react'
 import { useCallback, useRef, useState } from 'react'
 import type { KeyboardEvent, MouseEvent, ReactNode } from 'react'
 
@@ -27,7 +28,6 @@ import {
 import { copyText } from '../../lib/clipboard'
 import { ContextMenu } from '../ContextMenu/ContextMenu'
 import type { MenuItem, MenuRequest } from '../ContextMenu/ContextMenu'
-import { BrandMark } from '../BrandMark/BrandMark'
 import { BuunFooter } from '../BuunFooter/BuunFooter'
 import { WorkspaceIcon } from '../WorkspaceIcon/WorkspaceIcon'
 
@@ -126,7 +126,7 @@ export function Sidebar({ workspaces, place, theme, themePreference, onThemePref
       <nav ref={nav} className="sidebar" aria-label="Workspaces" data-collapsed={collapsed} data-rail={rail} data-peek={peek}>
         <header className="sidebar__top">
           <span className="sidebar__brand">
-            <BrandMark size={22} />
+            <Mark size={22} />
             <span className="sidebar__text">Buun Mail</span>
           </span>
           <span className="sidebar__tools">

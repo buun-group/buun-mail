@@ -1,0 +1,47 @@
+# Buun Mail, built from source for Arch Linux and its derivatives (Manjaro, EndeavourOS).
+#
+#   makepkg -si
+#
+# Builds the UI with pnpm and the app with cargo, then installs the binary, a desktop entry and the icons. The AppImage
+# from a GitHub release also runs on Arch without building.
+
+pkgname=buun-mail
+pkgver=0.1.0
+pkgrel=1
+pkgdesc='Local mail client that files every business domain into workspaces, fed by Cloudflare Email Routing'
+arch=('x86_64' 'aarch64')
+url='https://github.com/buun-group/buun-mail'
+license=('LicenseRef-proprietary')
+depends=('webkit2gtk-4.1' 'gtk3' 'librsvg' 'libayatana-appindicator')
+makedepends=('rustup' 'nodejs' 'pnpm' 'git')
+source=("$pkgname::git+$url.git#tag=v$pkgver")
+sha256sums=('SKIP')
+options=('!lto')
+
+prepare() {
+  cd "$pkgname"
+  rustup show active-toolchain || rustup toolchain install
+  pnpm install --frozen-lockfile --ignore-scripts
+}
+
+build() {
+  cd "$pkgname"
+  pnpm --filter @buun-mail/ui build
+  cargo build --release --locked -p buun-mail-desktop
+}
+
+check() {
+  cd "$pkgname"
+  cargo test --release --locked -p buun-mail-routing
+}
+
+package() {
+  cd "$pkgname"
+  install -Dm755 target/release/buun-mail "$pkgdir/usr/bin/buun-mail"
+  install -Dm644 packaging/linux/buun-mail.desktop "$pkgdir/usr/share/applications/buun-mail.desktop"
+  for size in 32 128; do
+    install -Dm644 "apps/desktop/src-tauri/icons/${size}x${size}.png" "$pkgdir/usr/share/icons/hicolor/${size}x${size}/apps/buun-mail.png"
+  done
+  install -Dm644 apps/desktop/src-tauri/icons/128x128@2x.png "$pkgdir/usr/share/icons/hicolor/256x256/apps/buun-mail.png"
+  install -Dm644 packages/brand/src/svg/mark-on-light.svg "$pkgdir/usr/share/icons/hicolor/scalable/apps/buun-mail.svg"
+}

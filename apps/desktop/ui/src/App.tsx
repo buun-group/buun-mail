@@ -1,3 +1,4 @@
+import { Splash } from '@buun-mail/brand/react'
 import { useCallback, useState } from 'react'
 import type { ReactNode } from 'react'
 
@@ -66,6 +67,7 @@ export function App(): ReactNode {
         editing={editing}
         onEditing={setEditing}
       />
+      <Splash done={mailbox.ready} />
     </div>
   )
 }

@@ -14,6 +14,8 @@ This repository follows the [Buun Group coding standards](./.standards/docs/stan
 - `apps/desktop/ui` never decides where mail goes. It shows what the Rust side sends. `src/api/client.ts` is the only
   file that calls Tauri.
 - `src-tauri/src/dto.rs` and `ui/src/api/types.ts` mirror each other. Change both together.
+- `packages/brand` is the only place the mark is drawn. The app imports `Mark`, `Splash` and the motion CSS from it; the
+  desktop icons are generated from its `app-icon-1024.png` with `tauri icon`.
 
 ## Rust rules
 
@@ -42,7 +44,8 @@ This repository follows the [Buun Group coding standards](./.standards/docs/stan
 
 ## Commands
 
-`pnpm check` before you finish. `pnpm dev:ui` to work on the look without building Rust.
+`pnpm check` before you finish. `pnpm dev:ui` to work on the look without building Rust. `pnpm dev:brand` for the
+brand preview, `pnpm brand:build` after changing the mark.
 
 ## Writing, commits
 

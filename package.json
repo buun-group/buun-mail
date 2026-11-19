@@ -11,9 +11,11 @@
     "build": "tauri build --config apps/desktop/src-tauri/tauri.conf.json",
     "lint": "oxlint --deny-warnings && cargo clippy --workspace --all-targets -- -D warnings",
     "format": "cargo fmt --all",
-    "typecheck": "pnpm --filter @buun-mail/ui typecheck",
-    "test": "pnpm --filter @buun-mail/ui test && cargo test --workspace",
-    "check": "cargo fmt --all --check && pnpm lint && pnpm typecheck && pnpm test"
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test && cargo test --workspace",
+    "check": "cargo fmt --all --check && pnpm lint && pnpm typecheck && pnpm test",
+    "dev:brand": "pnpm --filter @buun-mail/brand preview",
+    "brand:build": "pnpm --filter @buun-mail/brand build"
   },
   "devDependencies": {
     "@tauri-apps/cli": "2.12.4",

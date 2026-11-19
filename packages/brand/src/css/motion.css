@@ -1,0 +1,297 @@
+/*
+ * Buun Mail motion. Every animation moves the mark's own parts (the letter, its flap, the two streaks), so each one
+ * reads as the same letter arriving, waiting, leaving or nudging. Add a class to the <svg> drawn by <Mark>:
+ *
+ *   bm-arrive   the letter flies in from the left and settles, streaks trailing: the splash, first launch
+ *   bm-loader   the letter hovers, the streaks pulse one after the other: loading, syncing
+ *   bm-send     the letter leaves to the right and fades, streaks stretching: a reply sent
+ *   bm-ping     a short hop and wiggle: new mail
+ *   bm-draw     the outline traces, then fills: a first view, the empty state
+ *
+ * Under prefers-reduced-motion everything shows at rest, and the loader only fades.
+ */
+
+.bm-letter,
+.bm-streak,
+.bm-flap {
+  transform-box: fill-box;
+}
+
+.bm-letter {
+  transform-origin: 50% 50%;
+}
+
+.bm-streak {
+  transform-origin: 100% 50%;
+}
+
+/* Arrive */
+.bm-arrive .bm-letter {
+  animation: bm-arrive-letter 720ms cubic-bezier(0.2, 0.9, 0.25, 1.15) both;
+}
+
+.bm-arrive .bm-streak {
+  animation: bm-arrive-streak 720ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.bm-arrive .bm-streak:nth-of-type(2) {
+  animation-delay: 60ms;
+}
+
+@keyframes bm-arrive-letter {
+  from {
+    opacity: 0;
+    transform: translate(-60%, 12%) rotate(-10deg) scale(0.85);
+  }
+  60% {
+    opacity: 1;
+  }
+}
+
+@keyframes bm-arrive-streak {
+  0%,
+  20% {
+    opacity: 0;
+    transform: translateX(-140%) scaleX(2.4);
+  }
+  to {
+    opacity: var(--bm-streak-opacity, 1);
+  }
+}
+
+/* Loader */
+.bm-loader .bm-letter {
+  animation: bm-hover 1.2s ease-in-out infinite;
+}
+
+.bm-loader .bm-streak {
+  animation: bm-pulse 1.2s ease-in-out infinite;
+}
+
+.bm-loader .bm-streak:nth-of-type(2) {
+  animation-delay: 200ms;
+}
+
+@keyframes bm-hover {
+  50% {
+    transform: translate(6%, -4%);
+  }
+}
+
+@keyframes bm-pulse {
+  0%,
+  100% {
+    transform: scaleX(0.5);
+    opacity: 0.35;
+  }
+  50% {
+    transform: scaleX(1.25);
+    opacity: 1;
+  }
+}
+
+/* Send */
+.bm-send .bm-letter {
+  animation: bm-send-letter 640ms cubic-bezier(0.55, 0, 0.75, 0.2) both;
+}
+
+.bm-send .bm-streak {
+  animation: bm-send-streak 640ms ease-in both;
+}
+
+@keyframes bm-send-letter {
+  20% {
+    transform: translate(-8%, 3%) rotate(2deg);
+  }
+  to {
+    opacity: 0;
+    transform: translate(120%, -30%) rotate(-8deg) scale(0.9);
+  }
+}
+
+@keyframes bm-send-streak {
+  40% {
+    transform: scaleX(2.2);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(260%) scaleX(1.5);
+  }
+}
+
+/* Ping */
+.bm-ping .bm-letter {
+  animation: bm-ping 520ms cubic-bezier(0.3, 1.4, 0.5, 1) both;
+}
+
+.bm-ping .bm-streak {
+  animation: bm-ping-streak 520ms ease-out both;
+}
+
+@keyframes bm-ping {
+  30% {
+    transform: translateY(-14%) rotate(-6deg);
+  }
+  55% {
+    transform: translateY(0) rotate(4deg);
+  }
+  75% {
+    transform: rotate(-2deg);
+  }
+}
+
+@keyframes bm-ping-streak {
+  30% {
+    transform: scaleX(1.6);
+  }
+}
+
+/* Draw */
+.bm-draw .bm-outline {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: bm-trace 700ms cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+
+.bm-draw .bm-fill {
+  opacity: 0;
+  animation: bm-fade 300ms ease-out 600ms forwards;
+}
+
+.bm-draw .bm-flap,
+.bm-draw .bm-streak {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: bm-trace 420ms cubic-bezier(0.65, 0, 0.35, 1) 520ms forwards;
+}
+
+.bm-draw .bm-streak:nth-of-type(2) {
+  animation-delay: 620ms;
+}
+
+@keyframes bm-trace {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes bm-fade {
+  to {
+    opacity: 1;
+  }
+}
+
+/* The route: letters run from each address to its workspace, one after another, for ever. */
+.bm-route__runner {
+  offset-rotate: 0deg;
+  animation: bm-run 2.4s cubic-bezier(0.45, 0, 0.25, 1) infinite both;
+}
+
+.bm-route__runner:nth-of-type(2) {
+  animation-delay: 0.8s;
+}
+
+.bm-route__runner:nth-of-type(3) {
+  animation-delay: 1.6s;
+}
+
+.bm-route__lane {
+  animation: bm-lane 2.4s ease-in-out infinite both;
+}
+
+.bm-route__lane:nth-of-type(2) {
+  animation-delay: 0.8s;
+}
+
+.bm-route__lane:nth-of-type(3) {
+  animation-delay: 1.6s;
+}
+
+@keyframes bm-run {
+  0% {
+    offset-distance: 0%;
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  55% {
+    offset-distance: 100%;
+    opacity: 1;
+  }
+  70%,
+  100% {
+    offset-distance: 100%;
+    opacity: 0;
+  }
+}
+
+@keyframes bm-lane {
+  0%,
+  45%,
+  100% {
+    opacity: 0.35;
+  }
+  55% {
+    opacity: 1;
+  }
+}
+
+/* Splash: the mark arrives, the name follows, then the whole thing lifts away when the app is ready. */
+.bm-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 14px;
+  background: var(--bm-splash-ground, inherit);
+  transition: opacity 260ms ease-out, visibility 260ms;
+}
+
+.bm-splash[data-done='true'] {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.bm-splash__name {
+  animation: bm-name 500ms cubic-bezier(0.16, 1, 0.3, 1) 380ms both;
+}
+
+@keyframes bm-name {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bm-arrive *,
+  .bm-send *,
+  .bm-ping *,
+  .bm-draw *,
+  .bm-route__runner,
+  .bm-route__lane,
+  .bm-splash__name {
+    animation: none !important;
+    stroke-dashoffset: 0 !important;
+    opacity: 1 !important;
+  }
+
+  .bm-route__runner {
+    display: none;
+  }
+
+  .bm-loader .bm-letter,
+  .bm-loader .bm-streak {
+    animation: bm-fade-pulse 1.6s ease-in-out infinite !important;
+    transform: none !important;
+  }
+
+  @keyframes bm-fade-pulse {
+    50% {
+      opacity: 0.4;
+    }
+  }
+}

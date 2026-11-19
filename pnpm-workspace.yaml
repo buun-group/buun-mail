@@ -1,5 +1,6 @@
 packages:
   - apps/desktop/ui
+  - packages/*
 
 # Refuse a release younger than seven days (in minutes): the supply-chain cooldown from the dependency standard.
 minimumReleaseAge: 10080
@@ -7,3 +8,4 @@ minimumReleaseAge: 10080
 saveExact: true
 onlyBuiltDependencies:
   - esbuild
+  - '@resvg/resvg-js'

@@ -9,6 +9,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@buun-mail/brand": "workspace:*",
     "@fontsource-variable/geist": "5.3.0",
     "@fontsource-variable/geist-mono": "5.3.0",
     "@tauri-apps/api": "2.12.4",
