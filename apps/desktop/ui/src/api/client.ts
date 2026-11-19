@@ -345,7 +345,12 @@ export async function setDissolveKeep(keep: boolean): Promise<DissolveStatus> {
 
 /** Makes a dissolve.email inbox, on a domain or the account's default, with an optional name. */
 export async function createDissolveInbox(options: { domain?: string; name?: string } = {}): Promise<DissolveInbox> {
-  return isTauri() ? invoke<DissolveInbox>(COMMANDS.createDissolveInbox, { domain: options.domain ?? null, name: options.name ?? null }) : preview.dissolve.create(options.name)
+  return isTauri() ? invoke<DissolveInbox>(COMMANDS.createDissolveInbox, { domain: options.domain ?? null, name: options.name ?? null }) : preview.dissolve.create(options.name, options.domain)
+}
+
+/** The domains a new dissolve.email inbox can be made on, the default first. */
+export async function dissolveDomains(): Promise<string[]> {
+  return isTauri() ? invoke<string[]>(COMMANDS.dissolveDomains) : ['dissolve.email', 'minutes.email']
 }
 
 /** Gives a dissolve.email inbox more time. Rejects with dissolve.email's reason, such as too early. */

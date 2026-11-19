@@ -7,7 +7,7 @@ use buun_mail_store::{Placement, Store};
 
 use super::{Actor, Mailbox};
 use crate::error::AppError;
-use crate::paths::EXAMPLE_ROUTING;
+use crate::paths::TEST_ROUTING;
 
 const STRIPE: &str = "From: Stripe <receipts@stripe.com>\r\nDelivered-To: me@personal.example\r\nTo: me@personal.example\r\nSubject: Your receipt\r\nDate: Tue, 17 Nov 2026 09:12:00 +0000\r\n\r\nReceipt 2041.\r\n";
 const CLIENT: &str = "From: A client <projects@client.example>\r\nTo: hello@buungroup.com\r\nSubject: Quote\r\nDate: Wed, 18 Nov 2026 23:05:00 +0000\r\n\r\nCould you send the quote?\r\n";
@@ -15,7 +15,7 @@ const STRANGER: &str = "From: news@letters.example\r\nTo: old@forwarded.example\
 
 fn mailbox() -> (tempfile::TempDir, Mailbox) {
     let folder = tempfile::tempdir().unwrap_or_else(|error| unreachable!("temp folder: {error}"));
-    let router = Router::from_toml(EXAMPLE_ROUTING).unwrap_or_else(|error| unreachable!("example routing: {error}"));
+    let router = Router::from_toml(TEST_ROUTING).unwrap_or_else(|error| unreachable!("example routing: {error}"));
     let store = Store::open(&folder.path().join("store")).unwrap_or_else(|error| unreachable!("store: {error}"));
     let mailbox = Mailbox::new(router, store, folder.path().join("workspaces.toml")).unwrap_or_else(|error| unreachable!("mailbox: {error}"));
     (folder, mailbox)
@@ -151,15 +151,25 @@ fn refuses_a_rule_that_matches_everything() {
 fn adds_a_workspace_for_a_new_domain_once_and_reloads() -> Result<(), AppError> {
     let folder = tempfile::tempdir().unwrap_or_else(|error| unreachable!("temp folder: {error}"));
     let routing = folder.path().join("workspaces.toml");
-    fs::write(&routing, EXAMPLE_ROUTING).unwrap_or_else(|error| unreachable!("routing file: {error}"));
+    fs::write(&routing, TEST_ROUTING).unwrap_or_else(|error| unreachable!("routing file: {error}"));
     let store = Store::open(&folder.path().join("store")).unwrap_or_else(|error| unreachable!("store: {error}"));
-    let mailbox = Mailbox::new(Router::from_toml(EXAMPLE_ROUTING)?, store, routing.clone())?;
+    let mailbox = Mailbox::new(Router::from_toml(TEST_ROUTING)?, store, routing.clone())?;
 
     assert!(mailbox.ensure_workspace_for("newbiz.example", "New business", &Actor::You)?);
     assert!(!mailbox.ensure_workspace_for("newbiz.example", "Again", &Actor::You)?, "a domain already claimed is left alone");
-    assert!(!mailbox.ensure_workspace_for("buungroup.com", "Buun", &Actor::You)?, "the example file already claims it");
+    assert!(!mailbox.ensure_workspace_for("buungroup.com", "Buun", &Actor::You)?, "the test file already claims it");
     let text = fs::read_to_string(&routing).unwrap_or_default();
-    assert!(text.starts_with("# Buun Mail routing file."), "the file's own comments survive");
+    assert!(text.starts_with("# The routing file the Rust tests run against"), "the file's own comments survive");
     assert!(mailbox.workspaces()?.iter().any(|workspace| workspace.id == "newbiz-example" && workspace.name == "New business"));
+    Ok(())
+}
+
+#[test]
+fn a_new_install_starts_from_a_generic_example() -> Result<(), AppError> {
+    let router = Router::from_toml(crate::paths::EXAMPLE_ROUTING)?;
+    let ids: Vec<&str> = router.workspaces().map(|workspace| workspace.id().as_str()).collect();
+    assert!(ids.contains(&"acme") && ids.contains(&"personal"));
+    let addresses: Vec<String> = router.workspaces().flat_map(|workspace| workspace.patterns().iter().map(ToString::to_string).collect::<Vec<_>>()).collect();
+    assert!(addresses.iter().all(|address| address.ends_with(".example")), "only reserved example domains: {addresses:?}");
     Ok(())
 }

@@ -27,7 +27,7 @@
   },
   "grain": {
     "title": "Paper grain",
-    "hint": "A fine texture over the window, as on buungroup.com."
+    "hint": "A fine paper texture over the window."
   },
   "workspaces": {
     "introDefault": "Workspaces come from your routing file, <file/>. Edit it and restart to change which addresses land where. Give each workspace an icon or an image here; it is kept on this computer and wins over the file's <field/>.",

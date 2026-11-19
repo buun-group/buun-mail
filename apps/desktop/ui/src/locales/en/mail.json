@@ -88,7 +88,8 @@
       "cc": "Cc",
       "replyTo": "Reply to"
     },
-    "forward": "Forward"
+    "forward": "Forward",
+    "routeProvided": "{{workspace}}, where the integration it came from placed it."
   },
   "tags": {
     "more": "+{{count}}",
@@ -276,7 +277,6 @@
     "notConnected": "Not connected to dissolve.email. Mail collected earlier stays here; connect again in Settings, Integrations.",
     "newAddress": "New address",
     "madeCopied": "New address made and copied",
-    "createFailed": "No address was made",
     "copyAddress": "Copy {{address}}",
     "leftDays": "{{days}} d {{hours}} h left",
     "leftHours": "{{hours}} h {{minutes}} min left",
@@ -291,6 +291,19 @@
     "burnTitle": "Burn {{address}}?",
     "burnBody": "The inbox ends on dissolve.email now, and every message of it on this computer is deleted. Mail sent to it afterwards is refused. This cannot be undone.",
     "burned": "Inbox burned",
-    "burnFailed": "The inbox was not burned"
+    "burnFailed": "The inbox was not burned",
+    "nameLabel": "Address",
+    "namePlaceholder": "random",
+    "nameHint": "Leave the name empty for a random one. Choosing it is on dissolve.email Pro and Business.",
+    "make": "Make address",
+    "making": "Making..."
+  },
+  "verification": {
+    "label": "Found in this message",
+    "code": "Code",
+    "link": "Sign-in link",
+    "copy": "Copy",
+    "open": "Open",
+    "codeCopied": "Code copied"
   }
 }

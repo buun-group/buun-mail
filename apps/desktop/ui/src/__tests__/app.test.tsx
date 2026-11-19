@@ -105,3 +105,20 @@ describe('dissolve.email', () => {
     expect(formatTimeLeft(timeLeft('2026-11-20T09:00:00Z', now))).toBe('Ended')
   })
 })
+
+describe('verification codes', () => {
+  it('offers the code a message carries, ready to copy', async () => {
+    const { Verification } = await import('../components/Reader/Verification')
+    render(<Verification subject="Confirm your email" from="no-reply@shop.example" text="Your verification code is 482913. It expires in 10 minutes." html={null} />)
+    expect(screen.getByText('482913')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Copy' })).toBeTruthy()
+  })
+
+  it('shows the host a sign-in link opens, and nothing for ordinary mail', async () => {
+    const { Verification } = await import('../components/Reader/Verification')
+    const { container } = render(<Verification subject="Saturday" from="friend@mail.example" text="Still on for Saturday? It is 2026 after all." html={null} />)
+    expect(container.textContent).toBe('')
+    render(<Verification subject="Sign in" from="auth@app.example" text={null} html={'<a href="https://login.app.example/verify?token=abc">Sign in</a>'} />)
+    expect(screen.getByText('login.app.example')).toBeTruthy()
+  })
+})

@@ -168,7 +168,7 @@ function AddGateway({ first, onAdded }: { first: boolean; onAdded: (list: Gatewa
       </div>
       <div className="connect__field">
         <label htmlFor="gateway-url">{t('gateway.urlLabel')}</label>
-        <input id="gateway-url" type="url" value={url} placeholder="https://mail-gateway.buungroup.com" onChange={(event) => setUrl(event.target.value)} autoComplete="off" spellCheck={false} required />
+        <input id="gateway-url" type="url" value={url} placeholder="https://mail-gateway.example.com" onChange={(event) => setUrl(event.target.value)} autoComplete="off" spellCheck={false} required />
       </div>
       <div className="connect__field">
         <label htmlFor="gateway-token">{t('gateway.tokenLabel')}</label>

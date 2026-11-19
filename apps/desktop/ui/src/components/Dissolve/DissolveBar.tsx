@@ -2,14 +2,15 @@ import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { burnDissolveInbox, createDissolveInbox, dissolveStatus, extendDissolveInbox } from '../../api/client'
-import type { DissolveStatus, Place } from '../../api/types'
+import { burnDissolveInbox, dissolveStatus, extendDissolveInbox } from '../../api/client'
+import type { DissolveInbox, DissolveStatus, Place } from '../../api/types'
 import { IconAdd, IconBurn, IconCopy, IconExtend, IconTimer } from '../../icons'
 import { copyWithToast } from '../../lib/copy'
 import { DISSOLVE_WORKSPACE, formatTimeLeft, timeLeft } from '../../lib/dissolve'
 import { toast } from '../../lib/feedback'
 import { Confirm } from '../Confirm/Confirm'
 import type { Confirmation } from '../Confirm/Confirm'
+import { NewAddress } from './NewAddress'
 
 import './Dissolve.css'
 
@@ -29,6 +30,7 @@ export function DissolveBar({ place, onOpen }: { place: Place; onOpen: (place: P
   const [now, setNow] = useState(() => Date.now())
   const [busy, setBusy] = useState(false)
   const [confirming, setConfirming] = useState<Confirmation | null>(null)
+  const [making, setMaking] = useState<HTMLElement | null>(null)
 
   useEffect(() => {
     let live = true
@@ -45,16 +47,9 @@ export function DissolveBar({ place, onOpen }: { place: Place; onOpen: (place: P
   if (status === null) return null
   const inbox = place.folder === null ? undefined : status.inboxes.find((item) => item.address === place.folder)
 
-  const create = (): void => {
-    setBusy(true)
-    createDissolveInbox()
-      .then(async (made) => {
-        setStatus(await dissolveStatus())
-        await copyWithToast(made.address, t('dissolve.madeCopied'))
-        onOpen({ workspace: DISSOLVE_WORKSPACE, folder: made.address })
-      })
-      .catch((cause: unknown) => toast({ text: t('dissolve.createFailed'), detail: reason(cause), tone: 'problem' }))
-      .finally(() => setBusy(false))
+  const made = (fresh: DissolveInbox): void => {
+    setMaking(null)
+    void copyWithToast(fresh.address, t('dissolve.madeCopied')).then(() => onOpen({ workspace: DISSOLVE_WORKSPACE, folder: fresh.address }))
   }
 
   if (inbox === undefined) {
@@ -62,11 +57,12 @@ export function DissolveBar({ place, onOpen }: { place: Place; onOpen: (place: P
       <div className="dissolve-bar">
         <p className="dissolve-bar__info">{status.connected ? t('dissolve.account', { email: status.email ?? '', count: status.inboxes.filter((item) => !item.ended).length }) : t('dissolve.notConnected')}</p>
         {status.connected && (
-          <button type="button" className="dissolve-bar__button" disabled={busy} onClick={create}>
+          <button type="button" className="dissolve-bar__button" aria-expanded={making !== null} onClick={(event) => setMaking(event.currentTarget)}>
             <IconAdd aria-hidden="true" />
             {t('dissolve.newAddress')}
           </button>
         )}
+        {making !== null && <NewAddress anchor={making} onMade={made} onClose={() => setMaking(null)} />}
       </div>
     )
   }

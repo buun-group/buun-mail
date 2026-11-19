@@ -37,6 +37,7 @@ export const COMMANDS = {
   checkDissolve: 'check_dissolve',
   setDissolveKeep: 'set_dissolve_keep',
   createDissolveInbox: 'create_dissolve_inbox',
+  dissolveDomains: 'dissolve_domains',
   extendDissolveInbox: 'extend_dissolve_inbox',
   burnDissolveInbox: 'burn_dissolve_inbox',
   openMessage: 'open_message',

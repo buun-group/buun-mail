@@ -1,0 +1,46 @@
+# The routing file the Rust tests run against: several workspaces with folders, an exact address that beats its
+# domain, and an environment kept apart. Not shipped; first run writes config/workspaces.example.toml instead.
+
+
+[[workspace]]
+id = "buun"
+name = "Buun Group"
+icon = "buun"
+match = ["*@buungroup.com"]
+folders = [
+  { name = "Billing", from = "*@stripe.com", icon = "receipt" },
+  { name = "Infrastructure", from = "*@cloudflare.com", icon = "cloud" },
+]
+
+[[workspace]]
+id = "plotwork"
+name = "Plotwork"
+icon = "plotwork"
+match = ["*@plotwork.dev"]
+folders = [{ name = "GitHub", from = "notifications@github.com", icon = "github" }]
+
+# An environment is its own workspace: mail to the preview domain stays apart from production.
+[[workspace]]
+id = "plotwork-preview"
+name = "Plotwork preview"
+icon = "wrench"
+match = ["*@preview.plotwork.dev"]
+
+[[workspace]]
+id = "flung"
+name = "Flung"
+icon = "flung"
+match = ["*@flung.dev"]
+
+[[workspace]]
+id = "gunspec"
+name = "GunSpec"
+icon = "gunspec"
+match = ["*@gunspec.io"]
+
+[[workspace]]
+id = "personal"
+name = "Personal"
+icon = "house"
+match = ["*@personal.example", "accounts@buungroup.com"]
+folders = [{ name = "Receipts", from = "*@stripe.com", icon = "receipt" }]

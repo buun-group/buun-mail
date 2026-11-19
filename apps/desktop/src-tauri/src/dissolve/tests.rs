@@ -13,7 +13,7 @@ use serde_json::{Value, json};
 use super::service::{DissolveService, POLLS_PER_CHECK};
 use super::{WORKSPACE, settings};
 use crate::mailbox::Mailbox;
-use crate::paths::EXAMPLE_ROUTING;
+use crate::paths::TEST_ROUTING;
 
 #[derive(Default)]
 struct Fake {
@@ -41,6 +41,16 @@ fn json_response(status: u16, value: &Value) -> tiny_http::Response<std::io::Cur
         .with_header(tiny_http::Header::from_bytes("Content-Type", "application/json").unwrap_or_else(|()| unreachable!()))
 }
 
+/// The server's OAuth endpoints.
+fn metadata(issuer: &str) -> Value {
+    json!({ "issuer": issuer, "authorization_endpoint": format!("{issuer}/oauth/authorize"), "token_endpoint": format!("{issuer}/oauth/token"), "registration_endpoint": format!("{issuer}/oauth/register"), "revocation_endpoint": format!("{issuer}/oauth/revoke") })
+}
+
+/// Two domains, the default listed second.
+fn domains() -> Value {
+    json!({ "domains": [{ "id": "d-0", "domain": "other.test", "isDefault": false }, { "id": "d-1", "domain": "dissolve.test", "isDefault": true }], "defaultDomain": "dissolve.test" })
+}
+
 /// Starts the fake server; returns its address and its state.
 fn fake_server() -> (String, Arc<Mutex<Fake>>) {
     let server = tiny_http::Server::http("127.0.0.1:0").unwrap_or_else(|error| unreachable!("listen: {error}"));
@@ -59,10 +69,7 @@ fn fake_server() -> (String, Arc<Mutex<Fake>>) {
             let authorized = bearer == format!("Bearer {}", fake.accepted);
             let path: Vec<&str> = url.split('?').next().unwrap_or("").trim_start_matches('/').split('/').collect();
             let response = match (method.as_str(), path.as_slice()) {
-                ("GET", [".well-known", "oauth-authorization-server"]) => json_response(
-                    200,
-                    &json!({ "issuer": issuer, "authorization_endpoint": format!("{issuer}/oauth/authorize"), "token_endpoint": format!("{issuer}/oauth/token"), "registration_endpoint": format!("{issuer}/oauth/register"), "revocation_endpoint": format!("{issuer}/oauth/revoke") }),
-                ),
+                ("GET", [".well-known", "oauth-authorization-server"]) => json_response(200, &metadata(&issuer)),
                 ("POST", ["oauth", "register"]) => {
                     let asked: Value = serde_json::from_str(&body).unwrap_or(Value::Null);
                     let ok = asked["token_endpoint_auth_method"] == "none" && asked["redirect_uris"] == json!(["http://127.0.0.1/callback"]);
@@ -98,6 +105,7 @@ fn fake_server() -> (String, Arc<Mutex<Fake>>) {
                             .collect(),
                     ),
                 ),
+                ("GET", ["v1", "domains"]) => json_response(200, &domains()),
                 ("POST", ["v1", "inboxes"]) => {
                     let id = format!("inb_{}", fake.inboxes.len() + 1);
                     let address = format!("new{}@dissolve.test", fake.inboxes.len() + 1);
@@ -170,7 +178,7 @@ struct Setup {
 
 fn setup() -> Setup {
     let folder = tempfile::tempdir().unwrap_or_else(|error| unreachable!("temp: {error}"));
-    let router = Router::from_toml(EXAMPLE_ROUTING).unwrap_or_else(|error| unreachable!("routing: {error}"));
+    let router = Router::from_toml(TEST_ROUTING).unwrap_or_else(|error| unreachable!("routing: {error}"));
     let store = Store::open(&folder.path().join("store")).unwrap_or_else(|error| unreachable!("store: {error}"));
     let mailbox = Arc::new(Mailbox::new(router, store, folder.path().join("workspaces.toml")).unwrap_or_else(|error| unreachable!("mailbox: {error}")));
     let (base, fake) = fake_server();
@@ -257,6 +265,7 @@ fn refreshes_a_refused_token_once_and_carries_on() {
 fn makes_extends_and_burns_inboxes() {
     let setup = setup();
     let service = connected(&setup);
+    assert_eq!(service.domains(), Ok(vec!["dissolve.test".to_owned(), "other.test".to_owned()]));
     let made = service.create_inbox(None, Some("Shop")).unwrap_or_else(|error| unreachable!("create: {error}"));
     assert_eq!(made.address, "new2@dissolve.test");
     let extended = service.extend_inbox(&made.id).unwrap_or_else(|error| unreachable!("extend: {error}"));

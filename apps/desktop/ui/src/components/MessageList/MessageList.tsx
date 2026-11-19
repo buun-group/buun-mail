@@ -146,7 +146,7 @@ export function MessageList({ workspace, place, view, messages, selectedId, onSe
     setMenu({ ...menuPoint(event), label: t('actions.menuLabel', { subject: message.subject }), items: actions.menu(message) })
   }
   return (
-    <section className="message-list" data-wide={wide} aria-label={t('list.label')}>
+    <section className="message-list" data-wide={wide} data-banner={banner !== undefined} aria-label={t('list.label')}>
       <header className="message-list__header" data-selecting={selected.length > 0}>
         {selected.length > 0 && <SelectionBar selected={selected} total={messages.length} workspace={workspace} bulk={actions.bulk} onSnooze={actions.snooze} onSelectAll={() => setPicked(new Set(messages.map((message) => message.id)))} onClear={clearPicked} />}
         <div className="message-list__title">

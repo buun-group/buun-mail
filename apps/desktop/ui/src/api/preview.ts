@@ -36,10 +36,18 @@ const MESSAGES: Message[] = [
     matched: '*@personal.example', folderMatched: null, subject: 'Saturday',
     preview: 'Still on for Saturday? We could do the coastal walk.', receivedAt: '2026-11-18T19:55:00Z', unread: false, starred: false, shelf: 'archived', tags: [], threadId: null, threadSize: 1, snoozedUntil: null,
   },
+  {
+    id: 'p6', workspace: 'dissolve', folder: 'signup-7k2@dissolve.email', fromName: 'A shop', from: 'no-reply@shop.example', to: 'signup-7k2@dissolve.email',
+    matched: null, folderMatched: null, subject: 'Confirm your email',
+    preview: 'Your verification code is 482913. It expires in 10 minutes.', receivedAt: '2026-11-19T08:10:00Z', unread: true, starred: false, shelf: 'active', tags: [], threadId: null, threadSize: 1, snoozedUntil: null,
+  },
 ]
 
 export function previewWorkspaces(): Workspace[] {
-  return WORKSPACES
+  if (!DISSOLVE.connected && DISSOLVE.inboxes.length === 0) return WORKSPACES
+  const folders = DISSOLVE.inboxes.map((inbox) => ({ name: inbox.address, icon: null, unread: MESSAGES.filter((message) => message.folder === inbox.address && message.unread).length }))
+  const dissolveWorkspace: Workspace = { id: 'dissolve', name: 'dissolve.email', icon: 'dissolve', addresses: DISSOLVE.inboxes.map((inbox) => inbox.address), unread: folders.reduce((sum, folder) => sum + folder.unread, 0), folders: [{ name: null, icon: null, unread: 0 }, ...folders] }
+  return [...WORKSPACES, dissolveWorkspace]
 }
 
 export function previewMessages(place: Place): Message[] {
@@ -110,8 +118,8 @@ const dissolve = {
     DISSOLVE.keepAfterExpiry = keep
     return dissolveCopy()
   },
-  create: (name?: string): DissolveInbox => {
-    const inbox: DissolveInbox = { id: `inb_${DISSOLVE.inboxes.length + 1}`, address: `new-${DISSOLVE.inboxes.length + 1}@dissolve.email`, name: name ?? null, expiresAt: new Date(Date.now() + 10 * 60_000).toISOString(), ended: false, stored: 0 }
+  create: (name?: string, domain?: string): DissolveInbox => {
+    const inbox: DissolveInbox = { id: `inb_${DISSOLVE.inboxes.length + 1}`, address: `${name ?? `new-${DISSOLVE.inboxes.length + 1}`}@${domain ?? 'dissolve.email'}`, name: name ?? null, expiresAt: new Date(Date.now() + 10 * 60_000).toISOString(), ended: false, stored: 0 }
     DISSOLVE.inboxes.unshift(inbox)
     return { ...inbox }
   },

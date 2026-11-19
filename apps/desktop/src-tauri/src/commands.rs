@@ -439,6 +439,13 @@ pub async fn create_dissolve_inbox(dissolve: State<'_, DissolveService>, domain:
     tauri::async_runtime::spawn_blocking(move || service.create_inbox(domain.as_deref(), name.as_deref())).await.map_err(|error| error.to_string())?
 }
 
+/// The domains a new dissolve.email inbox can be made on, the default first.
+#[tauri::command]
+pub async fn dissolve_domains(dissolve: State<'_, DissolveService>) -> Result<Vec<String>, String> {
+    let service = dissolve.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || service.domains()).await.map_err(|error| error.to_string())?
+}
+
 /// Gives a dissolve.email inbox more time.
 #[tauri::command]
 pub async fn extend_dissolve_inbox(dissolve: State<'_, DissolveService>, id: String) -> Result<DissolveStatusDto, String> {

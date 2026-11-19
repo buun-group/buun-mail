@@ -461,7 +461,7 @@ mod tests {
     use tiny_http::{Header, Response, Server};
 
     use super::*;
-    use crate::paths::EXAMPLE_ROUTING;
+    use crate::paths::TEST_ROUTING;
 
     /// A fake Resend that lists flung.dev as verified and new.dev as pending, and accepts every send.
     fn fake_resend() -> String {
@@ -488,7 +488,7 @@ mod tests {
     #[test]
     fn connects_a_key_sends_a_threaded_reply_and_keeps_it_in_sent() {
         let folder = tempfile::tempdir().unwrap_or_else(|error| unreachable!("temp: {error}"));
-        let router = Router::from_toml(EXAMPLE_ROUTING).unwrap_or_else(|error| unreachable!("routing: {error}"));
+        let router = Router::from_toml(TEST_ROUTING).unwrap_or_else(|error| unreachable!("routing: {error}"));
         let store = Store::open(&folder.path().join("store")).unwrap_or_else(|error| unreachable!("store: {error}"));
         let mailbox = Arc::new(Mailbox::new(router, store, folder.path().join("workspaces.toml")).unwrap_or_else(|error| unreachable!("mailbox: {error}")));
         let original = b"From: A client <c@client.example>\r\nTo: hello@flung.dev\r\nSubject: Quote\r\nMessage-ID: <q1@client.example>\r\n\r\nPlease quote\r\n";

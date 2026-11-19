@@ -255,6 +255,15 @@ impl DissolveService {
         Ok(DissolveInboxDto { id: made.id, address: made.address, name: made.custom_name, expires_at: made.expires_at, ended: false, stored: 0 })
     }
 
+    /// The domains a new inbox can be made on, the default first.
+    ///
+    /// # Errors
+    ///
+    /// Why they could not be read, in words for the window.
+    pub fn domains(&self) -> Result<Vec<String>, String> {
+        self.call(Api::domains).map_err(|error| error.to_string())
+    }
+
     /// Gives an inbox more time.
     ///
     /// # Errors
@@ -429,7 +438,7 @@ impl DissolveService {
         self.0.mailbox.provide_workspace(ProvidedWorkspace {
             id: WORKSPACE.to_owned(),
             name: "dissolve.email".to_owned(),
-            icon: Some("at".to_owned()),
+            icon: Some("dissolve".to_owned()),
             addresses: folders.clone(),
             folders,
         })

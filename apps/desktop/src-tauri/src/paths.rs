@@ -18,6 +18,10 @@ const STORE_DIR: &str = "store";
 /// The routing file a first run starts from: the commented example, so the format explains itself.
 pub const EXAMPLE_ROUTING: &str = include_str!("../../../../config/workspaces.example.toml");
 
+/// The routing file the tests run against, apart from the example a new install starts with.
+#[cfg(test)]
+pub const TEST_ROUTING: &str = include_str!("test_routing.toml");
+
 /// The two places the app reads and writes.
 #[derive(Debug, Clone)]
 pub struct AppPaths {

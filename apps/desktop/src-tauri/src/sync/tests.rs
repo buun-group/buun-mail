@@ -10,7 +10,7 @@ use tiny_http::{Header, Response, Server};
 use super::gateway::{GatewayClient, GatewayError};
 use super::service::collect;
 use crate::mailbox::Mailbox;
-use crate::paths::EXAMPLE_ROUTING;
+use crate::paths::TEST_ROUTING;
 
 const TOKEN: &str = "bmg_test";
 
@@ -71,7 +71,7 @@ fn fake_gateway(envelope_to: &'static str) -> FakeGateway {
 
 fn mailbox() -> (tempfile::TempDir, Mailbox) {
     let folder = tempfile::tempdir().unwrap_or_else(|error| unreachable!("temp folder: {error}"));
-    let router = Router::from_toml(EXAMPLE_ROUTING).unwrap_or_else(|error| unreachable!("routing: {error}"));
+    let router = Router::from_toml(TEST_ROUTING).unwrap_or_else(|error| unreachable!("routing: {error}"));
     let store = Store::open(&folder.path().join("store")).unwrap_or_else(|error| unreachable!("store: {error}"));
     let mailbox = Mailbox::new(router, store, folder.path().join("workspaces.toml")).unwrap_or_else(|error| unreachable!("mailbox: {error}"));
     (folder, mailbox)

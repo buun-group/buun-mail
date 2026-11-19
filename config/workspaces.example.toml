@@ -1,56 +1,46 @@
 # Buun Mail routing file.
 #
-# Each workspace claims addresses with `match`: an exact address (`sales@acme.com`) or every address at a domain
-# (`*@acme.com`). When both match, the exact address wins, whatever the order here. Mail nobody claims lands in
+# Each workspace claims addresses with `match`: an exact address (`sales@acme.example`) or every address at a domain
+# (`*@acme.example`). When both match, the exact address wins, whatever the order here. Mail nobody claims lands in
 # Unsorted, so nothing is lost.
 #
 # Folders are picked by sender, first match wins. A message with no matching folder stays in the workspace inbox.
 # The `id` is stored with every message: pick it once and never rename it.
 #
 # `icon` is optional on a workspace or a folder: briefcase, buildings, storefront, code, house, heart, rocket, palette,
-# globe, leaf, camera, bag, wrench, game, cap, plane, receipt, bank, chart, cloud, github, bell, star, chat, at, or a Buun
-# Group mark: buun, plotwork, flung, gunspec, dissolve, cryptflare. Without one, a workspace shows its initial.
+# globe, leaf, camera, bag, wrench, game, cap, plane, receipt, bank, chart, cloud, github, bell, star, chat, at, or a
+# product mark: buun, plotwork, flung, gunspec, dissolve, cryptflare. Without one, a workspace shows its initial.
 # Settings can also give a workspace an image.
+#
+# Replace these examples with your own domains. Settings, Integrations adds a workspace for each domain you connect.
 
 [[workspace]]
-id = "buun"
-name = "Buun Group"
-icon = "buun"
-match = ["*@buungroup.com"]
+id = "acme"
+name = "Acme"
+icon = "briefcase"
+match = ["*@acme.example"]
 folders = [
   { name = "Billing", from = "*@stripe.com", icon = "receipt" },
   { name = "Infrastructure", from = "*@cloudflare.com", icon = "cloud" },
 ]
 
+# An environment is its own workspace: mail to the staging domain stays apart from production.
 [[workspace]]
-id = "plotwork"
-name = "Plotwork"
-icon = "plotwork"
-match = ["*@plotwork.dev"]
-folders = [{ name = "GitHub", from = "notifications@github.com", icon = "github" }]
-
-# An environment is its own workspace: mail to the preview domain stays apart from production.
-[[workspace]]
-id = "plotwork-preview"
-name = "Plotwork preview"
+id = "acme-staging"
+name = "Acme staging"
 icon = "wrench"
-match = ["*@preview.plotwork.dev"]
+match = ["*@staging.acme.example"]
 
 [[workspace]]
-id = "flung"
-name = "Flung"
-icon = "flung"
-match = ["*@flung.dev"]
-
-[[workspace]]
-id = "gunspec"
-name = "GunSpec"
-icon = "gunspec"
-match = ["*@gunspec.io"]
+id = "side-project"
+name = "Side project"
+icon = "rocket"
+match = ["*@globex.example"]
+folders = [{ name = "GitHub", from = "notifications@github.com", icon = "github" }]
 
 [[workspace]]
 id = "personal"
 name = "Personal"
 icon = "house"
-match = ["*@personal.example", "accounts@buungroup.com"]
+match = ["*@personal.example", "accounts@acme.example"]
 folders = [{ name = "Receipts", from = "*@stripe.com", icon = "receipt" }]

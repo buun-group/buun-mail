@@ -17,7 +17,7 @@ import { Switch } from './Switch'
  * Connected, it shows the account, whether ended inboxes' mail is kept, Check now, and Disconnect (keeping the mail,
  * or deleting it too after asking).
  */
-export function DissolveConnect({ onChanged }: { onChanged: () => void }): ReactNode {
+export function DissolveConnect({ onChanged, onConnected }: { onChanged: () => void; onConnected: (connected: boolean) => void }): ReactNode {
   const { t } = useTranslation('integrations')
   const [status, setStatus] = useState<DissolveStatus | null>(null)
   const [server, setServer] = useState('')
@@ -41,6 +41,7 @@ export function DissolveConnect({ onChanged }: { onChanged: () => void }): React
     connectDissolve(server)
       .then((next) => {
         setStatus(next)
+        onConnected(next.connected)
         onChanged()
         toast({ text: t('dissolve.connected'), ...(next.email === null ? {} : { detail: next.email }), tone: 'done' })
       })
@@ -51,6 +52,7 @@ export function DissolveConnect({ onChanged }: { onChanged: () => void }): React
   const disconnect = (deleteMail: boolean): void => {
     void disconnectDissolve(deleteMail).then((next) => {
       setStatus(next)
+      onConnected(next.connected)
       onChanged()
       toast({ text: t('dissolve.disconnected'), detail: deleteMail ? t('dissolve.mailDeleted') : t('dissolve.mailKept'), tone: 'done' })
     })

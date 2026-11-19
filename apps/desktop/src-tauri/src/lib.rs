@@ -110,6 +110,7 @@ pub fn run() {
             commands::check_dissolve,
             commands::set_dissolve_keep,
             commands::create_dissolve_inbox,
+            commands::dissolve_domains,
             commands::extend_dissolve_inbox,
             commands::burn_dissolve_inbox,
             commands::open_message,

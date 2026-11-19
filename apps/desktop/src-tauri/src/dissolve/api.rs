@@ -87,6 +87,22 @@ pub struct RemoteMessage {
     pub received_at: String,
 }
 
+/// One domain inboxes can be made on.
+#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct RemoteDomain {
+    /// The domain.
+    pub domain: String,
+    /// True for the account's default.
+    #[serde(default)]
+    pub is_default: bool,
+}
+
+#[derive(Deserialize)]
+struct Domains {
+    domains: Vec<RemoteDomain>,
+}
+
 #[derive(Deserialize)]
 struct Refusal {
     message: Option<String>,
@@ -161,6 +177,17 @@ impl Api {
             Err(ApiError::Gone) => Ok(None),
             Err(other) => Err(other),
         }
+    }
+
+    /// The domains inboxes can be made on, the default first.
+    ///
+    /// # Errors
+    ///
+    /// As for [`Api::me`].
+    pub fn domains(&self) -> Result<Vec<String>, ApiError> {
+        let mut found = self.get("/domains")?.body_mut().read_json::<Domains>().map_err(unexpected)?.domains;
+        found.sort_by_key(|domain| !domain.is_default);
+        Ok(found.into_iter().map(|domain| domain.domain).collect())
     }
 
     /// Makes an inbox, on `domain` or the default one, with an optional name.

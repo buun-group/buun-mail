@@ -30,7 +30,14 @@
   color: var(--text-secondary);
 }
 
+.message-list[data-banner='true'] {
+  grid-template-rows: auto auto minmax(0, 1fr);
+}
 .message-list__title h1 {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   margin: 0;
   font-size: var(--text-lg);
   font-weight: 650;

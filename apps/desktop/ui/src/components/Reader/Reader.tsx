@@ -6,6 +6,7 @@ import type { Contact, Message, MessageDetail, Recipients, Workspace } from '../
 import { Attachments } from './Attachments'
 import { Conversation } from './Conversation'
 import { SenderCheck } from './SenderCheck'
+import { Verification } from './Verification'
 import { MessageHtml } from './MessageHtml'
 import { Avatar } from '../Avatar/Avatar'
 import type { Theme } from '../../constants/ui'
@@ -16,7 +17,7 @@ import { copyWithToast } from '../../lib/copy'
 import type { ComposeMode } from '../../lib/compose'
 import { domainOf } from '../../lib/sending'
 import { formatFull } from '../../lib/time'
-import { EXPORT_FORMATS } from '../../constants/ui'
+import { EXPORT_FORMATS, UNSORTED_WORKSPACE } from '../../constants/ui'
 import { tokenize } from '../../lib/tokens'
 import type { CopyKind } from '../../lib/tokens'
 import { ContextMenu } from '../ContextMenu/ContextMenu'
@@ -62,6 +63,7 @@ interface ReaderProps {
 /** Why a message is where it is, in one plain sentence from the rules the router used. */
 function RouteNote({ message, workspace }: { message: Message; workspace: Workspace | undefined }): ReactNode {
   const { t } = useTranslation('mail')
+  if (message.matched === null && message.workspace !== UNSORTED_WORKSPACE) return <>{t('reader.routeProvided', { workspace: workspace?.name ?? message.workspace })}</>
   if (message.matched === null) return <>{t('reader.routeUnsorted')}</>
   const address = <code>{message.matched}</code>
   if (message.folderMatched === null) return <Trans t={t} i18nKey="reader.routeWorkspace" values={{ workspace: workspace?.name ?? '' }} components={{ address }} />
@@ -297,6 +299,7 @@ export function Reader({ message, body, recipients, detail, workspace, theme, on
             <RouteNote message={message} workspace={workspace} />
           </span>
         </p>
+        {detail !== null && <Verification subject={message.subject} from={message.from} text={detail.body} html={detail.html?.html ?? null} />}
         {detail !== null && <Attachments messageId={message.id} attachments={detail.attachments} />}
         {detail?.html != null && !asText ? (
           <>

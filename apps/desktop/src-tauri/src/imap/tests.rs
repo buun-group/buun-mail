@@ -12,7 +12,7 @@ use super::client::{ImapError, ImapSecurity, ImapSession};
 use super::service::collect;
 use super::settings::ImapAccount;
 use crate::mailbox::Mailbox;
-use crate::paths::EXAMPLE_ROUTING;
+use crate::paths::TEST_ROUTING;
 
 /// Three messages with UIDs 5, 6 and 7 in a folder whose UIDVALIDITY is 42; signs in only `me`/`secret`.
 fn fake_server() -> u16 {
@@ -77,7 +77,7 @@ fn account(port: u16, last_uid: u32) -> ImapAccount {
 
 fn mailbox() -> (tempfile::TempDir, Arc<Mailbox>) {
     let folder = tempfile::tempdir().unwrap_or_else(|error| unreachable!("temp: {error}"));
-    let router = Router::from_toml(EXAMPLE_ROUTING).unwrap_or_else(|error| unreachable!("routing: {error}"));
+    let router = Router::from_toml(TEST_ROUTING).unwrap_or_else(|error| unreachable!("routing: {error}"));
     let store = Store::open(&folder.path().join("store")).unwrap_or_else(|error| unreachable!("store: {error}"));
     let mailbox = Arc::new(Mailbox::new(router, store, folder.path().join("workspaces.toml")).unwrap_or_else(|error| unreachable!("mailbox: {error}")));
     (folder, mailbox)

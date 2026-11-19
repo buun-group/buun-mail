@@ -130,6 +130,8 @@ export {
   PiTimerLight as IconTimer,
   PiFireLight as IconBurn,
   PiClockClockwiseLight as IconExtend,
+  PiKeyLight as IconCode,
+  PiLinkSimpleLight as IconLink,
 } from 'react-icons/pi'
 
 /**

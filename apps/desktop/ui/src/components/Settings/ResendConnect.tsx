@@ -83,7 +83,7 @@ export function ResendConnect({ onChanged, onCount }: { onChanged: () => void; o
         {needsDomains && (
           <div className="connect__field">
             <label htmlFor="resend-domains">{t('resend.domainsLabel')}</label>
-            <input id="resend-domains" value={domains} placeholder="flung.dev, buungroup.com" onChange={(event) => setDomains(event.target.value)} autoComplete="off" spellCheck={false} />
+            <input id="resend-domains" value={domains} placeholder="acme.example, globex.example" onChange={(event) => setDomains(event.target.value)} autoComplete="off" spellCheck={false} />
             <small>{t('resend.domainsHint')}</small>
           </div>
         )}

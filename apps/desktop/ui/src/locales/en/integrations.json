@@ -11,7 +11,8 @@
     "gateways_one": "{{count}} gateway",
     "gateways_other": "{{count}} gateways",
     "senders_one": "{{count}} key",
-    "senders_other": "{{count}} keys"
+    "senders_other": "{{count}} keys",
+    "connected": "Connected"
   },
   "oauthNote": "Opens {{provider}} in your browser to sign in. Buun Mail never sees your password.",
   "signIn": "Sign in with {{provider}}",
@@ -85,7 +86,7 @@
     },
     "gateway": {
       "name": "Buun Mail Gateway",
-      "summary": "Your domains through the Buun Group mail gateway. Mail waits there until this app collects it, with its exact recipient."
+      "summary": "Your domains through a Buun Mail Gateway on your own Cloudflare account. Mail waits there until this app collects it, with its exact recipient."
     },
     "dissolve": {
       "name": "dissolve.email",
@@ -133,7 +134,7 @@
     "received_other": "{{count}} messages collected since the app started",
     "desktopOnly": "Connecting works in the desktop app.",
     "nameLabel": "Name",
-    "namePlaceholder": "Buun Group",
+    "namePlaceholder": "Work",
     "addGateway": "Add a gateway",
     "addAnother": "Add another gateway",
     "none": "No gateway yet. Each Cloudflare account can run its own gateway; add each one here.",
@@ -176,7 +177,7 @@
     "viaRelay": "Through a relay",
     "addRelayed": "A domain in another Cloudflare account",
     "relayedHint": "Its mail reaches this gateway through a relay Worker in that account. Nothing changes in Cloudflare from here.",
-    "relayedPlaceholder": "flung.dev",
+    "relayedPlaceholder": "globex.example",
     "addRelayedButton": "Add relayed domain",
     "addedToast": "{{domain}} added",
     "removedToast": "{{domain}} removed",

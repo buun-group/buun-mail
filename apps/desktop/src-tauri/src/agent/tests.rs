@@ -12,7 +12,7 @@ use serde_json::{Value, json};
 use super::server::AgentServer;
 use super::settings::AgentSettings;
 use crate::mailbox::Mailbox;
-use crate::paths::EXAMPLE_ROUTING;
+use crate::paths::TEST_ROUTING;
 
 struct Harness {
     _folder: tempfile::TempDir,
@@ -23,7 +23,7 @@ struct Harness {
 
 fn harness() -> Harness {
     let folder = tempfile::tempdir().unwrap_or_else(|error| unreachable!("temp folder: {error}"));
-    let router = Router::from_toml(EXAMPLE_ROUTING).unwrap_or_else(|error| unreachable!("routing: {error}"));
+    let router = Router::from_toml(TEST_ROUTING).unwrap_or_else(|error| unreachable!("routing: {error}"));
     let store = Store::open(&folder.path().join("store")).unwrap_or_else(|error| unreachable!("store: {error}"));
     let mailbox = Arc::new(Mailbox::new(router, store, folder.path().join("workspaces.toml")).unwrap_or_else(|error| unreachable!("mailbox: {error}")));
     let settings = AgentSettings { enabled: true, port: 0, token: "test-token".to_owned() };
