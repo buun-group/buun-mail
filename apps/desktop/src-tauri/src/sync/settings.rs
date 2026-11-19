@@ -7,7 +7,7 @@ use std::path::Path;
 use serde::{Deserialize, Serialize};
 
 use crate::error::AppError;
-use crate::paths::file_error;
+use crate::paths::write_private;
 
 /// The settings file's name in the config folder.
 const FILE: &str = "gateways.json";
@@ -50,30 +50,16 @@ pub fn load(config_folder: &Path) -> Vec<GatewaySettings> {
 ///
 /// [`AppError::File`] when the file cannot be written.
 pub fn save(config_folder: &Path, gateways: &[GatewaySettings]) -> Result<(), AppError> {
-    let path = config_folder.join(FILE);
-    fs::create_dir_all(config_folder).map_err(|source| file_error(config_folder, source))?;
     // Settings are plain strings, so serialising cannot fail.
-    fs::write(&path, serde_json::to_string_pretty(gateways).unwrap_or_default()).map_err(|source| file_error(&path, source))?;
-    restrict(&path).map_err(|source| file_error(&path, source))?;
+    write_private(&config_folder.join(FILE), &serde_json::to_string_pretty(gateways).unwrap_or_default())?;
     let _ = fs::remove_file(config_folder.join(OLD_FILE));
-    Ok(())
-}
-
-/// Owner read and write only, where the platform has such permissions.
-#[cfg(unix)]
-fn restrict(path: &Path) -> std::io::Result<()> {
-    use std::os::unix::fs::PermissionsExt;
-    fs::set_permissions(path, fs::Permissions::from_mode(0o600))
-}
-
-#[cfg(not(unix))]
-fn restrict(_path: &Path) -> std::io::Result<()> {
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::paths::file_error;
 
     #[test]
     fn carries_over_a_single_saved_gateway_then_keeps_a_list() -> Result<(), AppError> {

@@ -70,3 +70,28 @@ pub(crate) fn file_error(path: &Path, source: std::io::Error) -> AppError {
 fn missing(what: &str, error: &tauri::Error) -> AppError {
     AppError::File { path: what.to_owned(), source: std::io::Error::other(error.to_string()) }
 }
+
+/// Writes a settings file only this user can read (owner read and write where the platform has such permissions),
+/// creating its folder first. For files holding tokens and API keys.
+///
+/// # Errors
+///
+/// [`AppError::File`] when the folder or file cannot be written.
+pub fn write_private(path: &Path, contents: &str) -> Result<(), AppError> {
+    if let Some(folder) = path.parent() {
+        std::fs::create_dir_all(folder).map_err(|source| file_error(folder, source))?;
+    }
+    std::fs::write(path, contents).map_err(|source| file_error(path, source))?;
+    restrict(path).map_err(|source| file_error(path, source))
+}
+
+#[cfg(unix)]
+fn restrict(path: &Path) -> std::io::Result<()> {
+    use std::os::unix::fs::PermissionsExt;
+    std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o600))
+}
+
+#[cfg(not(unix))]
+fn restrict(_path: &Path) -> std::io::Result<()> {
+    Ok(())
+}

@@ -180,3 +180,18 @@ fn stars_and_marks_unread() -> Result<(), StoreError> {
     assert!(store.get("cc03")?.unread);
     Ok(())
 }
+
+#[test]
+fn suggests_contacts_most_frequent_first() -> Result<(), StoreError> {
+    let (_folder, store) = store()?;
+    let mut one = record("dd04", "acme", None, 10);
+    one.from = "zed@x.com".to_owned();
+    one.from_name = "Zed".to_owned();
+    store.insert(&one, b"a")?;
+    store.insert(&record("ee05", "acme", None, 11), b"b")?;
+    store.insert(&record("ff06", "acme", None, 12), b"c")?;
+    let found = store.contacts("", 10)?;
+    assert_eq!(found.first().map(|(_, address, seen)| (address.as_str(), *seen)), Some(("ada@example.com", 2)));
+    assert_eq!(store.contacts("zed", 10)?.len(), 1);
+    Ok(())
+}

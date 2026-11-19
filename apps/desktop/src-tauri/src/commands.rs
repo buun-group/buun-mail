@@ -11,10 +11,11 @@ use buun_mail_store::Placement;
 use tauri::{AppHandle, State};
 
 use crate::agent::{AgentState, AgentStatusDto};
-use crate::dto::{ActivityDto, ImportReportDto, MessageDetailDto, MessageDto, ShelfDto, TagCountDto, ViewDto, WorkspaceDto};
+use crate::dto::{ActivityDto, ContactDto, ImportReportDto, MessageDetailDto, MessageDto, ShelfDto, TagCountDto, ViewDto, WorkspaceDto};
 use crate::error::AppError;
 use crate::events;
 use crate::mailbox::{Actor, ExportFormat, Mailbox};
+use crate::send::{DraftDto, SendFailure, SendService, SendableDto, SenderDto};
 use crate::sync::{AvailableZone, CheckReportDto, DomainRoute, GatewayStatusDto, OwnedDomain, SyncService};
 
 /// Every workspace for the sidebar.
@@ -233,4 +234,58 @@ pub fn add_gateway_domain(
 #[tauri::command]
 pub fn remove_gateway_domain(sync: State<'_, SyncService>, id: String, domain: String) -> Result<(), String> {
     sync.remove_domain(&id, &domain)
+}
+
+/// Every connected sender, without its key.
+#[tauri::command]
+pub fn list_senders(send: State<'_, SendService>) -> Result<Vec<SenderDto>, AppError> {
+    send.list()
+}
+
+/// Connects a Resend key, away from the window's thread: its domains come with it, or are entered for a sending-only key.
+#[tauri::command]
+pub async fn add_resend_sender(send: State<'_, SendService>, name: String, key: String, domains: Vec<String>) -> Result<Vec<SenderDto>, String> {
+    let send = send.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || send.add_resend(&name, &key, &domains)).await.map_err(|error| error.to_string())?
+}
+
+/// Asks Resend again for each key's domains.
+#[tauri::command]
+pub async fn refresh_senders(send: State<'_, SendService>) -> Result<Vec<SenderDto>, String> {
+    let send = send.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || send.refresh()).await.map_err(|error| error.to_string())?
+}
+
+/// Changes a sender's signature, or a sending-only key's domains.
+#[tauri::command]
+pub fn update_sender(send: State<'_, SendService>, id: String, signature: Option<String>, domains: Option<Vec<String>>) -> Result<Vec<SenderDto>, AppError> {
+    send.update(&id, signature, domains)
+}
+
+/// Forgets a sender.
+#[tauri::command]
+pub fn remove_sender(send: State<'_, SendService>, id: String) -> Result<Vec<SenderDto>, AppError> {
+    send.remove(&id)
+}
+
+/// The domains mail can be sent from now, each with its signature.
+#[tauri::command]
+pub fn sendable_domains(send: State<'_, SendService>) -> Result<Vec<SendableDto>, AppError> {
+    send.sendable()
+}
+
+/// Sends a draft away from the window's thread, keeps a copy in Sent, and announces the change.
+#[tauri::command]
+pub async fn send_message(app: AppHandle, send: State<'_, SendService>, draft: DraftDto) -> Result<MessageDto, SendFailure> {
+    let service = send.inner().clone();
+    let delivered =
+        tauri::async_runtime::spawn_blocking(move || service.send(&draft)).await.map_err(|error| SendFailure { retry: true, message: error.to_string() })??;
+    events::mail_changed(&app);
+    Ok(delivered)
+}
+
+/// People to suggest as recipients.
+#[tauri::command]
+pub fn suggest_contacts(mailbox: State<'_, Arc<Mailbox>>, query: String) -> Result<Vec<ContactDto>, AppError> {
+    mailbox.contacts(&query)
 }

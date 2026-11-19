@@ -194,7 +194,7 @@ impl Store {
     ///
     /// [`StoreError`] when the index cannot be read.
     pub fn search(&self, query: &str, workspace: Option<&str>, unread_only: bool, limit: usize) -> Result<Vec<MessageRecord>, StoreError> {
-        let pattern = format!("%{}%", query.replace('\\', "\\\\").replace('%', "\\%").replace('_', "\\_"));
+        let pattern = like_pattern(query);
         let mut statement = self.index.prepare_cached(&format!(
             "SELECT {COLUMNS} FROM messages WHERE (?1 = '%%' OR subject LIKE ?1 ESCAPE '\\' OR from_address LIKE ?1 ESCAPE '\\' OR from_name LIKE ?1 ESCAPE '\\' \
              OR to_address LIKE ?1 ESCAPE '\\' OR preview LIKE ?1 ESCAPE '\\' OR EXISTS (SELECT 1 FROM tags WHERE tags.message_id = messages.id AND tag LIKE ?1 ESCAPE '\\')) \
@@ -323,6 +323,22 @@ impl Store {
         Ok(rows.collect::<rusqlite::Result<_>>()?)
     }
 
+    /// People this mailbox has heard from or written to whose name or address contains `query`, most frequent first:
+    /// `(name, address, how many messages)`. For suggesting recipients.
+    ///
+    /// # Errors
+    ///
+    /// [`StoreError`] when the index cannot be read.
+    pub fn contacts(&self, query: &str, limit: usize) -> Result<Vec<(String, String, u32)>, StoreError> {
+        let pattern = like_pattern(query);
+        let mut statement = self.index.prepare_cached(
+            "SELECT from_name, from_address, COUNT(*) AS seen FROM messages WHERE from_address LIKE ?1 ESCAPE '\\' OR from_name LIKE ?1 ESCAPE '\\' \
+             GROUP BY from_address ORDER BY seen DESC, from_address LIMIT ?2",
+        )?;
+        let rows = statement.query_map(params![pattern, i64::try_from(limit).unwrap_or(0)], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)))?;
+        Ok(rows.collect::<rusqlite::Result<_>>()?)
+    }
+
     /// Every rule, in the order they run.
     ///
     /// # Errors
@@ -395,6 +411,11 @@ impl Store {
     fn contains(&self, id: &str) -> Result<bool, StoreError> {
         Ok(self.index.query_row("SELECT 1 FROM messages WHERE id = ?1", [id], |_| Ok(())).optional()?.is_some())
     }
+}
+
+/// A `LIKE` pattern matching `query` anywhere, its own `%`, `_` and backslashes escaped (with `ESCAPE '\\'`).
+fn like_pattern(query: &str) -> String {
+    format!("%{}%", query.replace('\\', "\\\\").replace('%', "\\%").replace('_', "\\_"))
 }
 
 /// Reads one row in [`COLUMNS`] order.

@@ -7,6 +7,7 @@
 //! - `export`: writing messages out as `.eml`, `.mbox`, JSON, CSV or text
 //! - `import`: taking in `.eml` and `.mbox` files
 //! - `remote`: taking in one message from a source that knows its recipient, such as the mail gateway
+//! - `sent`: the copy kept in Sent, the ids a reply threads under, recipients to suggest
 //! - `routing`: reloading the routing file, and adding a workspace for a newly connected domain
 
 mod change;
@@ -16,6 +17,7 @@ mod read;
 mod remote;
 mod routing;
 mod rules;
+mod sent;
 #[cfg(test)]
 mod tests;
 

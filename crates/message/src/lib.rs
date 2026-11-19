@@ -13,6 +13,7 @@
 //! # Ok::<(), buun_mail_message::MessageError>(())
 //! ```
 
+mod compose;
 mod content;
 mod error;
 mod id;
@@ -21,6 +22,7 @@ mod parse;
 mod recipient;
 mod time;
 
+pub use compose::{Outgoing, ThreadIds, build, new_message_id, reply_references, thread_ids};
 pub use content::{AttachmentInfo, HtmlView, attachment, attachments, html_view};
 pub use error::MessageError;
 pub use id::content_id;
