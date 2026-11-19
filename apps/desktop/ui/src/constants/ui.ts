@@ -2,7 +2,17 @@
 export const STORAGE_KEYS = {
   theme: 'buun-mail:theme',
   density: 'buun-mail:density',
+  grain: 'buun-mail:grain',
+  sidebar: 'buun-mail:sidebar',
+  folded: 'buun-mail:folded-workspaces',
+  looks: 'buun-mail:workspace-looks',
 } as const
+
+/** A workspace image is drawn at this many pixels square before it is kept, so storage stays small. */
+export const WORKSPACE_IMAGE_PX = 64
+
+/** The largest image a person may pick for a workspace, before it is shrunk. */
+export const WORKSPACE_IMAGE_MAX_BYTES = 5_000_000
 
 /** What the person picks; `system` follows the OS. */
 export const THEME_PREFERENCES = ['system', 'light', 'dark'] as const

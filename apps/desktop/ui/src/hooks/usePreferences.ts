@@ -38,26 +38,37 @@ export interface Preferences {
   themePreference: ThemePreference
   theme: Theme
   density: Density
+  grain: boolean
+  sidebarCollapsed: boolean
   setThemePreference: (value: ThemePreference) => void
   setDensity: (value: Density) => void
+  setGrain: (value: boolean) => void
+  setSidebarCollapsed: (value: boolean) => void
 }
 
-/** Theme and density, remembered per person and written to `<html data-theme data-density>`. */
+const ON_OFF = ['on', 'off'] as const
+
+/** Theme, density and grain, remembered per person and written to `<html data-theme data-density data-grain>`. */
 export function usePreferences(): Preferences {
   const [themePreference, setThemePreferenceState] = useState<ThemePreference>(() => read(STORAGE_KEYS.theme, THEME_PREFERENCES, 'system'))
   const [density, setDensityState] = useState<Density>(() => read(STORAGE_KEYS.density, DENSITIES, 'comfortable'))
+  const [grain, setGrainState] = useState<boolean>(() => read(STORAGE_KEYS.grain, ON_OFF, 'on') === 'on')
+  const [sidebarCollapsed, setSidebarState] = useState<boolean>(() => read(STORAGE_KEYS.sidebar, ['open', 'collapsed'] as const, 'open') === 'collapsed')
   const system = useSystemTheme()
   const theme = themePreference === 'system' ? system : themePreference
 
   useEffect(() => {
     document.documentElement.dataset['theme'] = theme
     document.documentElement.dataset['density'] = density
-  }, [theme, density])
+    document.documentElement.dataset['grain'] = grain ? 'on' : 'off'
+  }, [theme, density, grain])
 
   return {
     themePreference,
     theme,
     density,
+    grain,
+    sidebarCollapsed,
     setThemePreference: (value) => {
       setThemePreferenceState(value)
       write(STORAGE_KEYS.theme, value)
@@ -65,6 +76,14 @@ export function usePreferences(): Preferences {
     setDensity: (value) => {
       setDensityState(value)
       write(STORAGE_KEYS.density, value)
+    },
+    setGrain: (value) => {
+      setGrainState(value)
+      write(STORAGE_KEYS.grain, value ? 'on' : 'off')
+    },
+    setSidebarCollapsed: (value) => {
+      setSidebarState(value)
+      write(STORAGE_KEYS.sidebar, value ? 'collapsed' : 'open')
     },
   }
 }

@@ -39,6 +39,8 @@
   --action-primary: #262626;
   --action-primary-text: #fafafa;
 
+  --status-danger-fg: #b3261e;
+
   --emboss-light: rgba(255, 255, 255, 0.95);
   --emboss-dark: rgba(0, 0, 0, 0.1);
   --shadow-card: inset 0 1px 0 var(--emboss-light), 0 0 0 1px var(--alpha-8), 0 1px 2px rgba(0, 0, 0, 0.04), 0 10px 24px -12px rgba(0, 0, 0, 0.12);
@@ -100,6 +102,7 @@
   --radius-full: 9999px;
 
   --sidebar-width: 15rem;
+  --rail-width: 3.25rem;
   --list-width: 22rem;
   --row-pad: var(--space-3);
   --row-gap: 3px;
@@ -137,6 +140,8 @@
 
   --action-primary: #fafafa;
   --action-primary-text: #171717;
+
+  --status-danger-fg: #ff8a8a;
 
   --emboss-light: rgba(255, 255, 255, 0.08);
   --emboss-dark: rgba(0, 0, 0, 0.7);

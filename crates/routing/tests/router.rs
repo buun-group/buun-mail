@@ -153,3 +153,26 @@ fn refuses_an_unknown_field() {
     let result = Router::from_toml("[[workspace]]\nid = \"a\"\nname = \"A\"\nmatch = [\"*@a.com\"]\ncolour = \"red\"\n");
     assert!(matches!(result, Err(ConfigError::Parse(_))));
 }
+
+#[test]
+fn carries_icons_for_workspaces_and_folders() {
+    let router = Router::from_toml(
+        r#"
+        [[workspace]]
+        id = "a"
+        name = "A"
+        icon = "briefcase"
+        match = ["*@a.com"]
+        folders = [
+          { name = "Receipts", from = "*@stripe.com", icon = "receipt" },
+          { name = "Receipts", from = "*@paddle.com", icon = "ignored" },
+          { name = "Code", from = "*@github.com" },
+        ]
+        "#,
+    )
+    .unwrap_or_else(|error| unreachable!("fixture routing file: {error}"));
+    let workspace = router.workspaces().next().unwrap_or_else(|| unreachable!("one workspace"));
+    assert_eq!(workspace.icon(), Some("briefcase"));
+    let icons: Vec<_> = workspace.folders().map(|folder| workspace.folder_icon(folder)).collect();
+    assert_eq!(icons, [Some("receipt"), None]);
+}

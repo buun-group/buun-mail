@@ -5,6 +5,8 @@
 /** A folder in a workspace. `name` is null for the inbox. */
 export interface Folder {
   name: string | null
+  /** A glyph key from the routing file, null for the default. */
+  icon: string | null
   unread: number
 }
 
@@ -12,6 +14,8 @@ export interface Folder {
 export interface Workspace {
   id: string
   name: string
+  /** A glyph key from the routing file, null for the initial. */
+  icon: string | null
   addresses: string[]
   folders: Folder[]
   unread: number

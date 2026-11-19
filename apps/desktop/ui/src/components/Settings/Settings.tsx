@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import type { ReactNode } from 'react'
 
 import type { Workspace } from '../../api/types'
 import { SETTINGS_SECTIONS } from '../../constants/ui'
 import type { SettingsSection } from '../../constants/ui'
 import type { Preferences } from '../../hooks/usePreferences'
+import type { WorkspaceLook, WorkspaceLooks } from '../../hooks/useWorkspaceLooks'
 import { IconClose, SECTION_GLYPHS } from '../../icons'
 import { GeneralSection } from './GeneralSection'
 import { IntegrationsSection } from './IntegrationsSection'
@@ -23,12 +24,18 @@ interface SettingsProps {
   onClose: () => void
   preferences: Preferences
   workspaces: Workspace[]
+  looks: WorkspaceLooks
+  onLook: (id: string, look: WorkspaceLook | null) => void
+  section: SettingsSection
+  onSection: (section: SettingsSection) => void
+  /** The workspace whose icon picker is open, if any. */
+  editing: string | null
+  onEditing: (id: string | null) => void
 }
 
 /** Settings in a native modal dialog: sections down the left, the chosen one on the right. Escape closes it. */
-export function Settings({ open, onClose, preferences, workspaces }: SettingsProps): ReactNode {
+export function Settings({ open, onClose, preferences, workspaces, looks, onLook, section, onSection, editing, onEditing }: SettingsProps): ReactNode {
   const dialog = useRef<HTMLDialogElement | null>(null)
-  const [section, setSection] = useState<SettingsSection>('general')
 
   useEffect(() => {
     const element = dialog.current
@@ -44,7 +51,7 @@ export function Settings({ open, onClose, preferences, workspaces }: SettingsPro
         {SETTINGS_SECTIONS.map((id) => {
           const Glyph = SECTION_GLYPHS[id]
           return (
-            <button key={id} type="button" className="settings__tab" aria-current={id === section ? 'page' : undefined} onClick={() => setSection(id)}>
+            <button key={id} type="button" className="settings__tab" aria-current={id === section ? 'page' : undefined} onClick={() => onSection(id)}>
               <Glyph aria-hidden="true" />
               {SECTION_LABELS[id]}
             </button>
@@ -60,7 +67,7 @@ export function Settings({ open, onClose, preferences, workspaces }: SettingsPro
         </header>
         <div className="settings__body">
           {section === 'general' && <GeneralSection preferences={preferences} />}
-          {section === 'workspaces' && <WorkspacesSection workspaces={workspaces} />}
+          {section === 'workspaces' && <WorkspacesSection workspaces={workspaces} looks={looks} onLook={onLook} editing={editing} onEditing={onEditing} />}
           {section === 'integrations' && <IntegrationsSection />}
         </div>
       </div>

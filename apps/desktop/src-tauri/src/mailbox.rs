@@ -69,12 +69,16 @@ impl Mailbox {
             .workspaces()
             .map(|workspace| {
                 let id = workspace.id().as_str();
-                let inbox = FolderDto { name: None, unread: self.unread_in(id, None) };
-                let folders =
-                    workspace.folders().map(|folder| FolderDto { name: Some(folder.as_str().to_owned()), unread: self.unread_in(id, Some(folder.as_str())) });
+                let inbox = FolderDto { name: None, icon: None, unread: self.unread_in(id, None) };
+                let folders = workspace.folders().map(|folder| FolderDto {
+                    name: Some(folder.as_str().to_owned()),
+                    icon: workspace.folder_icon(folder).map(str::to_owned),
+                    unread: self.unread_in(id, Some(folder.as_str())),
+                });
                 WorkspaceDto {
                     id: id.to_owned(),
                     name: workspace.name().to_owned(),
+                    icon: workspace.icon().map(str::to_owned),
                     addresses: workspace.patterns().iter().map(ToString::to_string).collect(),
                     folders: std::iter::once(inbox).chain(folders).collect(),
                     unread: self.messages.iter().filter(|m| m.workspace == id && m.unread).count(),

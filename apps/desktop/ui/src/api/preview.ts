@@ -5,9 +5,9 @@ import type { Message, Place, Workspace } from './types'
  * browser. The desktop app never reads it: there the router places the real demo messages.
  */
 const WORKSPACES: Workspace[] = [
-  { id: 'buun', name: 'Buun Group', addresses: ['*@buungroup.com'], unread: 2, folders: [{ name: null, unread: 1 }, { name: 'Billing', unread: 1 }] },
-  { id: 'plotwork', name: 'Plotwork', addresses: ['*@plotwork.dev'], unread: 1, folders: [{ name: null, unread: 1 }, { name: 'GitHub', unread: 0 }] },
-  { id: 'personal', name: 'Personal', addresses: ['*@personal.example'], unread: 0, folders: [{ name: null, unread: 0 }] },
+  { id: 'buun', name: 'Buun Group', icon: 'buildings', addresses: ['*@buungroup.com'], unread: 2, folders: [{ name: null, icon: null, unread: 1 }, { name: 'Billing', icon: 'receipt', unread: 1 }] },
+  { id: 'plotwork', name: 'Plotwork', icon: 'chart', addresses: ['*@plotwork.dev'], unread: 1, folders: [{ name: null, icon: null, unread: 1 }, { name: 'GitHub', icon: 'github', unread: 0 }] },
+  { id: 'personal', name: 'Personal', icon: null, addresses: ['*@personal.example'], unread: 0, folders: [{ name: null, icon: null, unread: 0 }] },
 ]
 
 const MESSAGES: Message[] = [

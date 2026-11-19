@@ -11,6 +11,8 @@ pub struct WorkspaceDto {
     pub id: String,
     /// The name shown.
     pub name: String,
+    /// The glyph key from the routing file, `None` for the initial.
+    pub icon: Option<String>,
     /// The addresses it owns, as written: `*@acme.com`.
     pub addresses: Vec<String>,
     /// Its folders, inbox first.
@@ -25,6 +27,8 @@ pub struct WorkspaceDto {
 pub struct FolderDto {
     /// The folder name, `None` for the inbox.
     pub name: Option<String>,
+    /// The glyph key from the routing file, `None` for the default folder glyph.
+    pub icon: Option<String>,
     /// Unread messages in it.
     pub unread: usize,
 }

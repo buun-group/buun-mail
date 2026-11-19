@@ -78,8 +78,10 @@ pub struct Route<'r> {
 pub struct Workspace {
     id: WorkspaceId,
     name: String,
+    icon: Option<String>,
     patterns: Vec<Pattern>,
     folders: Vec<(Pattern, FolderName)>,
+    folder_icons: HashMap<FolderName, String>,
 }
 
 impl Workspace {
@@ -93,6 +95,18 @@ impl Workspace {
     #[must_use]
     pub fn name(&self) -> &str {
         &self.name
+    }
+
+    /// The glyph key from the routing file, if any.
+    #[must_use]
+    pub fn icon(&self) -> Option<&str> {
+        self.icon.as_deref()
+    }
+
+    /// The glyph key for one of its folders, if the routing file gave one.
+    #[must_use]
+    pub fn folder_icon(&self, folder: &FolderName) -> Option<&str> {
+        self.folder_icons.get(folder).map(String::as_str)
     }
 
     /// The addresses the workspace owns.
@@ -147,7 +161,14 @@ impl Router {
             workspaces.push(checked);
         }
 
-        let unsorted = Workspace { id: WorkspaceId(UNSORTED_WORKSPACE.to_owned()), name: UNSORTED_NAME.to_owned(), patterns: Vec::new(), folders: Vec::new() };
+        let unsorted = Workspace {
+            id: WorkspaceId(UNSORTED_WORKSPACE.to_owned()),
+            name: UNSORTED_NAME.to_owned(),
+            icon: None,
+            patterns: Vec::new(),
+            folders: Vec::new(),
+            folder_icons: HashMap::new(),
+        };
         Ok(Self { workspaces, unsorted })
     }
 
@@ -201,5 +222,11 @@ fn check_workspace(workspace: WorkspaceConfig) -> Result<Workspace, ConfigError>
         .map(|rule| Pattern::parse(&rule.from).map(|from| (from, FolderName(rule.name.clone()))))
         .collect::<Result<Vec<_>, _>>()
         .map_err(in_workspace)?;
-    Ok(Workspace { id: WorkspaceId(workspace.id), name: workspace.name, patterns, folders })
+    let mut folder_icons = HashMap::new();
+    for rule in &workspace.folders {
+        if let Some(icon) = &rule.icon {
+            folder_icons.entry(FolderName(rule.name.clone())).or_insert_with(|| icon.clone());
+        }
+    }
+    Ok(Workspace { id: WorkspaceId(workspace.id), name: workspace.name, icon: workspace.icon, patterns, folders, folder_icons })
 }

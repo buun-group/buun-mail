@@ -25,6 +25,10 @@ pub struct WorkspaceConfig {
     /// Folders inside the workspace, picked by who the message is from. First match wins.
     #[serde(default)]
     pub folders: Vec<FolderRule>,
+    /// The glyph the sidebar shows beside the name, such as `briefcase`. The UI keeps the list; an unknown key falls
+    /// back to the workspace's initial.
+    #[serde(default)]
+    pub icon: Option<String>,
 }
 
 /// A folder and the senders that land in it.
@@ -35,4 +39,7 @@ pub struct FolderRule {
     pub name: String,
     /// The sender pattern: `billing@stripe.com` or `*@stripe.com`.
     pub from: String,
+    /// The glyph the sidebar shows for the folder, such as `receipt`. The first rule naming a folder sets it.
+    #[serde(default)]
+    pub icon: Option<String>,
 }

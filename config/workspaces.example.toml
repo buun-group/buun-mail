@@ -6,25 +6,32 @@
 #
 # Folders are picked by sender, first match wins. A message with no matching folder stays in the workspace inbox.
 # The `id` is stored with every message: pick it once and never rename it.
+#
+# `icon` is optional on a workspace or a folder: briefcase, buildings, storefront, code, house, heart, rocket, palette,
+# globe, leaf, camera, bag, wrench, game, cap, plane, receipt, bank, chart, cloud, github, bell, star, chat. Without
+# one, a workspace shows its initial. Settings can also give a workspace an image.
 
 [[workspace]]
 id = "buun"
 name = "Buun Group"
+icon = "buildings"
 match = ["*@buungroup.com"]
 folders = [
-  { name = "Billing", from = "*@stripe.com" },
-  { name = "Infrastructure", from = "*@cloudflare.com" },
+  { name = "Billing", from = "*@stripe.com", icon = "receipt" },
+  { name = "Infrastructure", from = "*@cloudflare.com", icon = "cloud" },
 ]
 
 [[workspace]]
 id = "plotwork"
 name = "Plotwork"
+icon = "chart"
 match = ["*@plotwork.dev"]
-folders = [{ name = "GitHub", from = "notifications@github.com" }]
+folders = [{ name = "GitHub", from = "notifications@github.com", icon = "github" }]
 
 [[workspace]]
 id = "flung"
 name = "Flung"
+icon = "rocket"
 match = ["*@flung.dev"]
 
 [[workspace]]
@@ -35,5 +42,6 @@ match = ["*@gunspec.io"]
 [[workspace]]
 id = "personal"
 name = "Personal"
+icon = "house"
 match = ["*@personal.example", "accounts@buungroup.com"]
-folders = [{ name = "Receipts", from = "*@stripe.com" }]
+folders = [{ name = "Receipts", from = "*@stripe.com", icon = "receipt" }]

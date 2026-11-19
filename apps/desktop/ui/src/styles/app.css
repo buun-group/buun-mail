@@ -3,6 +3,11 @@
   grid-template-columns: var(--sidebar-width) var(--list-width) minmax(0, 1fr);
   height: 100%;
   overflow: hidden;
+  transition: grid-template-columns var(--duration-normal) var(--ease-out);
+}
+
+.app[data-sidebar='collapsed'] {
+  grid-template-columns: var(--rail-width) var(--list-width) minmax(0, 1fr);
 }
 
 .app-error {
