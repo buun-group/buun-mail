@@ -50,7 +50,7 @@ export interface Message {
 export type Shelf = 'active' | 'archived' | 'trashed'
 
 /** A list across every workspace. Drafts live on this computer only, so the Rust side never sees that view. */
-export type MailView = 'starred' | 'snoozed' | 'archive' | 'trash' | 'drafts'
+export type MailView = 'starred' | 'snoozed' | 'archive' | 'trash' | 'drafts' | 'contacts'
 
 /** Where the list is pointed: one folder of one workspace. */
 export interface Place {
@@ -230,4 +230,12 @@ export interface Draft {
 export interface SendFailure {
   retry: boolean
   message: string
+}
+
+/** Someone the mailbox knows. Mirrors `KnownContactDto`. */
+export interface KnownContact {
+  name: string | null
+  address: string
+  messages: number
+  latest: string
 }

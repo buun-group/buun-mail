@@ -9,7 +9,7 @@ import type { WorkspaceLooks } from '../../hooks/useWorkspaceLooks'
 import { endOfDay, sortMessages } from '../../lib/sort'
 import { WorkspaceIcon } from '../WorkspaceIcon/WorkspaceIcon'
 import { ListTools } from './ListTools'
-import { IconArchive, IconCaret, IconConversation, IconDelete, IconRename, IconSnooze, IconFolder, IconInbox, IconSearch, IconStar, IconStarred, IconUnread, isWorkspaceGlyph, WORKSPACE_GLYPHS } from '../../icons'
+import { IconArchive, IconCaret, IconContacts, IconConversation, IconDelete, IconRename, IconSnooze, IconFolder, IconInbox, IconSearch, IconStar, IconStarred, IconUnread, isWorkspaceGlyph, WORKSPACE_GLYPHS } from '../../icons'
 import { Avatar } from '../Avatar/Avatar'
 import { formatListed } from '../../lib/time'
 import { ContextMenu, isMenuKey, menuPoint } from '../ContextMenu/ContextMenu'
@@ -52,7 +52,7 @@ interface MessageListProps {
   wide: boolean
 }
 
-const VIEW_GLYPHS = { starred: IconStar, snoozed: IconSnooze, archive: IconArchive, trash: IconDelete, drafts: IconRename } as const satisfies Record<MailView, unknown>
+const VIEW_GLYPHS = { starred: IconStar, snoozed: IconSnooze, archive: IconArchive, trash: IconDelete, drafts: IconRename, contacts: IconContacts } as const satisfies Record<MailView, unknown>
 
 /**
  * The open folder's messages, or a view across workspaces, newest first, as flat rows split by hairlines. Unread is

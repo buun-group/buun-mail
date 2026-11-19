@@ -254,6 +254,20 @@ pub struct ContactDto {
     pub address: String,
 }
 
+/// Someone the mailbox knows, for the contacts page.
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct KnownContactDto {
+    /// Their name, when any message gave one.
+    pub name: Option<String>,
+    /// Their address.
+    pub address: String,
+    /// How many messages from or to them.
+    pub messages: u32,
+    /// When the latest one was sent, RFC 3339.
+    pub latest: String,
+}
+
 /// The To, Cc and Reply-To headers of an open message.
 #[derive(Debug, Clone, Default, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]

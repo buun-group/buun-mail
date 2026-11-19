@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { sendMessage } from '../api/client'
-import type { Draft, Message, SendFailure, Sendable, Workspace } from '../api/types'
+import type { Contact, Draft, Message, SendFailure, Sendable, Workspace } from '../api/types'
 import { STORAGE_KEYS } from '../constants/ui'
 import { IconSend } from '../icons'
 import type { ComposeMode, Composing, Original } from '../lib/compose'
@@ -23,7 +23,7 @@ export interface Compose {
   minimized: boolean
   setMinimized: (minimized: boolean) => void
   /** Starts a new message, or a reply, reply all or forward of `original`. */
-  start: (mode: ComposeMode, original: Original | null) => void
+  start: (mode: ComposeMode, original: Original | null, to?: Contact[]) => void
   /** Opens a saved draft. */
   resume: (id: string) => void
   /** Saves a change to the open message as a draft. */
@@ -95,7 +95,7 @@ export function useCompose(workspaces: readonly Workspace[], sendable: readonly 
     setMinimized(false)
   }
 
-  const start = (mode: ComposeMode, original: Original | null): void => {
+  const start = (mode: ComposeMode, original: Original | null, to: Contact[] = []): void => {
     const choices = fromChoices(workspaces, sendable, original)
     const from = choices[0] ?? { name: null, address: sendable[0] === undefined ? '' : `@${sendable[0].domain}` }
     const signature = signatureFor(from.address, sendable)
@@ -103,7 +103,7 @@ export function useCompose(workspaces: readonly Workspace[], sendable: readonly 
       original === null ? '' : mode === 'forward' ? forwardBlock(original, { title: t('forward.title'), from: t('fields.from'), date: t('forward.date'), subject: t('fields.subject'), to: t('fields.to') }) : quote(original, (when, who) => t('quoteLine', { when, who }))
     const draft: Draft = {
       from,
-      to: original === null || mode === 'forward' ? [] : replyTarget(original),
+      to: original === null || mode === 'forward' ? to : replyTarget(original),
       cc: original !== null && mode === 'replyAll' ? replyAllCc(original, from.address) : [],
       bcc: [],
       subject: original === null ? '' : mode === 'forward' ? forwardSubject(original.message.subject) : replySubject(original.message.subject),

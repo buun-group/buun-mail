@@ -12,6 +12,7 @@ import {
   IconArchive,
   IconCaretDown,
   IconCompose,
+  IconContacts,
   IconCopy,
   IconDelete,
   IconFolder,
@@ -64,6 +65,7 @@ const VIEWS = [
   { id: 'snoozed', glyph: IconSnooze },
   { id: 'archive', glyph: IconArchive },
   { id: 'trash', glyph: IconDelete },
+  { id: 'contacts', glyph: IconContacts },
 ] as const satisfies readonly { id: MailView; glyph: unknown }[]
 
 /**

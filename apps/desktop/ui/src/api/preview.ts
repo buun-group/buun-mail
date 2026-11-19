@@ -1,4 +1,4 @@
-import type { Activity, AgentStatus, Contact, Draft, MailView, Message, MessageDetail, Place, Rule, Sendable, Sender, TagCount, Workspace } from './types'
+import type { Activity, AgentStatus, Contact, Draft, KnownContact, MailView, Message, MessageDetail, Place, Rule, Sendable, Sender, TagCount, Workspace } from './types'
 
 /**
  * A small stand-in mailbox for `pnpm dev:ui`, where there is no Rust side, so the layout can be tuned in a plain
@@ -47,7 +47,7 @@ export function previewMessages(place: Place): Message[] {
 }
 
 export function previewView(view: MailView): Message[] {
-  const keep = { starred: (message: Message) => message.starred && message.shelf !== 'trashed', archive: (message: Message) => message.shelf === 'archived', trash: (message: Message) => message.shelf === 'trashed', snoozed: (message: Message) => message.snoozedUntil !== null, drafts: () => false }[view]
+  const keep = { starred: (message: Message) => message.starred && message.shelf !== 'trashed', archive: (message: Message) => message.shelf === 'archived', trash: (message: Message) => message.shelf === 'trashed', snoozed: (message: Message) => message.snoozedUntil !== null, drafts: () => false, contacts: () => false }[view]
   return MESSAGES.filter(keep).map((message) => ({ ...message }))
 }
 
@@ -117,6 +117,15 @@ export const preview = {
   searchAll: (query: string): Message[] => {
     const words = query.toLowerCase().split(/\s+/u).filter(Boolean)
     return MESSAGES.filter((message) => message.shelf !== 'trashed' && words.every((word) => `${message.subject} ${message.fromName} ${message.from} ${message.preview}`.toLowerCase().includes(word))).map((message) => ({ ...message }))
+  },
+  knownContacts: (query: string): KnownContact[] => {
+    const seen = new Map<string, KnownContact>()
+    MESSAGES.forEach((message) => {
+      const address = message.folder === 'Sent' ? message.to : message.from
+      const known = seen.get(address)
+      seen.set(address, { name: message.folder === 'Sent' ? (known?.name ?? null) : message.fromName, address, messages: (known?.messages ?? 0) + 1, latest: known === undefined || message.receivedAt > known.latest ? message.receivedAt : known.latest })
+    })
+    return [...seen.values()].filter((contact) => `${contact.name ?? ''} ${contact.address}`.toLowerCase().includes(query.toLowerCase())).sort((a, b) => b.messages - a.messages)
   },
   contacts: (query: string): Contact[] => {
     const seen = new Map<string, Contact>()

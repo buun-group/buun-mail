@@ -194,7 +194,7 @@ fn suggests_contacts_most_frequent_first() -> Result<(), StoreError> {
     store.insert(&record("ee05", "acme", None, 11), b"b")?;
     store.insert(&record("ff06", "acme", None, 12), b"c")?;
     let found = store.contacts("", 10)?;
-    assert_eq!(found.first().map(|(_, address, seen)| (address.as_str(), *seen)), Some(("ada@example.com", 2)));
+    assert_eq!(found.first().map(|(_, address, seen, _)| (address.as_str(), *seen)), Some(("ada@example.com", 2)));
     assert_eq!(store.contacts("zed", 10)?.len(), 1);
     Ok(())
 }
@@ -249,5 +249,22 @@ fn snoozes_out_of_the_folder_and_wakes_unread() -> Result<(), StoreError> {
     assert_eq!(store.wake_due(1_000)?, vec!["z1".to_owned()]);
     let back = store.list(&inbox)?;
     assert_eq!(back.first().map(|record| (record.unread, record.snoozed_until)), Some((true, None)));
+    Ok(())
+}
+
+#[test]
+fn counts_people_written_to_from_sent_as_contacts() -> Result<(), StoreError> {
+    let (_folder, store) = store()?;
+    let mut sent = record("sent1", "acme", Some("Sent"), 50);
+    sent.from = "me@acme.com".to_owned();
+    sent.to = "new@client.example".to_owned();
+    store.insert(&sent, b"s")?;
+    store.insert(&record("in1", "acme", None, 10), b"i")?;
+    let found = store.contacts("", 10)?;
+    let addresses: Vec<&str> = found.iter().map(|(_, address, _, _)| address.as_str()).collect();
+    assert!(addresses.contains(&"new@client.example"));
+    assert!(addresses.contains(&"ada@example.com"));
+    assert!(!addresses.contains(&"me@acme.com"));
+    assert_eq!(found.iter().find(|(_, address, _, _)| address == "new@client.example").map(|(_, _, _, latest)| *latest), Some(50));
     Ok(())
 }

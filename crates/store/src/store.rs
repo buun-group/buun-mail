@@ -352,19 +352,28 @@ impl Store {
         Ok(rows.collect::<rusqlite::Result<_>>()?)
     }
 
-    /// People this mailbox has heard from or written to whose name or address contains `query`, most frequent first:
-    /// `(name, address, how many messages)`. For suggesting recipients.
+    /// People this mailbox has heard from, or written to from its Sent folders, whose name or address contains `query`,
+    /// most messages first: `(name, address, how many messages, the latest one's time)`. A name is empty when none was
+    /// ever given.
     ///
     /// # Errors
     ///
     /// [`StoreError`] when the index cannot be read.
-    pub fn contacts(&self, query: &str, limit: usize) -> Result<Vec<(String, String, u32)>, StoreError> {
+    pub fn contacts(&self, query: &str, limit: usize) -> Result<Vec<(String, String, u32, i64)>, StoreError> {
         let pattern = like_pattern(query);
         let mut statement = self.index.prepare_cached(
-            "SELECT from_name, from_address, COUNT(*) AS seen FROM messages WHERE from_address LIKE ?1 ESCAPE '\\' OR from_name LIKE ?1 ESCAPE '\\' \
-             GROUP BY from_address ORDER BY seen DESC, from_address LIMIT ?2",
+            "SELECT MAX(name), address, SUM(seen), MAX(latest) FROM ( \
+               SELECT from_name AS name, from_address AS address, COUNT(*) AS seen, MAX(sent_at) AS latest FROM messages \
+                 WHERE folder IS NOT 'Sent' AND shelf != 'trashed' GROUP BY from_address \
+               UNION ALL \
+               SELECT '' AS name, to_address AS address, COUNT(*) AS seen, MAX(sent_at) AS latest FROM messages \
+                 WHERE folder = 'Sent' AND shelf != 'trashed' GROUP BY to_address \
+             ) WHERE address LIKE ?1 ESCAPE '\\' OR name LIKE ?1 ESCAPE '\\' \
+             GROUP BY address ORDER BY SUM(seen) DESC, address LIMIT ?2",
         )?;
-        let rows = statement.query_map(params![pattern, i64::try_from(limit).unwrap_or(0)], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)))?;
+        let rows = statement.query_map(params![pattern, i64::try_from(limit).unwrap_or(0)], |row| {
+            Ok((row.get::<_, Option<String>>(0)?.unwrap_or_default(), row.get(1)?, row.get(2)?, row.get(3)?))
+        })?;
         Ok(rows.collect::<rusqlite::Result<_>>()?)
     }
 

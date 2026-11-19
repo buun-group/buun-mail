@@ -6,7 +6,7 @@ use buun_mail_routing::{Address, Envelope};
 use buun_mail_store::{Inserted, Placement};
 
 use super::{Actor, Mailbox, log, unix_now};
-use crate::dto::{ContactDto, MessageDto};
+use crate::dto::{ContactDto, KnownContactDto, MessageDto};
 use crate::error::AppError;
 use crate::ingest::file_for_reading;
 
@@ -15,6 +15,9 @@ pub const SENT_FOLDER: &str = "Sent";
 
 /// How many recipients a suggestion offers at most.
 const SUGGESTIONS: usize = 8;
+
+/// How many people the contacts page lists at most.
+const CONTACTS_SHOWN: usize = 1_000;
 
 /// How many results a search of all mail returns at most.
 const SEARCH_RESULTS: usize = 200;
@@ -68,6 +71,26 @@ impl Mailbox {
         Ok(store.get(&record.id)?.into())
     }
 
+    /// Everyone this mailbox knows, whose name or address holds `query`, most messages first, with their counts.
+    ///
+    /// # Errors
+    ///
+    /// [`AppError`] when the store cannot be read.
+    pub fn all_contacts(&self, query: &str) -> Result<Vec<KnownContactDto>, AppError> {
+        Ok(self
+            .store
+            .lock()?
+            .contacts(query.trim(), CONTACTS_SHOWN)?
+            .into_iter()
+            .map(|(name, address, messages, latest)| KnownContactDto {
+                name: (!name.is_empty() && name != address).then_some(name),
+                address,
+                messages,
+                latest: buun_mail_message::rfc3339(latest),
+            })
+            .collect())
+    }
+
     /// Every message in a conversation outside the trash, oldest first.
     ///
     /// # Errors
@@ -114,7 +137,7 @@ impl Mailbox {
             .lock()?
             .contacts(query.trim(), SUGGESTIONS)?
             .into_iter()
-            .map(|(name, address, _)| ContactDto { name: (!name.is_empty() && name != address).then_some(name), address })
+            .map(|(name, address, _, _)| ContactDto { name: (!name.is_empty() && name != address).then_some(name), address })
             .collect())
     }
 }

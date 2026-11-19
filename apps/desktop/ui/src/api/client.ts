@@ -5,7 +5,7 @@ import { openUrl } from '@tauri-apps/plugin-opener'
 import type { ExportFormat } from '../constants/ui'
 import { COMMANDS, IMPORT_EXTENSIONS } from './commands'
 import { preview, previewDetail, previewMessages, previewView, previewWorkspaces } from './preview'
-import type { Activity, AgentStatus, AvailableDomain, CheckReport, Contact, Draft, Sendable, Sender, GatewayDomain, GatewayStatus, ImportReport, MailView, Message, MessageDetail, Place, Rule, Shelf, TagCount, Workspace } from './types'
+import type { Activity, AgentStatus, AvailableDomain, CheckReport, Contact, Draft, KnownContact, Sendable, Sender, GatewayDomain, GatewayStatus, ImportReport, MailView, Message, MessageDetail, Place, Rule, Shelf, TagCount, Workspace } from './types'
 
 /**
  * The one door to the Rust side. In the desktop app every call is a Tauri command; in a plain browser (`pnpm dev:ui`)
@@ -22,7 +22,7 @@ export async function listMessages(place: Place): Promise<Message[]> {
 
 /** Starred, archived or trashed messages across every workspace. */
 export async function listView(view: MailView): Promise<Message[]> {
-  if (view === 'drafts') return []
+  if (view === 'drafts' || view === 'contacts') return []
   return isTauri() ? invoke<Message[]>(COMMANDS.listView, { view }) : previewView(view)
 }
 
@@ -266,4 +266,9 @@ export async function searchAll(query: string): Promise<Message[]> {
 export async function snoozeMessages(ids: string[], until: Date | null): Promise<number> {
   const seconds = until === null ? null : Math.floor(until.getTime() / 1000)
   return isTauri() ? invoke<number>(COMMANDS.snoozeMessages, { ids, until: seconds }) : preview.change(ids, { snoozedUntil: until === null ? null : until.toISOString() }).length
+}
+
+/** Everyone the mailbox knows whose name or address holds `query`, most messages first. */
+export async function listContacts(query: string): Promise<KnownContact[]> {
+  return isTauri() ? invoke<KnownContact[]>(COMMANDS.listContacts, { query }) : preview.knownContacts(query)
 }

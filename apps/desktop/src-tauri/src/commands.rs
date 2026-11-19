@@ -11,7 +11,7 @@ use buun_mail_store::Placement;
 use tauri::{AppHandle, State};
 
 use crate::agent::{AgentState, AgentStatusDto};
-use crate::dto::{ActivityDto, ContactDto, ImportReportDto, MessageDetailDto, MessageDto, ShelfDto, TagCountDto, ViewDto, WorkspaceDto};
+use crate::dto::{ActivityDto, ContactDto, ImportReportDto, KnownContactDto, MessageDetailDto, MessageDto, ShelfDto, TagCountDto, ViewDto, WorkspaceDto};
 use crate::error::AppError;
 use crate::events;
 use crate::mailbox::{Actor, ExportFormat, Mailbox};
@@ -306,4 +306,10 @@ pub fn search_all(mailbox: State<'_, Arc<Mailbox>>, query: String) -> Result<Vec
 #[tauri::command]
 pub fn snooze_messages(mailbox: State<'_, Arc<Mailbox>>, ids: Vec<String>, until: Option<i64>) -> Result<usize, AppError> {
     mailbox.snooze(&ids, until, &Actor::You)
+}
+
+/// Everyone the mailbox knows, for the contacts page.
+#[tauri::command]
+pub fn list_contacts(mailbox: State<'_, Arc<Mailbox>>, query: String) -> Result<Vec<KnownContactDto>, AppError> {
+    mailbox.all_contacts(&query)
 }

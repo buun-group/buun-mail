@@ -14,7 +14,8 @@
       "archive": "Nothing archived. Archive a message to clear it from its folder and keep it here.",
       "trash": "The trash is empty. Mail here goes for good after 30 days.",
       "drafts": "",
-      "snoozed": "Nothing snoozed. Snooze a message to hide it until a time you choose; it comes back unread."
+      "snoozed": "Nothing snoozed. Snooze a message to hide it until a time you choose; it comes back unread.",
+      "contacts": ""
     },
     "starredMark": "Starred",
     "emptyTrash": "Empty trash",
@@ -102,7 +103,8 @@
     "archive": "Archive",
     "trash": "Trash",
     "drafts": "Drafts",
-    "snoozed": "Snoozed"
+    "snoozed": "Snoozed",
+    "contacts": "Contacts"
   },
   "actions": {
     "menuLabel": "Actions for {{subject}}",
@@ -244,5 +246,18 @@
     "until": "Until {{when}}",
     "menuTomorrow": "Snooze until tomorrow",
     "menuNextWeek": "Snooze until next week"
+  },
+  "contacts": {
+    "title": "Contacts",
+    "search": "Search contacts",
+    "empty": "Nobody yet. Everyone who writes to you, and everyone you write to, shows here.",
+    "noMatch": "Nobody matches “{{query}}”.",
+    "messages_one": "{{count}} message",
+    "messages_other": "{{count}} messages",
+    "latest": "{{when}}",
+    "write": "Write to {{who}}",
+    "showMail": "Show mail with {{who}}",
+    "copy": "Copy {{address}}",
+    "writeNeedsSending": "Connect a sending integration to write to {{who}}."
   }
 }

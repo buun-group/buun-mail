@@ -19,6 +19,7 @@ import { openMessage } from './api/client'
 import type { Message } from './api/types'
 import { Compose } from './components/Compose/Compose'
 import { DraftsList } from './components/Compose/DraftsList'
+import { ContactsList } from './components/Contacts/ContactsList'
 import { useCompose } from './hooks/useCompose'
 import { useMailbox } from './hooks/useMailbox'
 import { useSending } from './hooks/useSending'
@@ -158,6 +159,18 @@ export function App(): ReactNode {
       />
       {mailbox.view === 'drafts' ? (
         <DraftsList compose={compose} />
+      ) : mailbox.view === 'contacts' ? (
+        <ContactsList
+          theme={preferences.theme}
+          canWrite={sending.any}
+          onWrite={(contact) => compose.start('new', null, [contact])}
+          onShowMail={(address) => {
+            const first = mailbox.workspaces[0]
+            mailbox.open(mailbox.place ?? { workspace: first?.id ?? '', folder: null })
+            mailbox.setQuery(address)
+            mailbox.setScope('all')
+          }}
+        />
       ) : (
       <MessageList
         workspace={workspace}
