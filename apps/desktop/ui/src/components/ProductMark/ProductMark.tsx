@@ -5,11 +5,7 @@ import type { Theme } from '../../constants/ui'
 
 import './ProductMark.css'
 
-/** A product's mark on a raised plate, the way buungroup.com shows a logo. Decorative: the name is always beside it. */
+/** A product's own mark, at the size of the text beside it. Decorative: the name is always written next to it. */
 export function ProductMark({ product, theme, size = 'sm' }: { product: Product; theme: Theme; size?: 'sm' | 'md' }): ReactNode {
-  return (
-    <span className={`product-mark product-mark--${size}`} aria-hidden="true">
-      <img src={product.mark[theme]} alt="" />
-    </span>
-  )
+  return <img className={`product-mark product-mark--${size}`} src={product.mark[theme]} alt="" aria-hidden="true" />
 }

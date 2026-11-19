@@ -1,0 +1,72 @@
+.buun-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-top: 1px solid var(--border-faint);
+}
+
+.buun-footer__label {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.buun-footer__marks {
+  display: flex;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.buun-footer__mark {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 1.625rem;
+  height: 1.625rem;
+  border-radius: var(--radius-sm);
+}
+
+.buun-footer__mark img {
+  width: 0.9375rem;
+  height: 0.9375rem;
+  object-fit: contain;
+  filter: grayscale(1);
+  opacity: 0.6;
+  transition: filter var(--duration-fast), opacity var(--duration-fast);
+}
+
+.buun-footer__mark:hover,
+.buun-footer__mark:focus-visible {
+  background: var(--alpha-6);
+}
+
+.buun-footer__mark:hover img,
+.buun-footer__mark:focus-visible img {
+  filter: none;
+  opacity: 1;
+}
+
+/* The name, shown above the mark on hover or focus: our own tip, never the browser's title. */
+.buun-footer__mark::after {
+  content: attr(data-name);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  right: 0;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--action-primary);
+  color: var(--action-primary-text);
+  font-size: var(--text-xs);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--duration-fast);
+}
+
+.buun-footer__mark:hover::after,
+.buun-footer__mark:focus-visible::after {
+  opacity: 1;
+}

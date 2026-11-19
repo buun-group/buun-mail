@@ -17,7 +17,7 @@ The envelope recipient survives the hop, so placing a message is a table lookup,
 | Step | State |
 |---|---|
 | Routing crate: address, patterns, workspaces, folders, "why is it here" | Done, tested |
-| Desktop shell (Tauri 2) with the three-pane UI and Buun Group product spots | Done, demo data |
+| Desktop shell (Tauri 2) with the three-pane UI, settings, integrations and Buun Group products | Done, demo data |
 | Catch-all Email Worker storing mail for the client to pull | Next |
 | Local store (SQLite, raw `.eml` on disk) and search | After |
 | Reply and compose as the right address (Resend, SPF, DKIM, DMARC per domain) | After |

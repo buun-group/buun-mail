@@ -1,28 +1,25 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import type { ReactNode } from 'react'
-
-import type { Place } from './api/types'
 
 import { MessageList } from './components/MessageList/MessageList'
 import { Reader } from './components/Reader/Reader'
+import { Settings } from './components/Settings/Settings'
 import { Sidebar } from './components/Sidebar/Sidebar'
-import { PRODUCTS } from './constants/products'
+import { SETTINGS_SHORTCUT } from './constants/ui'
 import { useMailbox } from './hooks/useMailbox'
-import { useTheme } from './hooks/useTheme'
+import { usePreferences } from './hooks/usePreferences'
+import { useShortcut } from './hooks/useShortcut'
 
 import './styles/app.css'
 
-/** Three panes: workspaces, the open folder, the open message. */
+/** Three panes (workspaces, the open folder, the open message) and settings over them. */
 export function App(): ReactNode {
-  const { theme, toggle } = useTheme()
+  const preferences = usePreferences()
   const mailbox = useMailbox()
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const openSettings = useCallback(() => setSettingsOpen(true), [])
+  useShortcut(SETTINGS_SHORTCUT, openSettings)
   const workspace = mailbox.workspaces.find((item) => item.id === mailbox.place?.workspace)
-  // A different product fills the empty reader each time a folder opens, starting at a random one.
-  const [featureIndex, setFeatureIndex] = useState(() => Math.floor(Math.random() * PRODUCTS.length))
-  const open = (place: Place): void => {
-    setFeatureIndex((index) => index + 1)
-    mailbox.open(place)
-  }
 
   if (mailbox.error !== null) {
     return (
@@ -34,9 +31,10 @@ export function App(): ReactNode {
 
   return (
     <div className="app">
-      <Sidebar workspaces={mailbox.workspaces} place={mailbox.place} theme={theme} onOpen={open} onToggleTheme={toggle} />
+      <Sidebar workspaces={mailbox.workspaces} place={mailbox.place} theme={preferences.theme} onOpen={mailbox.open} onSettings={openSettings} />
       <MessageList workspace={workspace} place={mailbox.place} messages={mailbox.messages} selectedId={mailbox.selected?.id ?? null} onSelect={mailbox.select} />
-      <Reader message={mailbox.selected} workspace={workspace} theme={theme} featureIndex={featureIndex} />
+      <Reader message={mailbox.selected} workspace={workspace} theme={preferences.theme} />
+      <Settings open={settingsOpen} onClose={() => setSettingsOpen(false)} preferences={preferences} workspaces={mailbox.workspaces} />
     </div>
   )
 }

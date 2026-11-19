@@ -1,0 +1,60 @@
+.more-buun {
+  width: min(100%, 30rem);
+}
+
+.more-buun h2 {
+  margin: 0 0 var(--space-2);
+  padding: 0 var(--space-3);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.more-buun ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--border-faint);
+}
+
+.more-buun li {
+  border-bottom: 1px solid var(--border-faint);
+}
+
+.more-buun__row {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-3);
+  text-align: left;
+}
+
+.more-buun__row:hover {
+  background: var(--alpha-4);
+}
+
+.more-buun__name {
+  font-weight: 600;
+}
+
+.more-buun__kind {
+  overflow: hidden;
+  color: var(--text-muted);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.more-buun__host {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.more-buun__row:hover .more-buun__host {
+  color: var(--text-primary);
+}

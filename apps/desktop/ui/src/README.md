@@ -16,10 +16,10 @@ Code here follows:
 |---|---|
 | `main.tsx`, `App.tsx` | Entry and the three-pane layout |
 | `api/` | `client.ts` (the only Tauri caller), `types.ts` (mirrors `dto.rs`), `preview.ts` (browser-only mailbox) |
-| `components/` | `Sidebar`, `MessageList`, `Reader`, `ProductSpot`, `ProductFeature`, `ProductMark`, each with its CSS |
-| `constants/` | `products.ts` (the Buun Group products and their words), `ui.ts` (theme key, labels) |
-| `hooks/` | `useMailbox`, `useTheme`, `useRotation` |
+| `components/` | `Sidebar`, `MessageList`, `Reader`, `Settings` (General, Workspaces, Integrations), `BrandMark`, `MoreFromBuun`, `BuunFooter`, `ProductMark`, `Avatar`, each with its CSS |
+| `constants/` | `products.ts` (Buun Group products), `integrations.ts` (mail sources and their connect fields), `ui.ts` (preferences, labels, settings sections) |
+| `hooks/` | `useMailbox`, `usePreferences` (theme, density), `useShortcut` |
 | `lib/time.ts` | Received times for the list and the reader |
 | `icons.ts` | Every glyph |
-| `styles/` | `tokens.css` (the only colours), `base.css`, `app.css` |
-| `__tests__/` | Products in step with marks and capabilities, times, the app in a browser |
+| `styles/` | `tokens.css` (the only colours), `fonts.css` (Geist, Latin only), `base.css`, `app.css` |
+| `__tests__/` | Products in step with marks and capabilities, times, the app and settings in a browser |

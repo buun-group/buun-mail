@@ -73,5 +73,3 @@ export const PRODUCTS: readonly Product[] = [
   },
 ]
 
-/** How long the sidebar spot shows one product before moving to the next. */
-export const PRODUCT_ROTATE_MS = 9_000
