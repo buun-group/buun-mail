@@ -8,7 +8,7 @@ import type { Confirmation } from '../components/Confirm/Confirm'
 import type { MenuItem } from '../components/ContextMenu/ContextMenu'
 import { INBOX_LABEL } from '../constants/ui'
 import { IconArchive, IconCopy, IconDelete, IconFolder, IconInbox, IconMarkRead, IconPutBack, IconStar, IconStarred } from '../icons'
-import { copyText } from '../lib/clipboard'
+import { copyWithToast } from '../lib/copy'
 import { toast } from '../lib/feedback'
 import type { Mailbox } from './useMailbox'
 
@@ -44,11 +44,7 @@ export function useMessageActions(mailbox: Mailbox, workspaceName: (id: string) 
   const fail = (error: unknown): void => {
     toast({ text: t('actions.failed'), detail: reason(error), tone: 'problem' })
   }
-  const copyAndSay = (text: string, done: string): void => {
-    copyText(text)
-      .then((copied) => toast(copied ? { text: done, tone: 'done', glyph: IconCopy } : { text: t('actions.copyFailed'), tone: 'problem' }))
-      .catch(fail)
-  }
+
   const closeConfirmation = useCallback(() => setConfirmation(null), [])
 
   const placeName = (place: Place): string => `${workspaceName(place.workspace)}, ${place.folder ?? t(INBOX_LABEL)}`
@@ -150,8 +146,8 @@ export function useMessageActions(mailbox: Mailbox, workspaceName: (id: string) 
       { id: 'star', label: message.starred ? t('actions.unstar') : t('actions.star'), glyph: message.starred ? IconStarred : IconStar, onSelect: () => toggleStar(message) },
     ]
     const copy: MenuItem[] = [
-      { id: 'copy-sender', label: t('actions.copySender'), glyph: IconCopy, onSelect: () => copyAndSay(message.from, t('actions.copiedSender')), separated: true },
-      { id: 'copy-subject', label: t('actions.copySubject'), glyph: IconCopy, onSelect: () => copyAndSay(message.subject, t('actions.copiedSubject')) },
+      { id: 'copy-sender', label: t('actions.copySender'), glyph: IconCopy, onSelect: () => void copyWithToast(message.from), separated: true },
+      { id: 'copy-subject', label: t('actions.copySubject'), glyph: IconCopy, onSelect: () => void copyWithToast(message.subject) },
     ]
     if (message.shelf === 'trashed') {
       return [

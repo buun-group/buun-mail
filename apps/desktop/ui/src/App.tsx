@@ -1,5 +1,5 @@
 import { Splash } from '@buun-mail/brand/react'
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -42,6 +42,14 @@ export function App(): ReactNode {
     setSettingsOpen(true)
   }
   useShortcut(SETTINGS_SHORTCUT, openSettings)
+  // The web view's own menu (back, reload, inspect) means nothing in a mail app. Fields keep theirs, for cut and paste.
+  useEffect(() => {
+    const quiet = (event: MouseEvent): void => {
+      if (!(event.target instanceof Element && event.target.closest('input, textarea, [contenteditable="true"]') !== null)) event.preventDefault()
+    }
+    window.addEventListener('contextmenu', quiet)
+    return () => window.removeEventListener('contextmenu', quiet)
+  }, [])
   const workspace = mailbox.workspaces.find((item) => item.id === mailbox.place?.workspace)
   const openWorkspace = mailbox.workspaces.find((item) => item.id === mailbox.selected?.message.workspace)
   const workspaceName = (id: string): string => mailbox.workspaces.find((item) => item.id === id)?.name ?? id

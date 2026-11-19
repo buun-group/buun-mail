@@ -1,0 +1,108 @@
+.copyable {
+  position: relative;
+  display: inline;
+  padding: 0 1px;
+  border-radius: var(--radius-sm);
+  font: inherit;
+  color: inherit;
+  text-align: inherit;
+  text-decoration: underline dotted var(--text-muted);
+  text-underline-offset: 3px;
+  cursor: copy;
+  transition: background var(--duration-fast) var(--ease-out);
+}
+
+.copyable:hover,
+.copyable:focus-within,
+.copyable:focus-visible {
+  background: var(--alpha-8);
+  outline: none;
+}
+
+.copyable--code {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+}
+
+.copyable--link {
+  text-decoration: none;
+  cursor: default;
+}
+
+.copyable--link a {
+  color: var(--brand-text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+/* The glyph floats just above the word's end, so it never covers words on the same line or moves the text. */
+.copyable__glyph {
+  position: absolute;
+  bottom: calc(100% + 2px);
+  right: -4px;
+  display: grid;
+  place-items: center;
+  width: 1.375rem;
+  height: 1.375rem;
+  border-radius: var(--radius-sm);
+  background: var(--surface-card-hover);
+  box-shadow: 0 0 0 1px var(--alpha-12);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  opacity: 0;
+  transform: translateY(3px) scale(0.9);
+  transition:
+    opacity var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.copyable:hover .copyable__glyph,
+.copyable:focus-visible .copyable__glyph,
+.copyable:focus-within .copyable__glyph {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+.copyable--link .copyable__glyph:hover {
+  color: var(--text-primary);
+}
+
+.selection-copy {
+  position: fixed;
+  z-index: 260;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-md);
+  background: var(--surface-card-hover);
+  box-shadow: var(--shadow-dialog);
+  font-size: var(--text-sm);
+  font-weight: 550;
+  transform: translate(-50%, -100%);
+  animation: selection-copy-in var(--duration-fast) var(--ease-out);
+}
+
+.selection-copy:hover {
+  color: var(--brand-text);
+}
+
+@keyframes selection-copy-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, calc(-100% + 4px));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .selection-copy,
+  .copyable__glyph {
+    animation: none;
+    transition: none;
+  }
+}

@@ -1,11 +1,20 @@
+import { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 
 import type { Message, Workspace } from '../../api/types'
 import type { Theme } from '../../constants/ui'
 import type { MessageActions } from '../../hooks/useMessageActions'
-import { IconArchive, IconDelete, IconInbox, IconMarkRead, IconPutBack, IconReply, IconRoute, IconStar, IconStarred } from '../../icons'
+import { IconArchive, IconCopy, IconDelete, IconExternal, IconInbox, IconMarkRead, IconPutBack, IconReply, IconRoute, IconStar, IconStarred, IconText } from '../../icons'
+import { openExternal } from '../../api/client'
+import { copyWithToast } from '../../lib/copy'
 import { formatFull } from '../../lib/time'
+import { tokenize } from '../../lib/tokens'
+import type { CopyKind } from '../../lib/tokens'
+import { ContextMenu } from '../ContextMenu/ContextMenu'
+import type { MenuItem, MenuRequest } from '../ContextMenu/ContextMenu'
+import { Copyable } from '../Copy/Copyable'
+import { SelectionCopy } from '../Copy/SelectionCopy'
 import { MoreFromBuun } from '../MoreFromBuun/MoreFromBuun'
 import { TagEditor } from '../Tags/Tags'
 import { TipButton } from '../Tooltip/TipButton'
@@ -36,6 +45,54 @@ function RouteNote({ message, workspace }: { message: Message; workspace: Worksp
 /** The open message. With nothing open, the other Buun Group products. */
 export function Reader({ message, body, workspace, theme, onAddTag, onRemoveTag, tagSuggestions, actions }: ReaderProps): ReactNode {
   const { t } = useTranslation('mail')
+  const article = useRef<HTMLElement | null>(null)
+  const bodyText = useRef<HTMLDivElement | null>(null)
+  const [menu, setMenu] = useState<MenuRequest | null>(null)
+  const closeMenu = useCallback(() => setMenu(null), [])
+  // The menu reads the latest message and selection when it opens, so the listener is added once per article.
+  const onMenu = useRef<(event: MouseEvent) => void>(() => {})
+  const attachArticle = useCallback((element: HTMLElement | null) => {
+    article.current = element
+    if (element === null) return undefined
+    const listener = (event: MouseEvent): void => onMenu.current(event)
+    element.addEventListener('contextmenu', listener)
+    return () => element.removeEventListener('contextmenu', listener)
+  }, [])
+  /** What the menu offers for a right click in the message: the selection, the word under the pointer, then the message. */
+  const openMenu = (open: Message, event: MouseEvent): void => {
+    event.preventDefault()
+    const selected = window.getSelection()?.toString().trim() ?? ''
+    const word = event.target instanceof Element ? event.target.closest<HTMLElement>('[data-copy]') : null
+    const wordText = word?.dataset['copy']
+    const kind = word?.dataset['kind'] as CopyKind | undefined
+    const items: MenuItem[] = []
+    if (selected !== '') items.push({ id: 'copy-selection', label: t('copy.copySelection'), glyph: IconCopy, onSelect: () => void copyWithToast(selected) })
+    if (wordText !== undefined && kind === 'link') {
+      items.push({ id: 'open-link', label: t('copy.openLink'), glyph: IconExternal, onSelect: () => void openExternal(wordText) }, { id: 'copy-link', label: t('copy.copyLink'), glyph: IconCopy, onSelect: () => void copyWithToast(wordText) })
+    } else if (wordText !== undefined) {
+      items.push({ id: 'copy-word', label: kind === 'email' ? t('copy.copyEmail') : t('copy.copyCode', { code: wordText }), glyph: IconCopy, onSelect: () => void copyWithToast(wordText) })
+    }
+    items.push(
+      {
+        id: 'select-all',
+        label: t('copy.selectAll'),
+        glyph: IconText,
+        separated: items.length > 0,
+        onSelect: () => {
+          if (bodyText.current !== null) window.getSelection()?.selectAllChildren(bodyText.current)
+        },
+      },
+      { id: 'copy-body', label: t('copy.copyBody'), glyph: IconCopy, onSelect: () => void copyWithToast(body ?? open.preview) },
+    )
+    const forMessage = actions.menu(open).filter((item) => item.id !== 'open')
+    const first = forMessage[0]
+    setMenu({ x: event.clientX, y: event.clientY, label: t('copy.menuLabel'), items: [...items, ...(first === undefined ? [] : [{ ...first, separated: true }, ...forMessage.slice(1)])] })
+  }
+
+  useLayoutEffect(() => {
+    onMenu.current = message === null ? () => {} : (event) => openMenu(message, event)
+  })
+
   if (message === null) {
     return (
       <section className="reader reader--empty" aria-label={t('reader.label')}>
@@ -46,6 +103,7 @@ export function Reader({ message, body, workspace, theme, onAddTag, onRemoveTag,
       </section>
     )
   }
+
 
   return (
     <section className="reader" aria-label={t('reader.label')}>
@@ -80,17 +138,17 @@ export function Reader({ message, body, workspace, theme, onAddTag, onRemoveTag,
         </TipButton>
       </div>
 
-      <article className="reader__message">
+      <article ref={attachArticle} className="reader__message">
         <h2>{message.subject}</h2>
         <div className="reader__people">
           <span className="reader__from">{message.fromName}</span>
-          <span className="reader__address">{message.from}</span>
+          <Copyable text={message.from} kind="email" className="reader__address" />
           <time className="reader__when" dateTime={message.receivedAt}>
             {formatFull(message.receivedAt)}
           </time>
         </div>
         <p className="reader__to">
-          <Trans t={t} i18nKey="reader.to" components={{ address: <span className="reader__address">{message.to}</span> }} />
+          <Trans t={t} i18nKey="reader.to" components={{ address: <Copyable text={message.to} kind="email" className="reader__address" /> }} />
         </p>
         <div className="reader__tags">
           <TagEditor tags={message.tags} suggestions={tagSuggestions} onAdd={(tag) => onAddTag(message.id, tag)} onRemove={(tag) => onRemoveTag(message.id, tag)} />
@@ -101,14 +159,26 @@ export function Reader({ message, body, workspace, theme, onAddTag, onRemoveTag,
             <RouteNote message={message} workspace={workspace} />
           </span>
         </p>
-        <div className="reader__body" aria-busy={body === null}>
+        <div ref={bodyText} className="reader__body" aria-busy={body === null}>
           {(body ?? message.preview).split(/\n{2,}/).map((paragraph, index) => (
             // Paragraphs have no id of their own; their order is fixed for a message.
             // eslint-disable-next-line react/no-array-index-key
-            <p key={index}>{paragraph}</p>
+            <p key={index}>
+              {tokenize(paragraph).map((token, at) =>
+                token.kind === 'text' ? (
+                  token.text
+                ) : (
+                  // Tokens have no id of their own; their order is fixed for a paragraph.
+                  // eslint-disable-next-line react/no-array-index-key
+                  <Copyable key={at} text={token.text} kind={token.kind} />
+                ),
+              )}
+            </p>
           ))}
         </div>
       </article>
+      <SelectionCopy within={article} />
+      {menu !== null && <ContextMenu request={menu} onClose={closeMenu} />}
     </section>
   )
 }

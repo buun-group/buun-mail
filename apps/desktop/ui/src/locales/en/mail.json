@@ -80,8 +80,19 @@
     "cancel": "Cancel",
     "shortcutsHint": "E archive, # trash, U unread, S star",
     "failed": "That did not work",
-    "copiedSender": "Sender address copied",
-    "copiedSubject": "Subject copied",
     "copyFailed": "The clipboard is not available"
+  },
+  "copy": {
+    "copy": "Copy",
+    "copied": "Copied",
+    "copyThis": "Copy {{text}}",
+    "copyLink": "Copy link",
+    "openLink": "Open link",
+    "copyEmail": "Copy email address",
+    "copyCode": "Copy {{code}}",
+    "copySelection": "Copy selected text",
+    "selectAll": "Select the message text",
+    "copyBody": "Copy message text",
+    "menuLabel": "Message"
   }
 }
