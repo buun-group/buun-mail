@@ -2,6 +2,7 @@
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   min-height: 0;
+  background: var(--surface-reading);
 }
 
 .reader--empty {
@@ -72,13 +73,17 @@
 
 .reader__message {
   overflow-y: auto;
-  padding: var(--space-6) var(--space-8) var(--space-8);
+  padding: var(--space-8) var(--space-8) calc(var(--space-8) * 2);
+}
+
+/* One readable column, about seventy characters wide, however wide the window. */
+.reader__message > * {
+  max-width: 44rem;
 }
 
 .reader__message h2 {
-  max-width: 40rem;
-  margin: 0 0 var(--space-4);
-  font-size: var(--text-xl);
+  margin: 0 0 var(--space-5);
+  font-size: var(--text-2xl);
   font-weight: 650;
   letter-spacing: -0.02em;
   line-height: 1.25;
@@ -103,7 +108,7 @@
 }
 
 .reader__when {
-  margin-left: auto;
+  flex-basis: 100%;
   font-size: var(--text-xs);
   color: var(--text-muted);
 }
@@ -135,10 +140,10 @@
 }
 
 .reader__body {
-  max-width: 40rem;
   margin-top: var(--space-6);
-  font-size: 0.9375rem;
-  line-height: 1.65;
+  font-size: var(--text-base);
+  line-height: 1.7;
+  color: var(--text-primary);
 }
 
 .reader__body p {

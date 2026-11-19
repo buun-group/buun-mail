@@ -2,6 +2,7 @@
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   min-height: 0;
+  background: var(--surface-reading);
   border-right: 1px solid var(--border-faint);
 }
 
@@ -137,6 +138,7 @@
 }
 
 .message-row__preview {
+  font-size: var(--text-sm);
   color: var(--text-muted);
 }
 

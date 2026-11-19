@@ -24,6 +24,8 @@
   --mark-ink: #16141c;
 
   --surface-body: #f9f9f9;
+  /* Where mail is read: solid, so the grain under the panes never sits behind text. */
+  --surface-reading: #fcfcfc;
   --surface-card: #fbfbfb;
   --surface-card-hover: #ffffff;
   --surface-sunken: #f2f2f2;
@@ -33,13 +35,14 @@
   --border-muted: #e8e8e8;
 
   --text-primary: #171717;
-  --text-secondary: #525252;
-  --text-muted: #6b6b6b;
+  --text-secondary: #3f3f3f;
+  --text-muted: #5a5a5a;
 
   --action-primary: #262626;
   --action-primary-text: #fafafa;
 
   --status-danger-fg: #b3261e;
+  --status-success-fg: #1f7a3d;
 
   /* The close button's hover, as Windows draws it. */
   --window-close-hover: #c42b1c;
@@ -67,7 +70,8 @@
   /* Grain: the paper tooth buungroup.com has, under the whole window and blended over it. */
   --grain-image: url('/grain.svg');
   --grain-opacity: 0.22;
-  --grain-over-opacity: 0.35;
+  /* Over the panes, so it touches text: kept faint enough that letters stay clean. */
+  --grain-over-opacity: 0.1;
   --grain-filter: none;
 
   /* Company logos, in each company's own colour. Dark brands flip to near white in dark mode. */
@@ -135,6 +139,7 @@
   --brand-text: #ffb84d;
 
   --surface-body: #0a0a0a;
+  --surface-reading: #111111;
   --surface-card: #141414;
   --surface-card-hover: #1a1a1a;
   --surface-sunken: #0f0f0f;
@@ -146,13 +151,14 @@
   --border-muted: #333333;
 
   --text-primary: #fafafa;
-  --text-secondary: #d4d4d4;
-  --text-muted: #a3a3a3;
+  --text-secondary: #dedede;
+  --text-muted: #b3b3b3;
 
   --action-primary: #fafafa;
   --action-primary-text: #171717;
 
   --status-danger-fg: #ff8a8a;
+  --status-success-fg: #74d494;
 
   --emboss-light: rgba(255, 255, 255, 0.08);
   --emboss-dark: rgba(0, 0, 0, 0.7);
@@ -161,7 +167,7 @@
   --shadow-well: inset 0 1px 3px rgba(0, 0, 0, 0.85), inset 0 0 0 1px var(--alpha-8), 0 1px 0 var(--emboss-light);
 
   --grain-opacity: 0.28;
-  --grain-over-opacity: 0.22;
+  --grain-over-opacity: 0.08;
   --grain-filter: invert(1);
   --logo-resend: #fafafa;
   --logo-cursor: #fafafa;
