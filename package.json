@@ -6,14 +6,14 @@
     "node": ">=22"
   },
   "scripts": {
-    "dev": "tauri dev --config apps/desktop/src-tauri/tauri.conf.json",
+    "dev": "node tools/with-rustup.mjs tauri dev --config apps/desktop/src-tauri/tauri.conf.json",
     "dev:ui": "pnpm --filter @buun-mail/ui dev",
-    "build": "tauri build --config apps/desktop/src-tauri/tauri.conf.json",
-    "lint": "oxlint --deny-warnings && cargo clippy --workspace --all-targets -- -D warnings",
-    "format": "cargo fmt --all",
+    "build": "node tools/with-rustup.mjs tauri build --config apps/desktop/src-tauri/tauri.conf.json",
+    "lint": "oxlint --deny-warnings && node tools/with-rustup.mjs cargo clippy --workspace --all-targets -- -D warnings",
+    "format": "node tools/with-rustup.mjs cargo fmt --all",
     "typecheck": "pnpm -r typecheck",
-    "test": "pnpm -r test && cargo test --workspace",
-    "check": "cargo fmt --all --check && pnpm lint && pnpm typecheck && pnpm test",
+    "test": "pnpm -r test && node tools/with-rustup.mjs cargo test --workspace",
+    "check": "node tools/with-rustup.mjs cargo fmt --all --check && pnpm lint && pnpm typecheck && pnpm test",
     "dev:brand": "pnpm --filter @buun-mail/brand preview",
     "brand:build": "pnpm --filter @buun-mail/brand build"
   },
