@@ -31,6 +31,18 @@
   display: none;
 }
 
+/* The window's rounded corners: the app clips everything inside it, grain and splash included, to its own shape, with no
+   outline, so nothing shows against the desktop behind it. */
+html[data-shell='desktop'] .app {
+  border-radius: var(--window-radius);
+  background: var(--surface-body);
+  contain: paint;
+}
+
+html[data-shell='desktop'][data-maximized='true'] .app {
+  border-radius: 0;
+}
+
 .app-error {
   padding: var(--space-8);
   color: var(--text-secondary);
