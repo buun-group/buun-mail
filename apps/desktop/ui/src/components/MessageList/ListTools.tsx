@@ -3,8 +3,8 @@ import type { FormEvent, ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { LIST_FILTERS } from '../../constants/ui'
-import type { ListFilter } from '../../constants/ui'
-import { IconFilter, IconInbox, IconJump, IconMarkRead, IconStar, IconTag, IconUnread } from '../../icons'
+import type { JumpId, ListFilter } from '../../constants/ui'
+import { IconFilter, JUMP_GLYPHS, IconInbox, IconJump, IconMarkRead, IconStar, IconTag, IconUnread } from '../../icons'
 import { ContextMenu } from '../ContextMenu/ContextMenu'
 import type { MenuRequest } from '../ContextMenu/ContextMenu'
 import { Popover } from '../Popover/Popover'
@@ -13,13 +13,13 @@ import { TipButton } from '../Tooltip/TipButton'
 const FILTER_GLYPHS = { all: IconInbox, unread: IconUnread, read: IconMarkRead, starred: IconStar, tagged: IconTag } as const satisfies Record<ListFilter, unknown>
 
 /** The dates Jump to offers, each as how far back from today. */
-const JUMPS = [
+const JUMPS: readonly { id: JumpId; back: (day: Date) => Date }[] = [
   { id: 'today', back: (day: Date) => day },
   { id: 'yesterday', back: (day: Date) => new Date(day.getFullYear(), day.getMonth(), day.getDate() - 1) },
   { id: 'lastWeek', back: (day: Date) => new Date(day.getFullYear(), day.getMonth(), day.getDate() - 7) },
   { id: 'lastMonth', back: (day: Date) => new Date(day.getFullYear(), day.getMonth() - 1, day.getDate()) },
   { id: 'lastYear', back: (day: Date) => new Date(day.getFullYear() - 1, day.getMonth(), day.getDate()) },
-] as const
+]
 
 /** Today as the date field writes it, `2026-11-19`, in local time. */
 const todayValue = (): string => {
@@ -93,11 +93,15 @@ export function ListTools({ filter, onFilter, onJump, compact }: ListToolsProps)
       {jumpFrom !== null && (
         <Popover anchor={jumpFrom} label={t('list.jump.label')} onClose={closeJump}>
           <div className="jump">
-            {JUMPS.map((item) => (
-              <button key={item.id} type="button" className="context-menu__item" onClick={() => jump(item.back(new Date()))}>
-                <span className="context-menu__words">{t(`list.jump.${item.id}`)}</span>
-              </button>
-            ))}
+            {JUMPS.map((item) => {
+              const Glyph = JUMP_GLYPHS[item.id]
+              return (
+                <button key={item.id} type="button" className="context-menu__item" onClick={() => jump(item.back(new Date()))}>
+                  <Glyph aria-hidden="true" />
+                  <span className="context-menu__words">{t(`list.jump.${item.id}`)}</span>
+                </button>
+              )
+            })}
             <form className="jump__date" onSubmit={submit}>
               <label className="jump__field">
                 <span className="visually-hidden">{t('list.jump.date')}</span>

@@ -44,6 +44,11 @@ import {
   PiSunLight,
   PiTrayArrowDownLight,
   PiListLight,
+  PiCalendarDotLight,
+  PiCalendarDotsLight,
+  PiCalendarLight,
+  PiClockCounterClockwiseLight,
+  PiHourglassLight,
   PiRectangleLight,
   PiSquareSplitHorizontalLight,
 } from 'react-icons/pi'
@@ -51,7 +56,7 @@ import { SiBrevo, SiClaude, SiCloudflare, SiCursor, SiGmail, SiIcloud, SiMailgun
 
 import type { AgentClientId } from './constants/agents'
 import type { IntegrationId } from './constants/integrations'
-import type { Density, ReadingPane, SettingsSection, ThemePreference } from './constants/ui'
+import type { Density, JumpId, ReadingPane, SettingsSection, ThemePreference } from './constants/ui'
 
 export {
   PiArchiveLight as IconArchive,
@@ -164,6 +169,15 @@ export const INTEGRATION_GLYPHS: Record<IntegrationId, IconType> = {
 export const THEME_GLYPHS: Record<ThemePreference, IconType> = { system: PiDesktopLight, light: PiSunLight, dark: PiMoonLight }
 
 export const DENSITY_GLYPHS: Record<Density, IconType> = { comfortable: PiRowsLight, compact: PiListLight }
+
+/** Jump to's dates: today's dot, a step back, a week of days, a month, and the long view of a year. */
+export const JUMP_GLYPHS: Record<JumpId, IconType> = {
+  today: PiCalendarDotLight,
+  yesterday: PiClockCounterClockwiseLight,
+  lastWeek: PiCalendarDotsLight,
+  lastMonth: PiCalendarLight,
+  lastYear: PiHourglassLight,
+}
 
 export const READING_PANE_GLYPHS: Record<ReadingPane, IconType> = { right: PiSquareSplitHorizontalLight, off: PiRectangleLight }
 

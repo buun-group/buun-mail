@@ -66,3 +66,7 @@ export interface ListSort {
 /** What the list can be narrowed to, from what the app knows about each message. */
 export const LIST_FILTERS = ['all', 'unread', 'read', 'starred', 'tagged'] as const
 export type ListFilter = (typeof LIST_FILTERS)[number]
+
+/** The dates Jump to offers, nearest first. */
+export const JUMP_IDS = ['today', 'yesterday', 'lastWeek', 'lastMonth', 'lastYear'] as const
+export type JumpId = (typeof JUMP_IDS)[number]
