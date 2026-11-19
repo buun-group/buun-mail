@@ -73,6 +73,41 @@ export function TipButton({ tip, side = 'below', children, onMouseEnter, onMouse
   )
 }
 
+/**
+ * Words with our tooltip on pointer rest, for text inside another control (a list row is already a button, so its parts
+ * cannot be buttons). Not focusable: the control carries the same words for keyboards and screen readers.
+ */
+export function TipSpan({ tip, side = 'below', className, children }: { tip: string; side?: Side; className?: string; children: ReactNode }): ReactNode {
+  const timer = useRef<number | undefined>(undefined)
+  const [anchor, setAnchor] = useState<DOMRect | null>(null)
+  const hide = useCallback(() => {
+    window.clearTimeout(timer.current)
+    setAnchor(null)
+  }, [])
+  useEffect(() => hide, [hide])
+  return (
+    <span
+      ref={(element) => {
+        if (element === null) return undefined
+        const show = (): void => {
+          window.clearTimeout(timer.current)
+          timer.current = window.setTimeout(() => setAnchor(element.getBoundingClientRect()), HOVER_DELAY_MS)
+        }
+        element.addEventListener('mouseenter', show)
+        element.addEventListener('mouseleave', hide)
+        return () => {
+          element.removeEventListener('mouseenter', show)
+          element.removeEventListener('mouseleave', hide)
+        }
+      }}
+      className={className}
+    >
+      {children}
+      {anchor !== null && createPortal(<Tip id={`${tip.length}-tip`} anchor={anchor} side={side} text={tip} />, document.body)}
+    </span>
+  )
+}
+
 /** The tip itself: placed beside its button, then measured and moved inside the window. */
 function Tip({ id, anchor, side, text }: { id: string; anchor: DOMRect; side: Side; text: string }): ReactNode {
   const tip = useRef<HTMLDivElement | null>(null)

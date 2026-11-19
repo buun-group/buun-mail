@@ -71,6 +71,8 @@ impl Mailbox {
             thread_id: None,
             thread_size: 1,
             snoozed_until: None,
+            size: i64::try_from(raw.len()).ok(),
+            checks: None,
         };
         let store = self.store.lock()?;
         if store.insert(&record, raw)? == Inserted::New {
@@ -132,7 +134,14 @@ impl Mailbox {
             let raw = store.raw(id).unwrap_or_default();
             file_for_reading(&store, &record, &raw)?;
         }
-        Ok(ids.len())
+        // Sizes and sender checks, for mail stored before they were kept.
+        let bare = store.without_facts(batch)?;
+        for id in &bare {
+            let raw = store.raw(id).unwrap_or_default();
+            let checks = buun_mail_message::authentication(&raw).map(|found| found.summary());
+            store.set_facts(id, i64::try_from(raw.len()).unwrap_or(i64::MAX), checks.as_deref())?;
+        }
+        Ok(ids.len() + bare.len())
     }
 
     /// People to suggest as recipients, whose name or address holds `query`, most written-to first.

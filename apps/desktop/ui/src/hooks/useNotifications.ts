@@ -145,6 +145,8 @@ export function useNotifications(workspaceName: (id: string) => string): Notific
         threadId: null,
         threadSize: 1,
         snoozedUntil: null,
+        size: null,
+        checks: null,
       }
       if (prefs.toasts) setToasts((current) => [sample, ...current].slice(0, TOAST_LIMIT))
       else sayInWindow({ text: i18n.t('notifications:test.toastsOff'), detail: i18n.t('notifications:test.toastsOffDetail'), tone: 'info' })

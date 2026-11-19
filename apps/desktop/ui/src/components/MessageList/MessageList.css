@@ -672,3 +672,72 @@
   outline: 2px solid var(--brand-100);
   outline-offset: 1px;
 }
+
+/* Sender checks and size, where a list shows them (dissolve.email's workspace). */
+.row-details {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  grid-column: 2 / -1;
+  min-width: 0;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+.row-details__checks {
+  display: inline-flex;
+  gap: var(--space-1);
+}
+.row-details__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 1px var(--space-1-5);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.02em;
+  background: var(--alpha-4);
+}
+.row-details__chip[data-state='pass'] {
+  color: var(--status-success-fg);
+  background: var(--status-success-bg);
+}
+.row-details__chip[data-state='fail'] {
+  color: var(--status-danger-fg);
+}
+.row-details__size {
+  font-family: var(--font-mono);
+}
+.list-header__column--checks,
+.list-header__column--size {
+  display: none;
+}
+.message-list[data-wide='true'][data-details='true'] {
+  --wide-columns: 1.75rem minmax(10rem, 15rem) minmax(0, 1fr) 11.5rem 4.5rem var(--list-time-width);
+}
+.message-list[data-wide='true'][data-details='true'] .list-header__column--checks,
+.message-list[data-wide='true'][data-details='true'] .list-header__column--size {
+  display: flex;
+  align-items: center;
+  color: var(--text-muted);
+}
+.message-list[data-wide='true'] .row-details {
+  display: contents;
+}
+.message-list[data-wide='true'] .row-details__checks {
+  grid-column: 4;
+  grid-row: 1;
+}
+.message-list[data-wide='true'] .row-details__size {
+  grid-column: 5;
+  grid-row: 1;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+.message-list[data-wide='true'][data-details='true'] .message-row__time {
+  grid-column: 6;
+}
+/* Quick actions sit over the subject's end, clear of the checks and size columns. */
+.message-list[data-wide='true'][data-details='true'] .quick-actions {
+  right: calc(var(--space-4) + var(--list-time-width) + 11.5rem + 4.5rem + var(--space-3) * 3);
+}

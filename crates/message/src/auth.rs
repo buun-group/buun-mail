@@ -36,7 +36,55 @@ pub enum Verdict {
     Unclear,
 }
 
+impl Check {
+    fn word(self) -> &'static str {
+        match self {
+            Self::Pass => "pass",
+            Self::Fail => "fail",
+            Self::Other => "other",
+        }
+    }
+
+    fn from_word(word: &str) -> Option<Self> {
+        match word {
+            "pass" => Some(Self::Pass),
+            "fail" => Some(Self::Fail),
+            "other" => Some(Self::Other),
+            _ => None,
+        }
+    }
+}
+
 impl Authentication {
+    /// A one-line summary to store beside the message, such as `spf=pass dkim=pass dmarc=fail by=mx.example`, read back
+    /// by [`Authentication::from_summary`]. Checks that did not run are left out.
+    #[must_use]
+    pub fn summary(&self) -> String {
+        let checks = [("spf", self.spf), ("dkim", self.dkim), ("dmarc", self.dmarc)];
+        let mut words: Vec<String> = checks.iter().filter_map(|(name, check)| check.map(|check| format!("{name}={}", check.word()))).collect();
+        if let Some(by) = &self.by {
+            words.push(format!("by={}", by.split_whitespace().next().unwrap_or_default()));
+        }
+        words.join(" ")
+    }
+
+    /// Reads a [`Authentication::summary`] back. Unknown words are skipped.
+    #[must_use]
+    pub fn from_summary(summary: &str) -> Self {
+        let mut found = Self { by: None, spf: None, dkim: None, dmarc: None };
+        for word in summary.split_whitespace() {
+            let Some((name, value)) = word.split_once('=') else { continue };
+            match name {
+                "spf" => found.spf = Check::from_word(value),
+                "dkim" => found.dkim = Check::from_word(value),
+                "dmarc" => found.dmarc = Check::from_word(value),
+                "by" if !value.is_empty() => found.by = Some(value.to_owned()),
+                _ => {}
+            }
+        }
+        found
+    }
+
     /// The overall reading.
     #[must_use]
     pub fn verdict(&self) -> Verdict {
@@ -119,6 +167,19 @@ mod tests {
         assert_eq!(found.by.as_deref(), Some("mx.cloudflare.net"));
         assert_eq!((found.spf, found.dkim, found.dmarc), (Some(Check::Pass), Some(Check::Pass), Some(Check::Pass)));
         assert_eq!(found.verdict(), Verdict::Verified);
+    }
+
+    #[test]
+    fn keeps_a_summary_that_reads_back_the_same() {
+        let found = authentication(b"Authentication-Results: mx.example; spf=pass; dkim=fail; dmarc=pass\r\n\r\nx").unwrap_or(Authentication {
+            by: None,
+            spf: None,
+            dkim: None,
+            dmarc: None,
+        });
+        assert_eq!(found.summary(), "spf=pass dkim=fail dmarc=pass by=mx.example");
+        assert_eq!(Authentication::from_summary(&found.summary()), found);
+        assert_eq!(Authentication::from_summary("spf=other junk"), Authentication { by: None, spf: Some(Check::Other), dkim: None, dmarc: None });
     }
 
     #[test]

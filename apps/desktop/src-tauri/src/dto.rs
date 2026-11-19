@@ -75,6 +75,10 @@ pub struct MessageDto {
     pub snoozed_until: Option<String>,
     /// Tags, sorted.
     pub tags: Vec<String>,
+    /// The raw message's size in bytes, once known.
+    pub size: Option<i64>,
+    /// The receiving server's sender checks, when the message carries them.
+    pub checks: Option<AuthenticationDto>,
 }
 
 /// Where a message sits: in its folder, archived, or in the trash. Sent and received as `active`, `archived`, `trashed`.
@@ -155,6 +159,8 @@ impl From<MessageRecord> for MessageDto {
             thread_size: record.thread_size,
             snoozed_until: record.snoozed_until.map(rfc3339),
             tags: record.tags,
+            size: record.size,
+            checks: record.checks.as_deref().map(|summary| buun_mail_message::Authentication::from_summary(summary).into()),
         }
     }
 }

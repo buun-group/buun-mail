@@ -44,6 +44,10 @@ export interface Message {
   threadSize: number
   /** When it comes back from a snooze, ISO time; null when not snoozed. */
   snoozedUntil: string | null
+  /** The raw message's size in bytes, once known. */
+  size: number | null
+  /** The receiving server's sender checks, when the message carries them. */
+  checks: Authentication | null
 }
 
 /** Where a message sits: in its folder, archived, or in the trash. It keeps its workspace and folder throughout. */

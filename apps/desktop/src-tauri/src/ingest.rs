@@ -1,7 +1,7 @@
 //! Taking mail in: parse it, route it, run the rules, store it. Every source (a file today, the Cloudflare Worker and IMAP next)
 //! goes through [`ingest`], so a message is placed the same way whichever door it came through.
 
-use buun_mail_message::{MessageError, body_text, is_mbox, parse, split_mbox, thread_ids};
+use buun_mail_message::{MessageError, authentication, body_text, is_mbox, parse, split_mbox, thread_ids};
 use buun_mail_routing::{Address, Envelope, Router};
 use buun_mail_rules::{CheckedRule, Facts, evaluate};
 use buun_mail_store::{Activity, Inserted, MessageRecord, Placement, Shelf, Store, StoreError};
@@ -96,6 +96,8 @@ pub fn ingest(incoming: Incoming<'_>, router: &Router, rules: &[CheckedRule], st
         thread_id: None,
         thread_size: 1,
         snoozed_until: None,
+        size: i64::try_from(incoming.raw.len()).ok(),
+        checks: authentication(incoming.raw).map(|found| found.summary()),
     };
     if store.insert(&record, incoming.raw)? == Inserted::Duplicate {
         return Ok(None);

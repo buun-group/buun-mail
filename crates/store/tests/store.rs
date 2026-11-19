@@ -26,6 +26,8 @@ fn record(id: &str, workspace: &str, folder: Option<&str>, sent_at: i64) -> Mess
         thread_id: None,
         thread_size: 1,
         snoozed_until: None,
+        size: None,
+        checks: None,
     }
 }
 

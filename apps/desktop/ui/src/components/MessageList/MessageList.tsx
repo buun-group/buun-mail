@@ -18,6 +18,7 @@ import type { MessageActions } from '../../hooks/useMessageActions'
 import { ListHeader } from './ListHeader'
 import { SelectionBar } from './SelectionBar'
 import { QuickActions } from './QuickActions'
+import { RowDetails, rowDetailsLabel } from './RowDetails'
 import { TagChips } from '../Tags/Tags'
 
 import './MessageList.css'
@@ -52,6 +53,8 @@ interface MessageListProps {
   wide: boolean
   /** A bar under the header for the open workspace, such as dissolve.email's inbox actions. */
   banner?: ReactNode
+  /** Show each message's sender checks and size, as the dissolve.email workspace does. */
+  details?: boolean
 }
 
 const VIEW_GLYPHS = { starred: IconStar, snoozed: IconSnooze, archive: IconArchive, trash: IconDelete, drafts: IconRename, contacts: IconContacts } as const satisfies Record<MailView, unknown>
@@ -60,7 +63,7 @@ const VIEW_GLYPHS = { starred: IconStar, snoozed: IconSnooze, archive: IconArchi
  * The open folder's messages, or a view across workspaces, newest first, as flat rows split by hairlines. Unread is
  * heavier type and an envelope glyph. Right click, the menu key or Shift F10 on a row opens what can be done to it.
  */
-export function MessageList({ workspace, place, view, messages, selectedId, onSelect, actions, workspaceName, theme, sort, onSort, filter, onFilter, total, looks, query, onQuery, scope, onScope, wide, banner }: MessageListProps): ReactNode {
+export function MessageList({ workspace, place, view, messages, selectedId, onSelect, actions, workspaceName, theme, sort, onSort, filter, onFilter, total, looks, query, onQuery, scope, onScope, wide, banner, details = false }: MessageListProps): ReactNode {
   const { t } = useTranslation(['mail', 'common'])
   const [menu, setMenu] = useState<MenuRequest | null>(null)
   const closeMenu = useCallback(() => setMenu(null), [])
@@ -146,7 +149,7 @@ export function MessageList({ workspace, place, view, messages, selectedId, onSe
     setMenu({ ...menuPoint(event), label: t('actions.menuLabel', { subject: message.subject }), items: actions.menu(message) })
   }
   return (
-    <section className="message-list" data-wide={wide} data-banner={banner !== undefined} aria-label={t('list.label')}>
+    <section className="message-list" data-wide={wide} data-banner={banner !== undefined} data-details={details} aria-label={t('list.label')}>
       <header className="message-list__header" data-selecting={selected.length > 0}>
         {selected.length > 0 && <SelectionBar selected={selected} total={messages.length} workspace={workspace} bulk={actions.bulk} onSnooze={actions.snooze} onSelectAll={() => setPicked(new Set(messages.map((message) => message.id)))} onClear={clearPicked} />}
         <div className="message-list__title">
@@ -221,7 +224,7 @@ export function MessageList({ workspace, place, view, messages, selectedId, onSe
         </p>
       ) : (
         <div className="message-list__body">
-        <ListHeader sort={sort} onSort={onSort} />
+        <ListHeader sort={sort} onSort={onSort} details={details} />
         <ul ref={attachRows} className="message-list__rows" data-selecting={selected.length > 0}>
           {messages.map((message) => (
             <li key={message.id} data-id={message.id} data-picked={picked.has(message.id)}>
@@ -272,6 +275,12 @@ export function MessageList({ workspace, place, view, messages, selectedId, onSe
                   <span className="message-row__inline-preview">{message.preview}</span>
                 </span>
                 <span className="message-row__preview">{message.preview}</span>
+                {details && (
+                  <>
+                    <RowDetails message={message} />
+                    <span className="visually-hidden">{rowDetailsLabel(message)}</span>
+                  </>
+                )}
               </button>
               <QuickActions message={message} actions={actions} />
             </li>

@@ -341,5 +341,28 @@
     "hoursMinutes": "{{hours}} h {{minutes}} min",
     "days_one": "{{count}} day",
     "days_other": "{{count}} days"
+  },
+  "checks": {
+    "label": "Checks",
+    "sizeColumn": "Size",
+    "spf": {
+      "pass": "SPF passed: the server that sent it may send mail for {{domain}}.",
+      "fail": "SPF failed: the server that sent it is not allowed to send mail for {{domain}}.",
+      "other": "SPF gave no clear answer for {{domain}}.",
+      "none": "No SPF check was recorded for this message."
+    },
+    "dkim": {
+      "pass": "DKIM passed: {{domain}} signed it, and it was not changed on the way.",
+      "fail": "DKIM failed: the signature does not match, so it may have been changed or forged.",
+      "other": "DKIM gave no clear answer.",
+      "none": "No DKIM check was recorded; the message may not be signed."
+    },
+    "dmarc": {
+      "pass": "DMARC passed: {{domain}} stands behind this message.",
+      "fail": "DMARC failed: {{domain}} does not stand behind this message. Treat its links with care.",
+      "other": "DMARC gave no clear answer for {{domain}}.",
+      "none": "No DMARC check was recorded; {{domain}} may not publish a policy."
+    },
+    "size": "{{bytes}} bytes, attachments and formatting included."
   }
 }

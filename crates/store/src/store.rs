@@ -19,11 +19,10 @@ const RAW_DIR: &str = "raw";
 /// Every column of a message row, in the order [`record_from_row`] reads them. Tags come last, joined with [`TAG_SEPARATOR`].
 const COLUMNS: &str = "id, workspace, folder, matched, folder_matched, from_name, from_address, to_address, subject, preview, sent_at, message_id, unread, starred, shelf, thread_id, snoozed_until, \
     (SELECT COUNT(*) FROM messages AS thread WHERE thread.thread_id = messages.thread_id AND thread.shelf != 'trashed'), \
-    (SELECT group_concat(tag, char(31)) FROM (SELECT tag FROM tags WHERE tags.message_id = messages.id ORDER BY tag))";
+    (SELECT group_concat(tag, char(31)) FROM (SELECT tag FROM tags WHERE tags.message_id = messages.id ORDER BY tag)), size, checks";
 
 /// The columns written on insert, without the derived tags.
-const INSERT_COLUMNS: &str =
-    "id, workspace, folder, matched, folder_matched, from_name, from_address, to_address, subject, preview, sent_at, message_id, unread, starred, shelf";
+const INSERT_COLUMNS: &str = "id, workspace, folder, matched, folder_matched, from_name, from_address, to_address, subject, preview, sent_at, message_id, unread, starred, shelf, size, checks";
 
 /// Joins a message's tags in one column. The unit separator never appears in a tag.
 const TAG_SEPARATOR: char = '\u{1f}';
@@ -80,7 +79,7 @@ impl Store {
         // The file first: a row must never point at bytes that are not there.
         self.raw.write(&record.id, raw)?;
         self.index.execute(
-            &format!("INSERT INTO messages ({INSERT_COLUMNS}) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)"),
+            &format!("INSERT INTO messages ({INSERT_COLUMNS}) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17)"),
             params![
                 record.id,
                 record.placement.workspace,
@@ -97,6 +96,8 @@ impl Store {
                 record.unread,
                 record.starred,
                 record.shelf.as_str(),
+                record.size,
+                record.checks,
             ],
         )?;
         self.add_tags(&record.id, &record.tags)?;
@@ -325,6 +326,27 @@ impl Store {
             self.index.execute("UPDATE messages SET snoozed_until = NULL, unread = 1 WHERE id = ?1", [id])?;
         }
         Ok(ids)
+    }
+
+    /// Up to `limit` messages stored before sizes and sender checks were kept, for catching up.
+    ///
+    /// # Errors
+    ///
+    /// [`StoreError`] when the index cannot be read.
+    pub fn without_facts(&self, limit: usize) -> Result<Vec<String>, StoreError> {
+        let mut statement = self.index.prepare_cached("SELECT id FROM messages WHERE size IS NULL LIMIT ?1")?;
+        let rows = statement.query_map([i64::try_from(limit).unwrap_or(i64::MAX)], |row| row.get(0))?;
+        Ok(rows.collect::<rusqlite::Result<_>>()?)
+    }
+
+    /// Records a message's size and sender checks.
+    ///
+    /// # Errors
+    ///
+    /// [`StoreError`] when the index cannot be written.
+    pub fn set_facts(&self, id: &str, size: i64, checks: Option<&str>) -> Result<(), StoreError> {
+        self.index.execute("UPDATE messages SET size = ?2, checks = ?3 WHERE id = ?1", params![id, size, checks])?;
+        Ok(())
     }
 
     /// Deletes one message for good: its row, its tags and its bytes. Returns false when it did not exist.
@@ -568,5 +590,7 @@ fn record_from_row(row: &Row<'_>) -> rusqlite::Result<MessageRecord> {
         snoozed_until: row.get(16)?,
         thread_size: row.get::<_, Option<u32>>(17)?.unwrap_or(1).max(1),
         tags: row.get::<_, Option<String>>(18)?.map(|joined| joined.split(TAG_SEPARATOR).map(str::to_owned).collect()).unwrap_or_default(),
+        size: row.get(19)?,
+        checks: row.get(20)?,
     })
 }

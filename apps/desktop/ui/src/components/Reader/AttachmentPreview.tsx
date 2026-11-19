@@ -7,7 +7,7 @@ import type { Attachment } from '../../api/types'
 import { IconClose, IconExternal } from '../../icons'
 import { canOpen, previewKind } from '../../lib/attachments'
 import { toast } from '../../lib/feedback'
-import { readableSize } from './Attachments'
+import { readableSize } from '../../lib/size'
 
 interface AttachmentPreviewProps {
   messageId: string

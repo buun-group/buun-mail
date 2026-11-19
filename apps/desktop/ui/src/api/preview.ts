@@ -14,32 +14,33 @@ const MESSAGES: Message[] = [
   {
     id: 'p5', workspace: 'buun', folder: 'Sent', fromName: 'Buun Group', from: 'hello@buungroup.com', to: 'projects@client.example',
     matched: null, folderMatched: null, subject: 'Re: Quote for the booking site',
-    preview: 'Thanks, the quote is on its way today.', receivedAt: '2026-11-18T22:40:00Z', unread: false, starred: false, shelf: 'active', tags: [], threadId: 'quote@client.example', threadSize: 2, snoozedUntil: null,
+    preview: 'Thanks, the quote is on its way today.', receivedAt: '2026-11-18T22:40:00Z', unread: false, starred: false, shelf: 'active', tags: [], threadId: 'quote@client.example', threadSize: 2, snoozedUntil: null, size: null, checks: null,
   },
   {
     id: 'p1', workspace: 'buun', folder: 'Billing', fromName: 'Stripe', from: 'invoices@stripe.com', to: 'billing@buungroup.com',
     matched: '*@buungroup.com', folderMatched: '*@stripe.com', subject: 'Your invoice for November is ready',
-    preview: 'Invoice INV-2026-11 is now available. Amount due on 1 December.', receivedAt: '2026-11-19T07:42:00Z', unread: true, starred: false, shelf: 'active', tags: ['invoice'], threadId: null, threadSize: 1, snoozedUntil: null,
+    preview: 'Invoice INV-2026-11 is now available. Amount due on 1 December.', receivedAt: '2026-11-19T07:42:00Z', unread: true, starred: false, shelf: 'active', tags: ['invoice'], threadId: null, threadSize: 1, snoozedUntil: null, size: null, checks: null,
   },
   {
     id: 'p2', workspace: 'buun', folder: null, fromName: 'A client', from: 'projects@client.example', to: 'hello@buungroup.com',
     matched: '*@buungroup.com', folderMatched: null, subject: 'Quote for the booking site',
-    preview: 'Could you send the quote through by Friday so we can sign off?', receivedAt: '2026-11-18T23:05:00Z', unread: true, starred: true, shelf: 'active', tags: [], threadId: 'quote@client.example', threadSize: 2, snoozedUntil: null,
+    preview: 'Could you send the quote through by Friday so we can sign off?', receivedAt: '2026-11-18T23:05:00Z', unread: true, starred: true, shelf: 'active', tags: [], threadId: 'quote@client.example', threadSize: 2, snoozedUntil: null, size: null, checks: null,
   },
   {
     id: 'p3', workspace: 'plotwork', folder: null, fromName: 'A Plotwork team', from: 'lead@team.example', to: 'support@plotwork.dev',
     matched: '*@plotwork.dev', folderMatched: null, subject: 'Sequence diagrams in the board',
-    preview: 'Is there a way to pin a sequence diagram to a tab?', receivedAt: '2026-11-18T21:14:00Z', unread: true, starred: false, shelf: 'active', tags: [], threadId: null, threadSize: 1, snoozedUntil: null,
+    preview: 'Is there a way to pin a sequence diagram to a tab?', receivedAt: '2026-11-18T21:14:00Z', unread: true, starred: false, shelf: 'active', tags: [], threadId: null, threadSize: 1, snoozedUntil: null, size: null, checks: null,
   },
   {
     id: 'p4', workspace: 'personal', folder: null, fromName: 'A friend', from: 'friend@mail.example', to: 'me@personal.example',
     matched: '*@personal.example', folderMatched: null, subject: 'Saturday',
-    preview: 'Still on for Saturday? We could do the coastal walk.', receivedAt: '2026-11-18T19:55:00Z', unread: false, starred: false, shelf: 'archived', tags: [], threadId: null, threadSize: 1, snoozedUntil: null,
+    preview: 'Still on for Saturday? We could do the coastal walk.', receivedAt: '2026-11-18T19:55:00Z', unread: false, starred: false, shelf: 'archived', tags: [], threadId: null, threadSize: 1, snoozedUntil: null, size: null, checks: null,
   },
   {
     id: 'p6', workspace: 'dissolve', folder: 'signup-7k2@dissolve.email', fromName: 'A shop', from: 'no-reply@shop.example', to: 'signup-7k2@dissolve.email',
     matched: null, folderMatched: null, subject: 'Confirm your email',
-    preview: 'Your verification code is 482913. It expires in 10 minutes.', receivedAt: '2026-11-19T08:10:00Z', unread: true, starred: false, shelf: 'active', tags: [], threadId: null, threadSize: 1, snoozedUntil: null,
+    preview: 'Your verification code is 482913. It expires in 10 minutes.', receivedAt: '2026-11-19T08:10:00Z', unread: true, starred: false, shelf: 'active', tags: [], threadId: null, threadSize: 1, snoozedUntil: null, size: 6_214,
+    checks: { verdict: 'verified', by: 'mx.dissolve.email', spf: 'pass', dkim: 'pass', dmarc: 'pass' },
   },
 ]
 
@@ -175,7 +176,7 @@ export const preview = {
   send: (draft: Draft): Message => {
     const sent: Message = {
       id: `sent-${Date.now()}`, workspace: 'buun', folder: 'Sent', fromName: draft.from.name ?? draft.from.address, from: draft.from.address, to: draft.to[0]?.address ?? '',
-      matched: null, folderMatched: null, subject: draft.subject, preview: draft.text.slice(0, 120), receivedAt: new Date().toISOString(), unread: false, starred: false, shelf: 'active', tags: [], threadId: null, threadSize: 1, snoozedUntil: null,
+      matched: null, folderMatched: null, subject: draft.subject, preview: draft.text.slice(0, 120), receivedAt: new Date().toISOString(), unread: false, starred: false, shelf: 'active', tags: [], threadId: null, threadSize: 1, snoozedUntil: null, size: null, checks: null,
     }
     MESSAGES.push(sent)
     return { ...sent }

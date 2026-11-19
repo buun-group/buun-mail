@@ -149,3 +149,11 @@ describe('dissolve.email limits', () => {
     expect(screen.getByRole('button', { name: /Compare plans/ })).toBeTruthy()
   })
 })
+
+describe('sender checks in the list', () => {
+  it('names each check and the size for a dissolve.email message', async () => {
+    const { rowDetailsLabel } = await import('../components/MessageList/RowDetails')
+    const message = { id: 'x', workspace: 'dissolve', folder: 'a@dissolve.email', fromName: 'Shop', from: 'no-reply@shop.example', to: 'a@dissolve.email', matched: null, folderMatched: null, subject: 'Code', preview: '', receivedAt: '2026-11-20T10:00:00Z', unread: true, starred: false, shelf: 'active' as const, tags: [], threadId: null, threadSize: 1, snoozedUntil: null, size: 6_214, checks: { verdict: 'unclear' as const, by: null, spf: 'pass' as const, dkim: 'fail' as const, dmarc: null } }
+    expect(rowDetailsLabel(message)).toBe('SPF pass, DKIM fail, DMARC none, 6 KB')
+  })
+})

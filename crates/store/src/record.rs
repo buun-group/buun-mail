@@ -49,6 +49,11 @@ pub struct MessageRecord {
     pub thread_size: u32,
     /// When a snoozed message comes back, Unix seconds; `None` when it is not snoozed.
     pub snoozed_until: Option<i64>,
+    /// The raw message's size in bytes; `None` for mail stored before sizes were kept, until it is caught up.
+    pub size: Option<i64>,
+    /// The receiving server's sender checks as a one-line summary (`spf=pass dkim=pass dmarc=pass`), `None` when the
+    /// message carries none or was not caught up yet.
+    pub checks: Option<String>,
 }
 
 /// Where a message sits apart from its folder: in it, archived out of it, or in the trash. It keeps its workspace and

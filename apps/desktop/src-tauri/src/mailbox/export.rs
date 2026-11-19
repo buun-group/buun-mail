@@ -245,6 +245,8 @@ mod tests {
             thread_id: None,
             thread_size: 1,
             snoozed_until: None,
+            size: None,
+            checks: None,
         };
         (record, raw)
     }

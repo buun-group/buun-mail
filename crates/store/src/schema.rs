@@ -55,6 +55,8 @@ const MIGRATIONS: &[&str] = &[
     CREATE VIRTUAL TABLE message_text USING fts5(id UNINDEXED, subject, people, body, tokenize = 'unicode61 remove_diacritics 2');",
     "ALTER TABLE messages ADD COLUMN snoozed_until INTEGER;
     CREATE INDEX messages_by_snooze ON messages (snoozed_until) WHERE snoozed_until IS NOT NULL;",
+    "ALTER TABLE messages ADD COLUMN size INTEGER;
+    ALTER TABLE messages ADD COLUMN checks TEXT;",
 ];
 
 /// Brings the database up to the latest version, one migration at a time, each in its own transaction.

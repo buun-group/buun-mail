@@ -1,3 +1,4 @@
+import { Fragment } from 'react'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -9,7 +10,7 @@ import { IconCaretDown, IconCaretUp } from '../../icons'
  * The list's column headers, From, Subject and Received, split by hairlines. Each sorts the list by its column;
  * choosing the one already in use turns the order round. Names sort A to Z first, dates newest first.
  */
-export function ListHeader({ sort, onSort }: { sort: ListSort; onSort: (sort: ListSort) => void }): ReactNode {
+export function ListHeader({ sort, onSort, details = false }: { sort: ListSort; onSort: (sort: ListSort) => void; details?: boolean }): ReactNode {
   const { t } = useTranslation('mail')
   const choose = (key: SortKey): void => onSort(key === sort.key ? { key, descending: !sort.descending } : { key, descending: key === 'received' })
   return (
@@ -20,8 +21,14 @@ export function ListHeader({ sort, onSort }: { sort: ListSort; onSort: (sort: Li
         const active = sort.key === key
         const Caret = sort.descending ? IconCaretDown : IconCaretUp
         return (
+          <Fragment key={key}>
+          {details && key === 'received' && (
+            <>
+              <span className="list-header__column list-header__column--checks">{t('checks.label')}</span>
+              <span className="list-header__column list-header__column--size">{t('checks.sizeColumn')}</span>
+            </>
+          )}
           <button
-            key={key}
             type="button"
             className={`list-header__column list-header__column--${key}`}
             aria-pressed={active}
@@ -31,6 +38,7 @@ export function ListHeader({ sort, onSort }: { sort: ListSort; onSort: (sort: Li
             <span>{column}</span>
             {active && <Caret aria-hidden="true" className="list-header__caret" />}
           </button>
+          </Fragment>
         )
       })}
     </div>

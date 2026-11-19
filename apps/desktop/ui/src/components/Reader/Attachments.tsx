@@ -3,6 +3,8 @@ import type { ReactNode } from 'react'
 import type { IconType } from 'react-icons'
 import { useTranslation } from 'react-i18next'
 
+import { readableSize } from '../../lib/size'
+
 import { isTauri } from '@tauri-apps/api/core'
 
 import { saveAttachment } from '../../api/client'
@@ -20,12 +22,6 @@ function glyphFor(mime: string): IconType {
   return IconFile
 }
 
-/** A size in the units people read: 48 KB, 1.2 MB. */
-export function readableSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-}
 
 /** The files a message carries, pictures shown in its body left out; clicking one previews it, with Open and Save. */
 export function Attachments({ messageId, attachments }: { messageId: string; attachments: Attachment[] }): ReactNode {

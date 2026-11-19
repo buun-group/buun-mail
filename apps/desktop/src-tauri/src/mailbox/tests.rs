@@ -173,3 +173,25 @@ fn a_new_install_starts_from_a_generic_example() -> Result<(), AppError> {
     assert!(addresses.iter().all(|address| address.ends_with(".example")), "only reserved example domains: {addresses:?}");
     Ok(())
 }
+
+#[test]
+fn keeps_each_message_size_and_sender_checks_and_catches_up_older_mail() -> Result<(), AppError> {
+    let (_folder, mailbox) = mailbox();
+    let raw = b"Authentication-Results: mx.example; spf=pass; dkim=pass; dmarc=fail\r\nFrom: a@shop.example\r\nTo: hello@acme.example\r\nSubject: Code\r\nMessage-ID: <c1@shop.example>\r\n\r\nYour code is 1234\r\n";
+    let taken = mailbox.take_in(raw, "hello@flung.dev", 1_795_000_000)?.unwrap_or_else(|| unreachable!("new mail"));
+    assert_eq!(taken.size, i64::try_from(raw.len()).ok());
+    assert_eq!(taken.checks.as_ref().map(|checks| (checks.spf, checks.dkim, checks.dmarc)), Some((Some("pass"), Some("pass"), Some("fail"))));
+
+    // Mail stored before sizes were kept is filled in by the catch-up.
+    {
+        let store = mailbox.store.lock()?;
+        let mut older = store.get(&taken.id)?;
+        (older.size, older.checks) = (None, None);
+        store.delete(&taken.id)?;
+        store.insert(&older, raw)?;
+    }
+    assert!(mailbox.catch_up(10)? >= 1);
+    let caught = mailbox.store.lock()?.get(&taken.id)?;
+    assert_eq!((caught.size, caught.checks.as_deref()), (i64::try_from(raw.len()).ok(), Some("spf=pass dkim=pass dmarc=fail by=mx.example")));
+    Ok(())
+}
