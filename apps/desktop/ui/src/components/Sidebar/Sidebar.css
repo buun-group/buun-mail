@@ -265,3 +265,9 @@
   opacity: 1;
   transition-delay: 400ms;
 }
+
+.sidebar__folder-mark {
+  width: 0.9375rem;
+  height: 0.9375rem;
+  object-fit: contain;
+}

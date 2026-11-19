@@ -490,3 +490,16 @@
   outline: 2px solid var(--brand-100);
   outline-offset: 2px;
 }
+
+.icon-picker__brand img {
+  width: 1.125rem;
+  height: 1.125rem;
+  object-fit: contain;
+}
+
+.icon-picker__break {
+  grid-column: 1 / -1;
+  height: 1px;
+  margin: var(--space-1) 0;
+  background: var(--border-faint);
+}

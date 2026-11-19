@@ -67,7 +67,7 @@ export function Settings({ open, onClose, preferences, workspaces, looks, onLook
         </header>
         <div className="settings__body">
           {section === 'general' && <GeneralSection preferences={preferences} />}
-          {section === 'workspaces' && <WorkspacesSection workspaces={workspaces} looks={looks} onLook={onLook} editing={editing} onEditing={onEditing} />}
+          {section === 'workspaces' && <WorkspacesSection workspaces={workspaces} looks={looks} onLook={onLook} editing={editing} onEditing={onEditing} theme={preferences.theme} />}
           {section === 'integrations' && <IntegrationsSection />}
         </div>
       </div>

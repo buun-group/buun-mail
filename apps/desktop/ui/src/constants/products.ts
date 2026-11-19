@@ -80,3 +80,19 @@ export const BUUN_GROUP = {
   href: 'https://buungroup.com',
   logo: { light: '/buun-group.svg', dark: '/buun-group-dark.svg' },
 } as const
+
+/**
+ * The Buun Group marks a workspace or folder can wear, by the key the routing file uses (`icon = "plotwork"`): the
+ * group's own logo and every product's mark.
+ */
+export const BRAND_ICONS = {
+  buun: { name: BUUN_GROUP.name, mark: BUUN_GROUP.logo },
+  ...Object.fromEntries(PRODUCTS.map((product) => [product.id, { name: product.name, mark: product.mark }])),
+} as Record<'buun' | ProductId, { name: string; mark: { light: string; dark: string } }>
+
+export type BrandIcon = keyof typeof BRAND_ICONS
+
+/** True when a key names a Buun Group mark. */
+export function isBrandIcon(key: string | null | undefined): key is BrandIcon {
+  return key !== null && key !== undefined && Object.hasOwn(BRAND_ICONS, key)
+}

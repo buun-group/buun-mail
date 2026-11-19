@@ -30,3 +30,13 @@
 .workspace-icon--md svg {
   font-size: 1.125rem;
 }
+
+.workspace-icon--brand {
+  background: none;
+}
+
+.workspace-icon--brand img {
+  width: 85%;
+  height: 85%;
+  object-fit: contain;
+}

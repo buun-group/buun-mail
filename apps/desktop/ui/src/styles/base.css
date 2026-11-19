@@ -47,12 +47,6 @@ body::after {
   mix-blend-mode: overlay;
 }
 
-/* Paper grain off in settings. */
-:root[data-grain='off'] body::before,
-:root[data-grain='off'] body::after {
-  content: none;
-}
-
 #root {
   position: relative;
   z-index: 1;

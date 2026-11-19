@@ -2,6 +2,7 @@ import { useCallback, useRef, useState } from 'react'
 import type { KeyboardEvent, MouseEvent, ReactNode } from 'react'
 
 import type { Place, Workspace } from '../../api/types'
+import { BRAND_ICONS, isBrandIcon } from '../../constants/products'
 import { INBOX_LABEL, THEME_PREFERENCES, UNSORTED_WORKSPACE } from '../../constants/ui'
 import type { Theme, ThemePreference } from '../../constants/ui'
 import { usePeek } from '../../hooks/usePeek'
@@ -176,7 +177,7 @@ export function Sidebar({ workspaces, place, theme, themePreference, onThemePref
                     if (isMenuKey(event)) openMenu(event, workspace.name, workspaceMenu(workspace))
                   }}
                 >
-                  {workspace.id === UNSORTED_WORKSPACE ? <IconUnsorted aria-hidden="true" className="sidebar__unsorted" /> : <WorkspaceIcon name={workspace.name} icon={workspace.icon} look={looks[workspace.id]} />}
+                  {workspace.id === UNSORTED_WORKSPACE ? <IconUnsorted aria-hidden="true" className="sidebar__unsorted" /> : <WorkspaceIcon name={workspace.name} icon={workspace.icon} theme={theme} look={looks[workspace.id]} />}
                   <span className="sidebar__text sidebar__workspace-label">{workspace.name}</span>
                   <IconCaretDown aria-hidden="true" className="sidebar__fold sidebar__text" />
                 </button>
@@ -185,6 +186,7 @@ export function Sidebar({ workspaces, place, theme, themePreference, onThemePref
                 {workspace.folders.map((folder) => {
                   const current = place?.workspace === workspace.id && place.folder === folder.name
                   const Glyph = folder.name === null ? IconInbox : isWorkspaceGlyph(folder.icon) ? WORKSPACE_GLYPHS[folder.icon] : IconFolder
+                  const brand = folder.name !== null && isBrandIcon(folder.icon) ? BRAND_ICONS[folder.icon].mark[theme] : null
                   const label = folder.name ?? INBOX_LABEL
                   return (
                     <li key={label}>
@@ -199,7 +201,7 @@ export function Sidebar({ workspaces, place, theme, themePreference, onThemePref
                           if (isMenuKey(event)) openMenu(event, `${workspace.name}, ${label}`, folderMenu(workspace, folder.name))
                         }}
                       >
-                        <Glyph aria-hidden="true" />
+                        {brand === null ? <Glyph aria-hidden="true" /> : <img className="sidebar__folder-mark" src={brand} alt="" aria-hidden="true" />}
                         <span className="sidebar__folder-name sidebar__text">{label}</span>
                         {folder.unread > 0 && (
                           <span className="sidebar__count">
