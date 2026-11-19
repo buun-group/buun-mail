@@ -8,6 +8,8 @@ export const STORAGE_KEYS = {
   notifications: 'buun-mail:notifications',
   language: 'buun-mail:language',
   readingPane: 'buun-mail:reading-pane',
+  rememberPlace: 'buun-mail:remember-place',
+  lastPlace: 'buun-mail:last-place',
   looks: 'buun-mail:workspace-looks',
 } as const
 
@@ -70,3 +72,12 @@ export type ListFilter = (typeof LIST_FILTERS)[number]
 /** The dates Jump to offers, nearest first. */
 export const JUMP_IDS = ['today', 'yesterday', 'lastWeek', 'lastMonth', 'lastYear'] as const
 export type JumpId = (typeof JUMP_IDS)[number]
+
+/** The ways a message can be exported, with the extension each file gets. Mirrors `ExportFormat` in the Rust side. */
+export const EXPORT_FORMATS = [
+  { id: 'eml', extension: 'eml' },
+  { id: 'json', extension: 'json' },
+  { id: 'csv', extension: 'csv' },
+  { id: 'text', extension: 'txt' },
+] as const
+export type ExportFormat = (typeof EXPORT_FORMATS)[number]['id'] | 'mbox'

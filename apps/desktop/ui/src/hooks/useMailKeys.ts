@@ -14,7 +14,7 @@ function isBusy(event: KeyboardEvent): boolean {
 /**
  * The single keys a good mail client has, on the open message: E archive (or put back), # or Delete to the trash (or
  * delete for good from it), U read or unread, S star, J and K the next and previous message, and Escape back to the
- * list when the reading pane is off.
+ * list when the reading pane is off. Slash goes to the search box.
  */
 export function useMailKeys(selected: Message | null, messages: Message[], onSelect: (message: Message) => void, actions: MessageActions, onBack: (() => void) | null): void {
   // The latest values, read when a key lands, so the listener is added once.
@@ -33,7 +33,8 @@ export function useMailKeys(selected: Message | null, messages: Message[], onSel
         if (next !== undefined) select(next)
       }
       const key = event.key
-      if (key === 'j') step(1)
+      if (key === '/') document.getElementById('search')?.focus()
+      else if (key === 'j') step(1)
       else if (key === 'k') step(-1)
       else if (open === null) return
       else if (key === 'Escape' && back !== null) back()

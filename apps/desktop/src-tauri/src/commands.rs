@@ -14,7 +14,7 @@ use crate::agent::{AgentState, AgentStatusDto};
 use crate::dto::{ActivityDto, ImportReportDto, MessageDetailDto, MessageDto, ShelfDto, TagCountDto, ViewDto, WorkspaceDto};
 use crate::error::AppError;
 use crate::events;
-use crate::mailbox::{Actor, Mailbox};
+use crate::mailbox::{Actor, ExportFormat, Mailbox};
 use crate::sync::{AvailableZone, CheckReportDto, DomainRoute, GatewayStatusDto, OwnedDomain, SyncService};
 
 /// Every workspace for the sidebar.
@@ -63,6 +63,12 @@ pub fn delete_messages_forever(mailbox: State<'_, Arc<Mailbox>>, ids: Vec<String
 #[tauri::command]
 pub fn empty_trash(mailbox: State<'_, Arc<Mailbox>>) -> Result<usize, AppError> {
     mailbox.empty_trash(false, &Actor::You)
+}
+
+/// Writes messages to the file the person chose, as `.eml`, `.mbox`, JSON, CSV or text.
+#[tauri::command]
+pub fn export_messages(mailbox: State<'_, Arc<Mailbox>>, ids: Vec<String>, format: ExportFormat, path: PathBuf) -> Result<usize, AppError> {
+    mailbox.export(&ids, format, &path)
 }
 
 /// Moves a message to another folder or workspace.

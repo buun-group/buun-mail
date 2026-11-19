@@ -1,6 +1,7 @@
 .tooltip {
   position: fixed;
   z-index: 300;
+  width: max-content;
   max-width: 16rem;
   padding: 3px var(--space-2);
   border-radius: var(--radius-sm);
@@ -8,7 +9,9 @@
   color: var(--action-primary-text);
   font-size: var(--text-xs);
   line-height: 1.4;
-  white-space: nowrap;
+  /* Short tips stay on one line; a long one wraps inside the window instead of running off it. */
+  white-space: normal;
+  text-wrap: pretty;
   pointer-events: none;
   animation: tooltip-in var(--duration-fast) var(--ease-out);
 }

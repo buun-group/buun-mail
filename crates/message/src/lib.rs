@@ -22,6 +22,6 @@ mod time;
 
 pub use error::MessageError;
 pub use id::content_id;
-pub use mbox::{is_mbox, split_mbox};
+pub use mbox::{is_mbox, mbox_entry, split_mbox};
 pub use parse::{Parsed, body_text, parse};
 pub use time::rfc3339;

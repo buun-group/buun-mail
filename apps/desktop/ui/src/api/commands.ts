@@ -9,6 +9,7 @@ export const COMMANDS = {
   deleteMessagesForever: 'delete_messages_forever',
   emptyTrash: 'empty_trash',
   moveMessage: 'move_message',
+  exportMessages: 'export_messages',
   openMessage: 'open_message',
   markAllRead: 'mark_all_read',
   importFiles: 'import_files',

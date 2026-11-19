@@ -60,6 +60,7 @@ pub fn run() {
             commands::delete_messages_forever,
             commands::empty_trash,
             commands::move_message,
+            commands::export_messages,
             commands::open_message,
             commands::mark_all_read,
             commands::tag_message,

@@ -71,5 +71,9 @@
     "hint": "Off lets the list fill the window; opening a message shows it in full, with Back to the list.",
     "right": "Right",
     "off": "Off"
+  },
+  "remember": {
+    "title": "Reopen where I left off",
+    "hint": "Opens on the folder and message you had open when Buun Mail closed, instead of the first inbox."
   }
 }

@@ -31,3 +31,13 @@ export function filterMessages(messages: readonly Message[], filter: ListFilter)
 export function endOfDay(date: Date): number {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1).getTime()
 }
+
+/** The messages whose sender, addresses, subject, preview or tags hold every word of `query`, ignoring case. */
+export function searchMessages(messages: readonly Message[], query: string): Message[] {
+  const words = query.toLocaleLowerCase().split(/\s+/u).filter(Boolean)
+  if (words.length === 0) return [...messages]
+  return messages.filter((message) => {
+    const haystack = [message.fromName, message.from, message.to, message.subject, message.preview, ...message.tags].join(' ').toLocaleLowerCase()
+    return words.every((word) => haystack.includes(word))
+  })
+}

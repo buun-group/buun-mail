@@ -16,6 +16,7 @@ import { INBOX_LABEL, SETTINGS_SHORTCUT } from './constants/ui'
 import type { SettingsSection } from './constants/ui'
 import { useFolded } from './hooks/useFolded'
 import { useMailbox } from './hooks/useMailbox'
+import { readLastPlace, writeLastPlace } from './lib/lastPlace'
 import { useMailKeys } from './hooks/useMailKeys'
 import { useMessageActions } from './hooks/useMessageActions'
 import { useNotifications } from './hooks/useNotifications'
@@ -29,19 +30,28 @@ import './styles/app.css'
 export function App(): ReactNode {
   const { t } = useTranslation(['mail', 'common'])
   const preferences = usePreferences()
-  const mailbox = useMailbox()
+  // Read once at start: where the person left off, when they want that.
+  const [restore] = useState(() => (preferences.rememberPlace ? readLastPlace() : null))
+  const mailbox = useMailbox(restore)
   const looks = useWorkspaceLooks()
   const folded = useFolded()
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [section, setSection] = useState<SettingsSection>('general')
   const [editing, setEditing] = useState<string | null>(null)
   const openSettings = useCallback(() => setSettingsOpen(true), [])
+  const focusSearch = useCallback(() => document.getElementById('search')?.focus(), [])
   const editIcon = (id: string): void => {
     setSection('workspaces')
     setEditing(id)
     setSettingsOpen(true)
   }
   useShortcut(SETTINGS_SHORTCUT, openSettings)
+  useShortcut('f', focusSearch)
+  const selectedId = mailbox.selected?.message.id ?? null
+  // Remembers where the person is as they move, or forgets it when they turn that off.
+  useEffect(() => {
+    writeLastPlace(preferences.rememberPlace && mailbox.ready ? { place: mailbox.place, view: mailbox.view, selectedId } : null)
+  }, [preferences.rememberPlace, mailbox.ready, mailbox.place, mailbox.view, selectedId])
   // The web view's own menu (back, reload, inspect) means nothing in a mail app. Fields keep theirs, for cut and paste.
   useEffect(() => {
     const quiet = (event: MouseEvent): void => {
@@ -56,6 +66,11 @@ export function App(): ReactNode {
   const notifications = useNotifications(workspaceName)
   const actions = useMessageActions(mailbox, workspaceName)
   useMailKeys(mailbox.selected?.message ?? null, mailbox.messages, mailbox.select, actions, preferences.readingPane === 'off' ? mailbox.close : null)
+
+  const openIntegrations = (): void => {
+    setSection('integrations')
+    setSettingsOpen(true)
+  }
 
   const openNotificationSettings = (): void => {
     setSection('notifications')
@@ -122,6 +137,8 @@ export function App(): ReactNode {
         onFilter={mailbox.setFilter}
         total={mailbox.total}
         looks={looks.looks}
+        query={mailbox.query}
+        onQuery={mailbox.setQuery}
         wide={preferences.readingPane === 'off'}
       />
       <Reader
@@ -134,6 +151,7 @@ export function App(): ReactNode {
         tagSuggestions={mailbox.tags}
         actions={actions}
         onBack={preferences.readingPane === 'off' ? mailbox.close : null}
+        onOpenIntegrations={openIntegrations}
         backTo={mailbox.view === null ? (mailbox.place?.folder ?? t(INBOX_LABEL)) : t(`views.${mailbox.view}`)}
       />
       <Settings

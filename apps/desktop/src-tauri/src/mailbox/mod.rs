@@ -4,11 +4,13 @@
 //! - `read`: workspaces, folders, messages, search, the activity log
 //! - `change`: tags, moves, read state, stars, archive and trash
 //! - `rules`: adding, editing, deleting and re-running rules
+//! - `export`: writing messages out as `.eml`, `.mbox`, JSON, CSV or text
 //! - `import`: taking in `.eml` and `.mbox` files
 //! - `remote`: taking in one message from a source that knows its recipient, such as the mail gateway
 //! - `routing`: reloading the routing file, and adding a workspace for a newly connected domain
 
 mod change;
+mod export;
 mod import;
 mod read;
 mod remote;
@@ -24,6 +26,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use buun_mail_routing::Router;
 use buun_mail_rules::{CheckedRule, Rule};
 use buun_mail_store::{Activity, Store};
+
+pub use export::ExportFormat;
 
 use crate::error::AppError;
 use crate::paths::AppPaths;

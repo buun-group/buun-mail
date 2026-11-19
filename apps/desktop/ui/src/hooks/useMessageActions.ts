@@ -1,13 +1,15 @@
 import { useCallback, useState } from 'react'
 import type { IconType } from 'react-icons'
 import { useTranslation } from 'react-i18next'
+import { isTauri as isDesktop } from '@tauri-apps/api/core'
 
-import { deleteMessagesForever, emptyTrash, moveMessage, setMessagesStarred, setMessagesUnread, shelveMessages } from '../api/client'
+import { deleteMessagesForever, emptyTrash, exportMessages, moveMessage, setMessagesStarred, setMessagesUnread, shelveMessages } from '../api/client'
 import type { Message, Place, Shelf } from '../api/types'
 import type { Confirmation } from '../components/Confirm/Confirm'
 import type { MenuItem } from '../components/ContextMenu/ContextMenu'
 import { INBOX_LABEL } from '../constants/ui'
-import { IconArchive, IconCopy, IconDelete, IconFolder, IconInbox, IconMarkRead, IconPutBack, IconStar, IconStarred } from '../icons'
+import type { ExportFormat } from '../constants/ui'
+import { IconArchive, IconCopy, IconExport, IconDelete, IconFolder, IconInbox, IconMarkRead, IconPutBack, IconStar, IconStarred } from '../icons'
 import { copyWithToast } from '../lib/copy'
 import { toast } from '../lib/feedback'
 import type { Mailbox } from './useMailbox'
@@ -25,6 +27,8 @@ export interface MessageActions {
   deleteForever: (message: Message) => void
   /** Asks first, then empties the trash. */
   emptyTrash: (count: number) => void
+  /** Asks where, then saves the message as `format`. */
+  exportAs: (message: Message, format: ExportFormat) => void
   confirmation: Confirmation | null
   closeConfirmation: () => void
 }
@@ -137,6 +141,20 @@ export function useMessageActions(mailbox: Mailbox, workspaceName: (id: string) 
       },
     })
 
+  const exportAs = (message: Message, format: ExportFormat): void => {
+    // A file name from the subject: letters, digits, spaces and dashes, never a path.
+    const name = message.subject.replace(/[^\p{L}\p{N} -]+/gu, ' ').replace(/\s+/gu, ' ').trim().slice(0, 60) || 'message'
+    exportMessages([message.id], format, name, t('export.fileType', { format: t(`export.${format}`) }))
+      .then((path) => {
+        if (path === null) {
+          if (!isDesktop()) toast({ text: t('export.desktopOnly'), tone: 'info' })
+          return
+        }
+        toast({ text: t('export.saved', { count: 1 }), detail: path, tone: 'done', glyph: IconExport })
+      })
+      .catch((error: unknown) => toast({ text: t('export.failed'), detail: reason(error), tone: 'problem' }))
+  }
+
   const menu = (message: Message): MenuItem[] => {
     const folders = mailbox.workspaces.find((workspace) => workspace.id === message.workspace)?.folders ?? []
     const elsewhere = folders.filter((folder) => folder.name !== message.folder)
@@ -178,5 +196,5 @@ export function useMessageActions(mailbox: Mailbox, workspaceName: (id: string) 
     ]
   }
 
-  return { menu, toggleRead, toggleStar, archive, trash, putBack, move, deleteForever, emptyTrash: confirmEmptyTrash, confirmation, closeConfirmation }
+  return { menu, toggleRead, toggleStar, archive, trash, putBack, move, deleteForever, emptyTrash: confirmEmptyTrash, exportAs, confirmation, closeConfirmation }
 }

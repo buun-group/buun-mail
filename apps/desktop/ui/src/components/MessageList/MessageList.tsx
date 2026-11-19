@@ -41,6 +41,9 @@ interface MessageListProps {
   /** How many messages the folder holds before the filter, to tell an empty folder from a filtered one. */
   total: number
   looks: WorkspaceLooks
+  /** The search box's words; the list shows only what matches them. */
+  query: string
+  onQuery: (query: string) => void
   /** The list fills the window (reading pane off): each message on one line. */
   wide: boolean
 }
@@ -51,7 +54,7 @@ const VIEW_GLYPHS = { starred: IconStar, archive: IconArchive, trash: IconDelete
  * The open folder's messages, or a view across workspaces, newest first, as flat rows split by hairlines. Unread is
  * heavier type and an envelope glyph. Right click, the menu key or Shift F10 on a row opens what can be done to it.
  */
-export function MessageList({ workspace, place, view, messages, selectedId, onSelect, actions, workspaceName, theme, sort, onSort, filter, onFilter, total, looks, wide }: MessageListProps): ReactNode {
+export function MessageList({ workspace, place, view, messages, selectedId, onSelect, actions, workspaceName, theme, sort, onSort, filter, onFilter, total, looks, query, onQuery, wide }: MessageListProps): ReactNode {
   const { t } = useTranslation(['mail', 'common'])
   const [menu, setMenu] = useState<MenuRequest | null>(null)
   const closeMenu = useCallback(() => setMenu(null), [])
@@ -109,11 +112,33 @@ export function MessageList({ workspace, place, view, messages, selectedId, onSe
         <label className="message-list__search">
           <IconSearch aria-hidden="true" />
           <span className="visually-hidden">{t('list.searchLabel')}</span>
-          <input id="search" type="search" placeholder={t('list.searchPlaceholder')} disabled />
+          <input
+            id="search"
+            type="search"
+            placeholder={t('list.searchPlaceholder')}
+            value={query}
+            autoComplete="off"
+            spellCheck={false}
+            onChange={(event) => onQuery(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Escape' && query !== '') {
+                event.preventDefault()
+                event.stopPropagation()
+                onQuery('')
+              }
+            }}
+          />
         </label>
         <ListTools filter={filter} onFilter={onFilter} onJump={jump} compact={!wide} />
       </header>
-      {messages.length === 0 && total > 0 ? (
+      {messages.length === 0 && total > 0 && query.trim() !== '' ? (
+        <div className="message-list__empty">
+          <p>{t('list.searchMiss', { query: query.trim() })}</p>
+          <button type="button" className="message-list__clear" onClick={() => onQuery('')}>
+            {t('list.clearSearch')}
+          </button>
+        </div>
+      ) : messages.length === 0 && total > 0 ? (
         <div className="message-list__empty">
           <p>{t('list.filter.empty', { filter: t(`list.filter.${filter}`).toLowerCase() })}</p>
           <button type="button" className="message-list__clear" onClick={() => onFilter('all')}>

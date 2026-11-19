@@ -87,7 +87,13 @@
   min-width: 0;
   border: 0;
   background: none;
+  color: var(--text-primary);
   outline: none;
+}
+
+.message-list__search:focus-within {
+  box-shadow: 0 0 0 2px var(--brand-40);
+  color: var(--text-secondary);
 }
 
 .message-row__inline-preview {

@@ -5,10 +5,12 @@ import { Trans, useTranslation } from 'react-i18next'
 import type { Message, Workspace } from '../../api/types'
 import type { Theme } from '../../constants/ui'
 import type { MessageActions } from '../../hooks/useMessageActions'
-import { IconArchive, IconBack, IconCopy, IconDelete, IconExternal, IconInbox, IconMarkRead, IconPutBack, IconReply, IconRoute, IconStar, IconStarred, IconText } from '../../icons'
+import { EXPORT_GLYPHS, IconArchive, IconBack, IconCopy, IconExport, IconReplyAll, IconDelete, IconExternal, IconInbox, IconMarkRead, IconPutBack, IconReply, IconRoute, IconStar, IconStarred, IconText } from '../../icons'
 import { openExternal } from '../../api/client'
 import { copyWithToast } from '../../lib/copy'
+import { canSendAs, domainOf } from '../../lib/sending'
 import { formatFull } from '../../lib/time'
+import { EXPORT_FORMATS } from '../../constants/ui'
 import { tokenize } from '../../lib/tokens'
 import type { CopyKind } from '../../lib/tokens'
 import { ContextMenu } from '../ContextMenu/ContextMenu'
@@ -35,6 +37,8 @@ interface ReaderProps {
   onBack: (() => void) | null
   /** What the list is called, for the Back button. */
   backTo: string
+  /** Opens Settings at Integrations, where a sending integration is connected. */
+  onOpenIntegrations: () => void
 }
 
 /** Why a message is where it is, in one plain sentence from the rules the router used. */
@@ -46,8 +50,32 @@ function RouteNote({ message, workspace }: { message: Message; workspace: Worksp
   return <Trans t={t} i18nKey="reader.routeWorkspaceFolder" values={{ workspace: workspace?.name ?? '', folder: message.folder ?? '' }} components={{ address, sender: <code>{message.folderMatched}</code> }} />
 }
 
+/**
+ * Reply and Reply all. Until a sending integration covers the domain the message was sent to, they are greyed out,
+ * say which domain needs one, and open Integrations when clicked.
+ */
+function ReplyTools({ address, onOpenIntegrations }: { address: string; onOpenIntegrations: () => void }): ReactNode {
+  const { t } = useTranslation('mail')
+  const sendable = canSendAs(address)
+  const why = t('reader.needsSending', { domain: domainOf(address) })
+  const tools = [
+    { id: 'reply', label: t('reader.reply'), Glyph: IconReply },
+    { id: 'reply-all', label: t('reader.replyAll'), Glyph: IconReplyAll },
+  ]
+  return (
+    <>
+      {tools.map(({ id, label, Glyph }) => (
+        <TipButton key={id} tip={sendable ? label : why} className="reader__tool" aria-disabled={!sendable || undefined} aria-label={label} onClick={sendable ? undefined : onOpenIntegrations}>
+          <Glyph aria-hidden="true" />
+        </TipButton>
+      ))}
+      <span className="reader__divider" aria-hidden="true" />
+    </>
+  )
+}
+
 /** The open message. With nothing open, the other Buun Group products. */
-export function Reader({ message, body, workspace, theme, onAddTag, onRemoveTag, tagSuggestions, actions, onBack, backTo }: ReaderProps): ReactNode {
+export function Reader({ message, body, workspace, theme, onAddTag, onRemoveTag, tagSuggestions, actions, onBack, backTo, onOpenIntegrations }: ReaderProps): ReactNode {
   const { t } = useTranslation('mail')
   const article = useRef<HTMLElement | null>(null)
   const bodyText = useRef<HTMLDivElement | null>(null)
@@ -120,9 +148,7 @@ export function Reader({ message, body, workspace, theme, onAddTag, onRemoveTag,
             <span className="reader__divider" aria-hidden="true" />
           </>
         )}
-        <TipButton tip={t('reader.replySoon')} className="reader__tool" aria-disabled="true" aria-label={t('reader.replyAs', { address: message.to })}>
-          <IconReply aria-hidden="true" />
-        </TipButton>
+        <ReplyTools address={message.to} onOpenIntegrations={onOpenIntegrations} />
         {message.shelf === 'active' ? (
           <TipButton tip={`${t('reader.archive')} (E)`} className="reader__tool" aria-label={t('reader.archive')} onClick={() => actions.archive(message)}>
             <IconArchive aria-hidden="true" />
@@ -147,6 +173,24 @@ export function Reader({ message, body, workspace, theme, onAddTag, onRemoveTag,
         </TipButton>
         <TipButton tip={`${message.starred ? t('reader.unstar') : t('reader.star')} (S)`} className="reader__tool" data-on={message.starred} aria-pressed={message.starred} aria-label={t('reader.star')} onClick={() => actions.toggleStar(message)}>
           {message.starred ? <IconStarred aria-hidden="true" /> : <IconStar aria-hidden="true" />}
+        </TipButton>
+        <span className="reader__divider" aria-hidden="true" />
+        <TipButton
+          tip={t('reader.exportLabel')}
+          className="reader__tool"
+          aria-label={t('reader.exportLabel')}
+          aria-haspopup="menu"
+          onClick={(event) => {
+            const box = event.currentTarget.getBoundingClientRect()
+            setMenu({
+              x: box.left,
+              y: box.bottom + 6,
+              label: t('reader.exportLabel'),
+              items: EXPORT_FORMATS.map((format) => ({ id: format.id, label: t(`export.${format.id}`), glyph: EXPORT_GLYPHS[format.id], onSelect: () => actions.exportAs(message, format.id) })),
+            })
+          }}
+        >
+          <IconExport aria-hidden="true" />
         </TipButton>
       </div>
 

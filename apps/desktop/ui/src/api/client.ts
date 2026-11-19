@@ -1,7 +1,8 @@
 import { invoke, isTauri } from '@tauri-apps/api/core'
-import { open } from '@tauri-apps/plugin-dialog'
+import { open, save } from '@tauri-apps/plugin-dialog'
 import { openUrl } from '@tauri-apps/plugin-opener'
 
+import type { ExportFormat } from '../constants/ui'
 import { COMMANDS, IMPORT_EXTENSIONS } from './commands'
 import { preview, previewDetail, previewMessages, previewView, previewWorkspaces } from './preview'
 import type { Activity, AgentStatus, AvailableDomain, CheckReport, GatewayDomain, GatewayStatus, ImportReport, MailView, Message, MessageDetail, Place, Rule, Shelf, TagCount, Workspace } from './types'
@@ -73,6 +74,19 @@ export async function importFiles(filterName: string): Promise<ImportReport | nu
   const picked = await open({ multiple: true, directory: false, filters: [{ name: filterName, extensions: [...IMPORT_EXTENSIONS] }] })
   if (picked === null || picked.length === 0) return null
   return invoke<ImportReport>(COMMANDS.importFiles, { paths: picked })
+}
+
+/**
+ * Asks where to save, then writes the messages there in `format`. Resolves to the path written, or null when the person
+ * cancels or in a plain browser, where there is no file system to write to.
+ */
+export async function exportMessages(ids: string[], format: ExportFormat, suggestedName: string, filterName: string): Promise<string | null> {
+  if (!isTauri()) return null
+  const extension = format === 'text' ? 'txt' : format
+  const path = await save({ defaultPath: `${suggestedName}.${extension}`, filters: [{ name: filterName, extensions: [extension] }] })
+  if (path === null) return null
+  await invoke<number>(COMMANDS.exportMessages, { ids, format, path })
+  return path
 }
 
 /** Where the routing file lives, or null in a plain browser. */

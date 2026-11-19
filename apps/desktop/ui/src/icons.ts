@@ -44,6 +44,9 @@ import {
   PiSunLight,
   PiTrayArrowDownLight,
   PiListLight,
+  PiBracketsCurlyLight,
+  PiFileTxtLight,
+  PiTableLight,
   PiCalendarDotLight,
   PiCalendarDotsLight,
   PiCalendarLight,
@@ -56,7 +59,7 @@ import { SiBrevo, SiClaude, SiCloudflare, SiCursor, SiGmail, SiIcloud, SiMailgun
 
 import type { AgentClientId } from './constants/agents'
 import type { IntegrationId } from './constants/integrations'
-import type { Density, JumpId, ReadingPane, SettingsSection, ThemePreference } from './constants/ui'
+import type { Density, ExportFormat, JumpId, ReadingPane, SettingsSection, ThemePreference } from './constants/ui'
 
 export {
   PiArchiveLight as IconArchive,
@@ -94,6 +97,8 @@ export {
   PiCaretUpLight as IconCaretUp,
   PiCheckLight as IconCheck,
   PiStarLight as IconStar,
+  PiArrowBendDoubleUpLeftLight as IconReplyAll,
+  PiExportLight as IconExport,
   PiArrowDownLight as IconJump,
   PiFunnelSimpleLight as IconFilter,
   PiArrowLeftLight as IconBack,
@@ -177,6 +182,15 @@ export const JUMP_GLYPHS: Record<JumpId, IconType> = {
   lastWeek: PiCalendarDotsLight,
   lastMonth: PiCalendarLight,
   lastYear: PiHourglassLight,
+}
+
+/** Export formats: the original envelope, JSON's braces, a CSV table, a text file, and a stack for an mbox. */
+export const EXPORT_GLYPHS: Record<ExportFormat, IconType> = {
+  eml: PiEnvelopeSimpleLight,
+  json: PiBracketsCurlyLight,
+  csv: PiTableLight,
+  text: PiFileTxtLight,
+  mbox: PiStackSimpleLight,
 }
 
 export const READING_PANE_GLYPHS: Record<ReadingPane, IconType> = { right: PiSquareSplitHorizontalLight, off: PiRectangleLight }

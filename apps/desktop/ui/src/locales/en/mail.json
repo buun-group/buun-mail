@@ -4,7 +4,7 @@
     "label": "Messages",
     "unread_one": "{{count}} unread",
     "unread_other": "{{count}} unread",
-    "searchLabel": "Search this folder",
+    "searchLabel": "Search this list",
     "searchPlaceholder": "Search",
     "empty": "Nothing here. Mail to <addresses/> lands in this folder.",
     "thisWorkspace": "this workspace",
@@ -47,18 +47,18 @@
       "empty": "No {{filter}} messages here.",
       "clear": "Show all"
     },
-    "inWorkspace": "in {{workspace}}"
+    "inWorkspace": "in {{workspace}}",
+    "searchMiss": "Nothing here matches “{{query}}”.",
+    "clearSearch": "Clear search"
   },
   "reader": {
     "label": "Reader",
     "nothingOpen": "Pick a message to read it.",
-    "replyAs": "Reply as {{address}}",
     "archive": "Archive",
     "to": "to <address/>",
     "routeUnsorted": "No rule claims this address yet, so it waits in Unsorted.",
     "routeWorkspace": "{{workspace}} because it was sent to <address/>",
     "routeWorkspaceFolder": "{{workspace}} because it was sent to <address/>, {{folder}} because it is from <sender/>",
-    "replySoon": "Replying arrives with sending.",
     "star": "Star",
     "unstar": "Unstar",
     "markUnread": "Mark as unread",
@@ -66,7 +66,12 @@
     "putBack": "Move back to {{folder}}",
     "deleteForever": "Delete forever",
     "moreFolders": "Move to",
-    "back": "Back to {{folder}}"
+    "back": "Back to {{folder}}",
+    "reply": "Reply",
+    "replyAll": "Reply all",
+    "needsSending": "Replying from {{domain}} needs a sending integration. Click to set one up.",
+    "export": "Export",
+    "exportLabel": "Export this message"
   },
   "tags": {
     "more": "+{{count}}",
@@ -127,5 +132,17 @@
     "selectAll": "Select the message text",
     "copyBody": "Copy message text",
     "menuLabel": "Message"
+  },
+  "export": {
+    "eml": "Original (.eml)",
+    "json": "JSON (.json)",
+    "csv": "CSV (.csv)",
+    "text": "Plain text (.txt)",
+    "mbox": "Mailbox (.mbox)",
+    "saved_one": "Exported",
+    "saved_other": "{{count}} exported",
+    "fileType": "{{format}} file",
+    "desktopOnly": "Exporting works in the desktop app.",
+    "failed": "The export did not work"
   }
 }

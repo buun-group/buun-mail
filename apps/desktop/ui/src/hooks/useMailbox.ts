@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { listMessages, listTags, listView, listWorkspaces, markAllRead, openMessage, tagMessage, untagMessage } from '../api/client'
 import { onMailChanged } from '../api/events'
 import type { MailView, Message, MessageDetail, Place, Workspace } from '../api/types'
 import type { ListFilter, ListSort } from '../constants/ui'
-import { filterMessages, sortMessages } from '../lib/sort'
+import type { SavedPlace } from '../lib/lastPlace'
+import { filterMessages, searchMessages, sortMessages } from '../lib/sort'
 
 export interface Mailbox {
   workspaces: Workspace[]
@@ -24,6 +25,9 @@ export interface Mailbox {
   setFilter: (filter: ListFilter) => void
   /** How many messages the open list holds before the filter. */
   total: number
+  /** What the search box holds; the list shows only messages that match it. */
+  query: string
+  setQuery: (query: string) => void
   /** The open message with its text, or the summary alone while the text loads. */
   selected: { message: Message; body: string | null } | null
   error: string | null
@@ -50,16 +54,20 @@ export interface Mailbox {
 const message = (reason: unknown): string => (reason instanceof Error ? reason.message : String(reason))
 
 /** Loads the workspaces, then the messages of whichever folder is open. Opens the first inbox to start. */
-export function useMailbox(): Mailbox {
+export function useMailbox(restore: SavedPlace | null = null): Mailbox {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([])
   const [tags, setTags] = useState<string[]>([])
   const [ready, setReady] = useState(false)
   const [place, setPlace] = useState<Place | null>(null)
-  const [view, setView] = useState<MailView | null>(null)
+  const [view, setView] = useState<MailView | null>(restore?.view ?? null)
+  const [query, setQuery] = useState('')
+  // Where the person left off, each read once: the folder when the workspaces first load, the message when its list does.
+  const savedPlace = useRef(restore?.place ?? null)
+  const savedMessage = useRef(restore?.selectedId ?? null)
   const [loaded, setMessages] = useState<Message[]>([])
   const [sort, setSort] = useState<ListSort>({ key: 'received', descending: true })
   const [filter, setFilter] = useState<ListFilter>('all')
-  const messages = useMemo(() => sortMessages(filterMessages(loaded, filter), sort), [loaded, filter, sort])
+  const messages = useMemo(() => sortMessages(searchMessages(filterMessages(loaded, filter), query), sort), [loaded, filter, query, sort])
   const [detail, setDetail] = useState<MessageDetail | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -71,7 +79,12 @@ export function useMailbox(): Mailbox {
         setWorkspaces(found)
         setReady(true)
         const first = found[0]
-        setPlace((current) => current ?? (first === undefined ? null : { workspace: first.id, folder: null }))
+        // Where the person left off when that workspace still exists, else its inbox when the folder has gone, else the first inbox.
+        const saved = savedPlace.current
+        savedPlace.current = null
+        const kept = saved === null ? undefined : found.find((workspace) => workspace.id === saved.workspace)
+        const back = kept === undefined || saved === null ? null : kept.folders.some((folder) => folder.name === saved.folder) ? saved : { workspace: kept.id, folder: null }
+        setPlace((current) => current ?? back ?? (first === undefined ? null : { workspace: first.id, folder: null }))
       })
       .catch(fail)
     listTags()
@@ -83,7 +96,14 @@ export function useMailbox(): Mailbox {
     (target: Place | MailView, isCurrent: () => boolean = () => true) => {
       ;(typeof target === 'string' ? listView(target) : listMessages(target))
         .then((found) => {
-          if (isCurrent()) setMessages(found)
+          if (!isCurrent()) return
+          setMessages(found)
+          const reopen = savedMessage.current
+          savedMessage.current = null
+          const again = reopen === null ? undefined : found.find((item) => item.id === reopen)
+          if (again === undefined) return
+          setSelectedId(again.id)
+          openMessage(again.id).then(setDetail).catch(fail)
         })
         .catch(fail)
     },
@@ -130,6 +150,7 @@ export function useMailbox(): Mailbox {
       .catch(fail)
   }
 
+
   const selectedSummary = messages.find((item) => item.id === selectedId) ?? null
 
   const stepPast = (id: string): void => {
@@ -152,16 +173,20 @@ export function useMailbox(): Mailbox {
     filter,
     setFilter,
     total: loaded.length,
+    query,
+    setQuery,
     selected: selectedSummary === null ? null : { message: selectedSummary, body: detail?.message.id === selectedId ? detail.body : null },
     error,
     open: (next) => {
       setPlace(next)
       setView(null)
       setSelectedId(null)
+      setQuery('')
     },
     openView: (next) => {
       setView(next)
       setSelectedId(null)
+      setQuery('')
     },
     select,
     close: () => setSelectedId(null),

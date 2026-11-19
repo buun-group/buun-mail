@@ -68,6 +68,15 @@ export function GeneralSection({ preferences }: { preferences: Preferences }): R
         </div>
         <Switch id="grain" labelledBy="grain-label" checked={preferences.grain} onChange={preferences.setGrain} />
       </div>
+      <div className="settings__row">
+        <div>
+          <label id="remember-label" htmlFor="remember" className="settings__label">
+            {t('remember.title')}
+          </label>
+          <p className="settings__hint">{t('remember.hint')}</p>
+        </div>
+        <Switch id="remember" labelledBy="remember-label" checked={preferences.rememberPlace} onChange={preferences.setRememberPlace} />
+      </div>
     </div>
   )
 }
