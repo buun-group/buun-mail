@@ -7,7 +7,7 @@ import { INBOX_LABEL } from '../../constants/ui'
 import type { Theme } from '../../constants/ui'
 import { IconArchive, IconDelete, IconFolder, IconInbox, IconSearch, IconStar, IconStarred, IconUnread, isWorkspaceGlyph, WORKSPACE_GLYPHS } from '../../icons'
 import { Avatar } from '../Avatar/Avatar'
-import { formatReceived } from '../../lib/time'
+import { formatListed } from '../../lib/time'
 import { ContextMenu, isMenuKey, menuPoint } from '../ContextMenu/ContextMenu'
 import type { MenuRequest } from '../ContextMenu/ContextMenu'
 import type { MessageActions } from '../../hooks/useMessageActions'
@@ -98,7 +98,7 @@ export function MessageList({ workspace, place, view, messages, selectedId, onSe
                   {view !== null && <span className="message-row__where">{workspaceName(message.workspace)}</span>}
                 </span>
                 <time className="message-row__time" dateTime={message.receivedAt}>
-                  {formatReceived(message.receivedAt)}
+                  {formatListed(message.receivedAt)}
                 </time>
                 <span className="message-row__subject">
                   <span className="message-row__subject-text">{message.subject}</span>

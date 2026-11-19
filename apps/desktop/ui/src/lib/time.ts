@@ -15,6 +15,16 @@ export function formatReceived(iso: string, now: Date = new Date()): string {
   return received.toLocaleDateString(dateLocale(), { day: 'numeric', month: 'short' })
 }
 
+/**
+ * When a message arrived, as the list shows it: always the date, with the time for this year's mail (`19 Nov, 10:40
+ * pm`), and the year instead for older mail (`19 Nov 2025`). Local time, in the computer's regional format.
+ */
+export function formatListed(iso: string, now: Date = new Date()): string {
+  const received = new Date(iso)
+  if (received.getFullYear() !== now.getFullYear()) return received.toLocaleDateString(dateLocale(), { day: 'numeric', month: 'short', year: 'numeric' })
+  return received.toLocaleString(dateLocale(), { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })
+}
+
 /** The full date and time, for the reader. */
 export function formatFull(iso: string): string {
   return new Date(iso).toLocaleString(dateLocale(), { dateStyle: 'medium', timeStyle: 'short' })
