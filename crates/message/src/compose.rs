@@ -40,6 +40,22 @@ pub struct ThreadIds {
     pub message_id: Option<String>,
     /// Its References, oldest first, without angle brackets.
     pub references: Vec<String>,
+    /// Its In-Reply-To, without angle brackets.
+    pub in_reply_to: Option<String>,
+}
+
+impl ThreadIds {
+    /// Every id it refers to, References then In-Reply-To, without repeats: what links it into a conversation.
+    #[must_use]
+    pub fn parents(&self) -> Vec<String> {
+        let mut all = self.references.clone();
+        if let Some(id) = &self.in_reply_to
+            && !all.contains(id)
+        {
+            all.push(id.clone());
+        }
+        all
+    }
 }
 
 /// Reads the ids a reply to `raw` should carry.
@@ -48,7 +64,8 @@ pub fn thread_ids(raw: &[u8]) -> ThreadIds {
     let Some(message) = MessageParser::default().parse(raw) else { return ThreadIds::default() };
     let clean = |id: &str| id.trim().trim_matches(['<', '>']).to_owned();
     let references = message.references().map(|list| (0..list.len()).filter_map(|at| list.get(at)).map(clean).collect()).unwrap_or_default();
-    ThreadIds { message_id: message.message_id().map(clean), references }
+    let in_reply_to = message.in_reply_to().and_then(|list| list.get(0).map(clean));
+    ThreadIds { message_id: message.message_id().map(clean), references, in_reply_to }
 }
 
 /// The References a reply carries: the answered message's own, then its id, without repeats.
@@ -116,7 +133,7 @@ mod tests {
     #[test]
     fn builds_a_reply_that_reads_back_with_its_thread() {
         let answered = thread_ids(b"From: a@b.com\r\nMessage-ID: <two@b.com>\r\nReferences: <one@b.com>\r\nSubject: Hi\r\n\r\nhello\r\n");
-        assert_eq!(answered, ThreadIds { message_id: Some("two@b.com".to_owned()), references: vec!["one@b.com".to_owned()] });
+        assert_eq!(answered, ThreadIds { message_id: Some("two@b.com".to_owned()), references: vec!["one@b.com".to_owned()], in_reply_to: None });
         let outgoing = Outgoing {
             from: person(Some("Flung"), "buun-mail@flung.dev"),
             to: vec![person(None, "a@b.com")],

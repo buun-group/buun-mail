@@ -44,6 +44,8 @@ export interface Preferences {
   readingPane: ReadingPane
   /** Reopen on the folder, view and message that were open when the app closed. */
   rememberPlace: boolean
+  /** Show one row per conversation, its newest message, instead of every message. */
+  conversations: boolean
   grain: boolean
   sidebarCollapsed: boolean
   language: LanguagePreference
@@ -51,6 +53,7 @@ export interface Preferences {
   setDensity: (value: Density) => void
   setReadingPane: (value: ReadingPane) => void
   setRememberPlace: (value: boolean) => void
+  setConversations: (value: boolean) => void
   setGrain: (value: boolean) => void
   setSidebarCollapsed: (value: boolean) => void
   setLanguage: (value: LanguagePreference) => void
@@ -64,6 +67,7 @@ export function usePreferences(): Preferences {
   const [density, setDensityState] = useState<Density>(() => read(STORAGE_KEYS.density, DENSITIES, 'comfortable'))
   const [readingPane, setReadingPaneState] = useState<ReadingPane>(() => read(STORAGE_KEYS.readingPane, READING_PANES, 'right'))
   const [rememberPlace, setRememberState] = useState<boolean>(() => read(STORAGE_KEYS.rememberPlace, ON_OFF, 'on') === 'on')
+  const [conversations, setConversationsState] = useState<boolean>(() => read(STORAGE_KEYS.conversations, ON_OFF, 'on') === 'on')
   const [grain, setGrainState] = useState<boolean>(() => read(STORAGE_KEYS.grain, ON_OFF, 'on') === 'on')
   const [sidebarCollapsed, setSidebarState] = useState<boolean>(() => read(STORAGE_KEYS.sidebar, ['open', 'collapsed'] as const, 'open') === 'collapsed')
   const [language, setLanguageState] = useState<LanguagePreference>(storedLanguage)
@@ -81,6 +85,7 @@ export function usePreferences(): Preferences {
     density,
     readingPane,
     rememberPlace,
+    conversations,
     grain,
     sidebarCollapsed,
     language,
@@ -99,6 +104,10 @@ export function usePreferences(): Preferences {
     setRememberPlace: (value) => {
       setRememberState(value)
       write(STORAGE_KEYS.rememberPlace, value ? 'on' : 'off')
+    },
+    setConversations: (value) => {
+      setConversationsState(value)
+      write(STORAGE_KEYS.conversations, value ? 'on' : 'off')
     },
     setGrain: (value) => {
       setGrainState(value)

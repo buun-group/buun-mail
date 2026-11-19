@@ -1,7 +1,7 @@
 //! Taking mail in: parse it, route it, run the rules, store it. Every source (a file today, the Cloudflare Worker and IMAP next)
 //! goes through [`ingest`], so a message is placed the same way whichever door it came through.
 
-use buun_mail_message::{MessageError, is_mbox, parse, split_mbox};
+use buun_mail_message::{MessageError, body_text, is_mbox, parse, split_mbox, thread_ids};
 use buun_mail_routing::{Address, Envelope, Router};
 use buun_mail_rules::{CheckedRule, Facts, evaluate};
 use buun_mail_store::{Activity, Inserted, MessageRecord, Placement, Shelf, Store, StoreError};
@@ -83,10 +83,13 @@ pub fn ingest(incoming: Incoming<'_>, router: &Router, rules: &[CheckedRule], st
         starred: false,
         shelf: Shelf::Active,
         tags: outcome.tags.clone(),
+        thread_id: None,
+        thread_size: 1,
     };
     if store.insert(&record, incoming.raw)? == Inserted::Duplicate {
         return Ok(None);
     }
+    file_for_reading(store, &record, incoming.raw)?;
     for name in &outcome.fired {
         store.log(&Activity {
             at: incoming.received_at,
@@ -102,4 +105,16 @@ pub fn ingest(incoming: Incoming<'_>, router: &Router, rules: &[CheckedRule], st
 #[must_use]
 pub fn messages_in(bytes: &[u8]) -> Vec<Vec<u8>> {
     if is_mbox(bytes) { split_mbox(bytes) } else { vec![bytes.to_vec()] }
+}
+
+/// Puts a newly stored message in its conversation and indexes its words for search. Every door mail comes through,
+/// sent mail included, calls this once the message is stored.
+///
+/// # Errors
+///
+/// [`StoreError`] when the index cannot be written.
+pub fn file_for_reading(store: &Store, record: &MessageRecord, raw: &[u8]) -> Result<(), StoreError> {
+    let ids = thread_ids(raw);
+    store.link(&record.id, ids.message_id.as_deref(), &ids.parents())?;
+    store.index_text(&record.id, &record.subject, &format!("{} {} {}", record.from_name, record.from, record.to), &body_text(raw))
 }

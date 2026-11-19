@@ -289,3 +289,15 @@ pub async fn send_message(app: AppHandle, send: State<'_, SendService>, draft: D
 pub fn suggest_contacts(mailbox: State<'_, Arc<Mailbox>>, query: String) -> Result<Vec<ContactDto>, AppError> {
     mailbox.contacts(&query)
 }
+
+/// Every message in a conversation outside the trash, oldest first.
+#[tauri::command]
+pub fn thread_messages(mailbox: State<'_, Arc<Mailbox>>, thread_id: String) -> Result<Vec<MessageDto>, AppError> {
+    mailbox.thread(&thread_id)
+}
+
+/// Searches every folder's subjects, people and text.
+#[tauri::command]
+pub fn search_all(mailbox: State<'_, Arc<Mailbox>>, query: String) -> Result<Vec<MessageDto>, AppError> {
+    mailbox.search_all(&query)
+}

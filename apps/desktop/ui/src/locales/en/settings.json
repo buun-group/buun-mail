@@ -75,5 +75,9 @@
   "remember": {
     "title": "Reopen where I left off",
     "hint": "Opens on the folder and message you had open when Buun Mail closed, instead of the first inbox."
+  },
+  "conversations": {
+    "title": "Group by conversation",
+    "hint": "One row per conversation, showing its newest message, with replies and your sent answers gathered above the open message."
   }
 }

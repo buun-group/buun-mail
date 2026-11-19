@@ -17,7 +17,8 @@ const INDEX_FILE: &str = "index.sqlite";
 const RAW_DIR: &str = "raw";
 
 /// Every column of a message row, in the order [`record_from_row`] reads them. Tags come last, joined with [`TAG_SEPARATOR`].
-const COLUMNS: &str = "id, workspace, folder, matched, folder_matched, from_name, from_address, to_address, subject, preview, sent_at, message_id, unread, starred, shelf, \
+const COLUMNS: &str = "id, workspace, folder, matched, folder_matched, from_name, from_address, to_address, subject, preview, sent_at, message_id, unread, starred, shelf, thread_id, \
+    (SELECT COUNT(*) FROM messages AS thread WHERE thread.thread_id = messages.thread_id AND thread.shelf != 'trashed'), \
     (SELECT group_concat(tag, char(31)) FROM (SELECT tag FROM tags WHERE tags.message_id = messages.id ORDER BY tag))";
 
 /// The columns written on insert, without the derived tags.
@@ -305,6 +306,7 @@ impl Store {
     ///
     /// [`StoreError`] when the index or the file cannot be removed.
     pub fn delete(&self, id: &str) -> Result<bool, StoreError> {
+        self.index.execute("DELETE FROM message_text WHERE id = ?1", [id])?;
         let removed = self.index.execute("DELETE FROM messages WHERE id = ?1", [id])? == 1;
         if removed {
             self.raw.remove(id)?;
@@ -336,6 +338,97 @@ impl Store {
              GROUP BY from_address ORDER BY seen DESC, from_address LIMIT ?2",
         )?;
         let rows = statement.query_map(params![pattern, i64::try_from(limit).unwrap_or(0)], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)))?;
+        Ok(rows.collect::<rusqlite::Result<_>>()?)
+    }
+
+    /// Puts a message in its conversation and returns the conversation's id. `header_id` is its own Message-ID and
+    /// `parents` the ids it refers to (References and In-Reply-To). It joins the conversation of any parent already
+    /// here, or gathers in replies that arrived before it; otherwise it starts one under its own Message-ID (or its id).
+    ///
+    /// # Errors
+    ///
+    /// [`StoreError`] when the index cannot be written.
+    pub fn link(&self, id: &str, header_id: Option<&str>, parents: &[String]) -> Result<String, StoreError> {
+        let mut add = self.index.prepare_cached("INSERT OR IGNORE INTO message_refs (message, ref) VALUES (?1, ?2)")?;
+        for parent in parents {
+            add.execute(params![id, parent])?;
+        }
+        let from_parent: Option<String> = self
+            .index
+            .query_row(
+                "SELECT thread_id FROM messages WHERE thread_id IS NOT NULL AND message_id IN (SELECT ref FROM message_refs WHERE message = ?1) ORDER BY sent_at LIMIT 1",
+                [id],
+                |row| row.get(0),
+            )
+            .optional()?;
+        let from_children: Vec<String> = match header_id {
+            Some(own) => {
+                let mut statement = self.index.prepare_cached(
+                    "SELECT DISTINCT messages.thread_id FROM message_refs JOIN messages ON messages.id = message_refs.message WHERE message_refs.ref = ?1 AND messages.thread_id IS NOT NULL",
+                )?;
+                statement.query_map([own], |row| row.get(0))?.collect::<rusqlite::Result<_>>()?
+            }
+            None => Vec::new(),
+        };
+        let thread = from_parent.or_else(|| from_children.first().cloned()).or_else(|| header_id.map(str::to_owned)).unwrap_or_else(|| id.to_owned());
+        self.index.execute("UPDATE messages SET thread_id = ?2 WHERE id = ?1", params![id, thread])?;
+        for other in from_children.iter().filter(|other| **other != thread) {
+            self.index.execute("UPDATE messages SET thread_id = ?2 WHERE thread_id = ?1", params![other, thread])?;
+        }
+        Ok(thread)
+    }
+
+    /// Ids of messages not yet put in a conversation or indexed, oldest first: mail stored before conversations existed.
+    ///
+    /// # Errors
+    ///
+    /// [`StoreError`] when the index cannot be read.
+    pub fn unlinked(&self, limit: usize) -> Result<Vec<String>, StoreError> {
+        let mut statement = self.index.prepare_cached("SELECT id FROM messages WHERE thread_id IS NULL ORDER BY sent_at LIMIT ?1")?;
+        let rows = statement.query_map([i64::try_from(limit).unwrap_or(0)], |row| row.get(0))?;
+        Ok(rows.collect::<rusqlite::Result<_>>()?)
+    }
+
+    /// Indexes a message's words for search: its subject, the people on it and its readable text.
+    ///
+    /// # Errors
+    ///
+    /// [`StoreError`] when the index cannot be written.
+    pub fn index_text(&self, id: &str, subject: &str, people: &str, body: &str) -> Result<(), StoreError> {
+        self.index.execute("DELETE FROM message_text WHERE id = ?1", [id])?;
+        self.index.execute("INSERT INTO message_text (id, subject, people, body) VALUES (?1, ?2, ?3, ?4)", params![id, subject, people, body])?;
+        Ok(())
+    }
+
+    /// Every message in a conversation outside the trash, oldest first.
+    ///
+    /// # Errors
+    ///
+    /// [`StoreError`] when the index cannot be read.
+    pub fn thread(&self, thread_id: &str) -> Result<Vec<MessageRecord>, StoreError> {
+        let mut statement =
+            self.index.prepare_cached(&format!("SELECT {COLUMNS} FROM messages WHERE thread_id = ?1 AND shelf != 'trashed' ORDER BY sent_at"))?;
+        let rows = statement.query_map([thread_id], record_from_row)?;
+        Ok(rows.collect::<rusqlite::Result<_>>()?)
+    }
+
+    /// Messages anywhere outside the trash whose subject, people or text hold every word of `query` (each word also
+    /// matching as the start of a longer one), best matches first.
+    ///
+    /// # Errors
+    ///
+    /// [`StoreError`] when the index cannot be read.
+    pub fn search_text(&self, query: &str, limit: usize) -> Result<Vec<MessageRecord>, StoreError> {
+        let words: Vec<String> =
+            query.split_whitespace().map(|word| word.replace('"', "")).filter(|word| !word.is_empty()).map(|word| format!("\"{word}\"*")).collect();
+        if words.is_empty() {
+            return Ok(Vec::new());
+        }
+        let mut statement = self.index.prepare_cached(&format!(
+            "SELECT {COLUMNS} FROM messages JOIN (SELECT id AS hit, rank AS score FROM message_text WHERE message_text MATCH ?1) AS found ON found.hit = messages.id \
+             WHERE messages.shelf != 'trashed' ORDER BY found.score LIMIT ?2"
+        ))?;
+        let rows = statement.query_map(params![words.join(" "), i64::try_from(limit.min(SEARCH_LIMIT)).unwrap_or(0)], record_from_row)?;
         Ok(rows.collect::<rusqlite::Result<_>>()?)
     }
 
@@ -435,6 +528,8 @@ fn record_from_row(row: &Row<'_>) -> rusqlite::Result<MessageRecord> {
         unread: row.get(12)?,
         starred: row.get(13)?,
         shelf: Shelf::from_stored(&row.get::<_, String>(14)?),
-        tags: row.get::<_, Option<String>>(15)?.map(|joined| joined.split(TAG_SEPARATOR).map(str::to_owned).collect()).unwrap_or_default(),
+        thread_id: row.get(15)?,
+        thread_size: row.get::<_, Option<u32>>(16)?.unwrap_or(1).max(1),
+        tags: row.get::<_, Option<String>>(17)?.map(|joined| joined.split(TAG_SEPARATOR).map(str::to_owned).collect()).unwrap_or_default(),
     })
 }

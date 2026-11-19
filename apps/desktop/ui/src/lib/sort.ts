@@ -41,3 +41,15 @@ export function searchMessages(messages: readonly Message[], query: string): Mes
     return words.every((word) => haystack.includes(word))
   })
 }
+
+/** One message per conversation, the newest, in the order given; messages not yet linked stand alone. */
+export function newestPerConversation(messages: readonly Message[]): Message[] {
+  const newest = new Map<string, Message>()
+  for (const message of messages) {
+    const key = message.threadId ?? message.id
+    const kept = newest.get(key)
+    if (kept === undefined || message.receivedAt > kept.receivedAt) newest.set(key, message)
+  }
+  const keep = new Set([...newest.values()].map((message) => message.id))
+  return messages.filter((message) => keep.has(message.id))
+}

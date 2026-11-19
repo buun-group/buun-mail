@@ -4,6 +4,7 @@ import { Trans, useTranslation } from 'react-i18next'
 
 import type { Contact, Message, MessageDetail, Recipients, Workspace } from '../../api/types'
 import { Attachments } from './Attachments'
+import { Conversation } from './Conversation'
 import { MessageHtml } from './MessageHtml'
 import { Avatar } from '../Avatar/Avatar'
 import type { Theme } from '../../constants/ui'
@@ -52,6 +53,8 @@ interface ReaderProps {
   canForward: boolean
   /** Starts a reply, reply all or forward of the open message. */
   onCompose: (mode: ComposeMode) => void
+  /** Opens another message, such as one from the same conversation. */
+  onOpenMessage: (message: Message) => void
 }
 
 /** Why a message is where it is, in one plain sentence from the rules the router used. */
@@ -129,7 +132,7 @@ function Fields({ message, recipients }: { message: Message; recipients: Recipie
 }
 
 /** The open message. With nothing open, the other Buun Group products. */
-export function Reader({ message, body, recipients, detail, workspace, theme, onAddTag, onRemoveTag, tagSuggestions, actions, onBack, backTo, onOpenIntegrations, canReply, canForward, onCompose }: ReaderProps): ReactNode {
+export function Reader({ message, body, recipients, detail, workspace, theme, onAddTag, onRemoveTag, tagSuggestions, actions, onBack, backTo, onOpenIntegrations, canReply, canForward, onCompose, onOpenMessage }: ReaderProps): ReactNode {
   const { t } = useTranslation('mail')
   const article = useRef<HTMLElement | null>(null)
   const bodyText = useRef<HTMLDivElement | null>(null)
@@ -256,6 +259,7 @@ export function Reader({ message, body, recipients, detail, workspace, theme, on
       </div>
 
       <article ref={attachArticle} className="reader__message">
+        <Conversation message={message} theme={theme} onOpen={onOpenMessage} />
         <h2>{message.subject}</h2>
         <div className="reader__sender">
           <Avatar name={message.fromName} address={message.from} theme={theme} size="lg" />

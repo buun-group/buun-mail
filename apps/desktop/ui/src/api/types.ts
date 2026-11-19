@@ -38,6 +38,10 @@ export interface Message {
   starred: boolean
   shelf: Shelf
   tags: string[]
+  /** Its conversation, once linked. */
+  threadId: string | null
+  /** How many messages outside the trash share its conversation, itself included. */
+  threadSize: number
 }
 
 /** Where a message sits: in its folder, archived, or in the trash. It keeps its workspace and folder throughout. */

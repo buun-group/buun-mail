@@ -39,7 +39,7 @@ export function App(): ReactNode {
   const preferences = usePreferences()
   // Read once at start: where the person left off, when they want that.
   const [restore] = useState(() => (preferences.rememberPlace ? readLastPlace() : null))
-  const mailbox = useMailbox(restore)
+  const mailbox = useMailbox(restore, preferences.conversations)
   const looks = useWorkspaceLooks()
   const folded = useFolded()
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -177,6 +177,8 @@ export function App(): ReactNode {
         looks={looks.looks}
         query={mailbox.query}
         onQuery={mailbox.setQuery}
+        scope={mailbox.scope}
+        onScope={mailbox.setScope}
         wide={preferences.readingPane === 'off'}
       />
       )}
@@ -195,6 +197,7 @@ export function App(): ReactNode {
         onOpenIntegrations={openIntegrations}
         canReply={mailbox.selected !== null && sending.can(mailbox.selected.message.to)}
         canForward={sending.any}
+        onOpenMessage={mailbox.select}
         onCompose={(mode) => {
           if (mailbox.selected !== null) composeFor(mode, mailbox.selected.message)
         }}

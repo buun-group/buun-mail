@@ -19,6 +19,8 @@ export const COMMANDS = {
   sendableDomains: 'sendable_domains',
   sendMessage: 'send_message',
   suggestContacts: 'suggest_contacts',
+  threadMessages: 'thread_messages',
+  searchAll: 'search_all',
   openMessage: 'open_message',
   markAllRead: 'mark_all_read',
   importFiles: 'import_files',

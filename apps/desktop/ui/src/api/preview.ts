@@ -12,24 +12,29 @@ const WORKSPACES: Workspace[] = [
 
 const MESSAGES: Message[] = [
   {
+    id: 'p5', workspace: 'buun', folder: 'Sent', fromName: 'Buun Group', from: 'hello@buungroup.com', to: 'projects@client.example',
+    matched: null, folderMatched: null, subject: 'Re: Quote for the booking site',
+    preview: 'Thanks, the quote is on its way today.', receivedAt: '2026-11-18T22:40:00Z', unread: false, starred: false, shelf: 'active', tags: [], threadId: 'quote@client.example', threadSize: 2,
+  },
+  {
     id: 'p1', workspace: 'buun', folder: 'Billing', fromName: 'Stripe', from: 'invoices@stripe.com', to: 'billing@buungroup.com',
     matched: '*@buungroup.com', folderMatched: '*@stripe.com', subject: 'Your invoice for November is ready',
-    preview: 'Invoice INV-2026-11 is now available. Amount due on 1 December.', receivedAt: '2026-11-19T07:42:00Z', unread: true, starred: false, shelf: 'active', tags: ['invoice'],
+    preview: 'Invoice INV-2026-11 is now available. Amount due on 1 December.', receivedAt: '2026-11-19T07:42:00Z', unread: true, starred: false, shelf: 'active', tags: ['invoice'], threadId: null, threadSize: 1,
   },
   {
     id: 'p2', workspace: 'buun', folder: null, fromName: 'A client', from: 'projects@client.example', to: 'hello@buungroup.com',
     matched: '*@buungroup.com', folderMatched: null, subject: 'Quote for the booking site',
-    preview: 'Could you send the quote through by Friday so we can sign off?', receivedAt: '2026-11-18T23:05:00Z', unread: true, starred: true, shelf: 'active', tags: [],
+    preview: 'Could you send the quote through by Friday so we can sign off?', receivedAt: '2026-11-18T23:05:00Z', unread: true, starred: true, shelf: 'active', tags: [], threadId: 'quote@client.example', threadSize: 2,
   },
   {
     id: 'p3', workspace: 'plotwork', folder: null, fromName: 'A Plotwork team', from: 'lead@team.example', to: 'support@plotwork.dev',
     matched: '*@plotwork.dev', folderMatched: null, subject: 'Sequence diagrams in the board',
-    preview: 'Is there a way to pin a sequence diagram to a tab?', receivedAt: '2026-11-18T21:14:00Z', unread: true, starred: false, shelf: 'active', tags: [],
+    preview: 'Is there a way to pin a sequence diagram to a tab?', receivedAt: '2026-11-18T21:14:00Z', unread: true, starred: false, shelf: 'active', tags: [], threadId: null, threadSize: 1,
   },
   {
     id: 'p4', workspace: 'personal', folder: null, fromName: 'A friend', from: 'friend@mail.example', to: 'me@personal.example',
     matched: '*@personal.example', folderMatched: null, subject: 'Saturday',
-    preview: 'Still on for Saturday? We could do the coastal walk.', receivedAt: '2026-11-18T19:55:00Z', unread: false, starred: false, shelf: 'archived', tags: [],
+    preview: 'Still on for Saturday? We could do the coastal walk.', receivedAt: '2026-11-18T19:55:00Z', unread: false, starred: false, shelf: 'archived', tags: [], threadId: null, threadSize: 1,
   },
 ]
 
@@ -102,10 +107,15 @@ export const preview = {
   send: (draft: Draft): Message => {
     const sent: Message = {
       id: `sent-${Date.now()}`, workspace: 'buun', folder: 'Sent', fromName: draft.from.name ?? draft.from.address, from: draft.from.address, to: draft.to[0]?.address ?? '',
-      matched: null, folderMatched: null, subject: draft.subject, preview: draft.text.slice(0, 120), receivedAt: new Date().toISOString(), unread: false, starred: false, shelf: 'active', tags: [],
+      matched: null, folderMatched: null, subject: draft.subject, preview: draft.text.slice(0, 120), receivedAt: new Date().toISOString(), unread: false, starred: false, shelf: 'active', tags: [], threadId: null, threadSize: 1,
     }
     MESSAGES.push(sent)
     return { ...sent }
+  },
+  thread: (threadId: string): Message[] => MESSAGES.filter((message) => message.threadId === threadId).map((message) => ({ ...message })),
+  searchAll: (query: string): Message[] => {
+    const words = query.toLowerCase().split(/\s+/u).filter(Boolean)
+    return MESSAGES.filter((message) => message.shelf !== 'trashed' && words.every((word) => `${message.subject} ${message.fromName} ${message.from} ${message.preview}`.toLowerCase().includes(word))).map((message) => ({ ...message }))
   },
   contacts: (query: string): Contact[] => {
     const seen = new Map<string, Contact>()

@@ -43,6 +43,10 @@ pub struct MessageRecord {
     pub shelf: Shelf,
     /// Tags, sorted. Empty for a new message until rules or a person add some.
     pub tags: Vec<String>,
+    /// The conversation it belongs to, once linked: the Message-ID of its first message, or its own id.
+    pub thread_id: Option<String>,
+    /// How many messages outside the trash share its conversation, itself included. 1 for a message on its own.
+    pub thread_size: u32,
 }
 
 /// Where a message sits apart from its folder: in it, archived out of it, or in the trash. It keeps its workspace and

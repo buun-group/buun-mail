@@ -1,4 +1,5 @@
-//! What sending needs from the mailbox: the ids a reply threads under, the copy kept in Sent, and recipients to suggest.
+//! What sending and reading across folders need from the mailbox: the ids a reply threads under, the copy kept in
+//! Sent, recipients to suggest, conversations, search of all mail, and catching up older mail on both.
 
 use buun_mail_message::{ThreadIds, parse, thread_ids};
 use buun_mail_routing::{Address, Envelope};
@@ -7,12 +8,16 @@ use buun_mail_store::{Inserted, Placement};
 use super::{Actor, Mailbox, log, unix_now};
 use crate::dto::{ContactDto, MessageDto};
 use crate::error::AppError;
+use crate::ingest::file_for_reading;
 
 /// The folder sent mail is kept in, in the workspace its sender address belongs to.
 pub const SENT_FOLDER: &str = "Sent";
 
 /// How many recipients a suggestion offers at most.
 const SUGGESTIONS: usize = 8;
+
+/// How many results a search of all mail returns at most.
+const SEARCH_RESULTS: usize = 200;
 
 impl Mailbox {
     /// The ids a reply to message `id` carries.
@@ -51,12 +56,50 @@ impl Mailbox {
             starred: false,
             shelf: buun_mail_store::Shelf::Active,
             tags: Vec::new(),
+            thread_id: None,
+            thread_size: 1,
         };
         let store = self.store.lock()?;
         if store.insert(&record, raw)? == Inserted::New {
+            file_for_reading(&store, &record, raw)?;
             log(&store, &Actor::You, "send", format!("\"{}\" to {}", record.subject, record.to))?;
         }
-        Ok(record.into())
+        Ok(store.get(&record.id)?.into())
+    }
+
+    /// Every message in a conversation outside the trash, oldest first.
+    ///
+    /// # Errors
+    ///
+    /// [`AppError`] when the store cannot be read.
+    pub fn thread(&self, thread_id: &str) -> Result<Vec<MessageDto>, AppError> {
+        Ok(self.store.lock()?.thread(thread_id)?.into_iter().map(MessageDto::from).collect())
+    }
+
+    /// Messages anywhere outside the trash whose subject, people or text hold every word of `query`.
+    ///
+    /// # Errors
+    ///
+    /// [`AppError`] when the store cannot be read.
+    pub fn search_all(&self, query: &str) -> Result<Vec<MessageDto>, AppError> {
+        Ok(self.store.lock()?.search_text(query, SEARCH_RESULTS)?.into_iter().map(MessageDto::from).collect())
+    }
+
+    /// Links and indexes up to `batch` messages stored before conversations and search existed. Returns how many it
+    /// did; the caller repeats until none are left. Each batch takes the lock briefly, so mail keeps flowing.
+    ///
+    /// # Errors
+    ///
+    /// [`AppError`] when the store cannot be read or written.
+    pub fn catch_up(&self, batch: usize) -> Result<usize, AppError> {
+        let store = self.store.lock()?;
+        let ids = store.unlinked(batch)?;
+        for id in &ids {
+            let record = store.get(id)?;
+            let raw = store.raw(id).unwrap_or_default();
+            file_for_reading(&store, &record, &raw)?;
+        }
+        Ok(ids.len())
     }
 
     /// People to suggest as recipients, whose name or address holds `query`, most written-to first.

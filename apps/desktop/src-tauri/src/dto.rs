@@ -67,6 +67,10 @@ pub struct MessageDto {
     pub starred: bool,
     /// In its folder, archived or in the trash.
     pub shelf: ShelfDto,
+    /// Its conversation, once linked.
+    pub thread_id: Option<String>,
+    /// How many messages outside the trash share its conversation, itself included.
+    pub thread_size: u32,
     /// Tags, sorted.
     pub tags: Vec<String>,
 }
@@ -142,6 +146,8 @@ impl From<MessageRecord> for MessageDto {
             unread: record.unread,
             starred: record.starred,
             shelf: record.shelf.into(),
+            thread_id: record.thread_id,
+            thread_size: record.thread_size,
             tags: record.tags,
         }
     }

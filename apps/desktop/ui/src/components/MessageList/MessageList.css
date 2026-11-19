@@ -538,3 +538,46 @@
     transition: none;
   }
 }
+
+.message-row__thread {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.search-scope {
+  display: flex;
+  grid-column: 1 / -1;
+  gap: 2px;
+  justify-self: start;
+  padding: 2px;
+  border-radius: var(--radius-md);
+  background: var(--alpha-4);
+}
+
+.message-list[data-wide='true'] .search-scope {
+  grid-column: auto;
+}
+
+.search-scope__choice {
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.search-scope__choice[aria-checked='true'] {
+  background: var(--surface-card-hover);
+  box-shadow: 0 0 0 1px var(--alpha-8);
+  color: var(--text-primary);
+}
+
+.search-scope__choice:focus-visible {
+  outline: 2px solid var(--brand-100);
+  outline-offset: 1px;
+}

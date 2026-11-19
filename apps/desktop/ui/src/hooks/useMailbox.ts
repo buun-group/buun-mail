@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
-import { listMessages, listTags, listView, listWorkspaces, markAllRead, openMessage, tagMessage, untagMessage } from '../api/client'
+import { listMessages, listTags, listView, listWorkspaces, markAllRead, openMessage, searchAll, tagMessage, untagMessage } from '../api/client'
 import { onMailChanged } from '../api/events'
 import type { MailView, Message, MessageDetail, Place, Recipients, Workspace } from '../api/types'
 import type { ListFilter, ListSort } from '../constants/ui'
 import type { SavedPlace } from '../lib/lastPlace'
-import { filterMessages, searchMessages, sortMessages } from '../lib/sort'
+import { filterMessages, newestPerConversation, searchMessages, sortMessages } from '../lib/sort'
 
 export interface Mailbox {
   workspaces: Workspace[]
@@ -28,6 +28,9 @@ export interface Mailbox {
   /** What the search box holds; the list shows only messages that match it. */
   query: string
   setQuery: (query: string) => void
+  /** Where the search box looks: the open list, or every folder's full text. */
+  scope: 'list' | 'all'
+  setScope: (scope: 'list' | 'all') => void
   /** The open message with its text, or the summary alone while the text loads. */
   /** The open message, with what its text, headers, HTML and attachments are once they load (null until then). */
   selected: { message: Message; body: string | null; recipients: Recipients | null; detail: MessageDetail | null } | null
@@ -55,24 +58,48 @@ export interface Mailbox {
 const message = (reason: unknown): string => (reason instanceof Error ? reason.message : String(reason))
 
 /** Loads the workspaces, then the messages of whichever folder is open. Opens the first inbox to start. */
-export function useMailbox(restore: SavedPlace | null = null): Mailbox {
+export function useMailbox(restore: SavedPlace | null = null, conversations = true): Mailbox {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([])
   const [tags, setTags] = useState<string[]>([])
   const [ready, setReady] = useState(false)
   const [place, setPlace] = useState<Place | null>(null)
   const [view, setView] = useState<MailView | null>(restore?.view ?? null)
   const [query, setQuery] = useState('')
+  const [scope, setScope] = useState<'list' | 'all'>('list')
+  const [searchHits, setSearchHits] = useState<Message[]>([])
+  const searchingAll = scope === 'all' && query.trim() !== ''
   // Where the person left off, each read once: the folder when the workspaces first load, the message when its list does.
   const savedPlace = useRef(restore?.place ?? null)
   const savedMessage = useRef(restore?.selectedId ?? null)
   const [loaded, setMessages] = useState<Message[]>([])
   const [sort, setSort] = useState<ListSort>({ key: 'received', descending: true })
   const [filter, setFilter] = useState<ListFilter>('all')
-  const messages = useMemo(() => sortMessages(searchMessages(filterMessages(loaded, filter), query), sort), [loaded, filter, query, sort])
+  const messages = useMemo(() => {
+    const listed = searchingAll ? filterMessages(searchHits, filter) : searchMessages(filterMessages(loaded, filter), query)
+    return sortMessages(conversations && !searchingAll ? newestPerConversation(listed) : listed, sort)
+  }, [loaded, searchHits, searchingAll, filter, query, sort, conversations])
+
   const [detail, setDetail] = useState<MessageDetail | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const fail = useCallback((reason: unknown) => setError(message(reason)), [])
+
+  // Searching every folder asks the store once typing pauses.
+  useEffect(() => {
+    if (!searchingAll) return
+    let current = true
+    const timer = window.setTimeout(() => {
+      searchAll(query.trim())
+        .then((results) => {
+          if (current) setSearchHits(results)
+        })
+        .catch(fail)
+    }, 200)
+    return () => {
+      current = false
+      window.clearTimeout(timer)
+    }
+  }, [searchingAll, query, fail])
 
   const loadWorkspaces = useCallback(() => {
     listWorkspaces()
@@ -152,7 +179,8 @@ export function useMailbox(restore: SavedPlace | null = null): Mailbox {
   }
 
 
-  const selectedSummary = messages.find((item) => item.id === selectedId) ?? null
+  // The open message may live in another folder (a sent reply opened from its conversation): its detail stands in.
+  const selectedSummary = messages.find((item) => item.id === selectedId) ?? (detail?.message.id === selectedId ? detail.message : null)
 
   const stepPast = (id: string): void => {
     if (selectedId !== id) return
@@ -176,6 +204,8 @@ export function useMailbox(restore: SavedPlace | null = null): Mailbox {
     total: loaded.length,
     query,
     setQuery,
+    scope,
+    setScope,
     selected: selectedSummary === null ? null : { message: selectedSummary, body: detail?.message.id === selectedId ? detail.body : null, recipients: detail?.message.id === selectedId ? detail.recipients : null, detail: detail?.message.id === selectedId ? detail : null },
     error,
     open: (next) => {
@@ -183,11 +213,13 @@ export function useMailbox(restore: SavedPlace | null = null): Mailbox {
       setView(null)
       setSelectedId(null)
       setQuery('')
+      setScope('list')
     },
     openView: (next) => {
       setView(next)
       setSelectedId(null)
       setQuery('')
+      setScope('list')
     },
     select,
     close: () => setSelectedId(null),

@@ -23,6 +23,8 @@ fn record(id: &str, workspace: &str, folder: Option<&str>, sent_at: i64) -> Mess
         starred: false,
         shelf: Shelf::Active,
         tags: Vec::new(),
+        thread_id: None,
+        thread_size: 1,
     }
 }
 
@@ -193,5 +195,42 @@ fn suggests_contacts_most_frequent_first() -> Result<(), StoreError> {
     let found = store.contacts("", 10)?;
     assert_eq!(found.first().map(|(_, address, seen)| (address.as_str(), *seen)), Some(("ada@example.com", 2)));
     assert_eq!(store.contacts("zed", 10)?.len(), 1);
+    Ok(())
+}
+
+#[test]
+fn links_replies_into_one_conversation_whichever_arrives_first() -> Result<(), StoreError> {
+    let (_folder, store) = store()?;
+    for (id, at) in [("c1", 30), ("a1", 10), ("b1", 20)] {
+        store.insert(&record(id, "acme", None, at), id.as_bytes())?;
+    }
+    // The reply to the reply arrives first, then the original, then the middle message.
+    let late = store.link("c1", Some("c@x"), &["a@x".to_owned(), "b@x".to_owned()])?;
+    let first = store.link("a1", Some("a@x"), &[])?;
+    let middle = store.link("b1", Some("b@x"), &["a@x".to_owned()])?;
+    assert_eq!(late, "c@x");
+    assert_eq!(first, "c@x");
+    assert_eq!(middle, "c@x");
+    let thread = store.thread("c@x")?;
+    assert_eq!(thread.iter().map(|record| record.id.as_str()).collect::<Vec<_>>(), vec!["a1", "b1", "c1"]);
+    assert_eq!(thread.first().map(|record| record.thread_size), Some(3));
+    assert_eq!(store.unlinked(10)?.len(), 0);
+    Ok(())
+}
+
+#[test]
+fn searches_subject_people_and_text_by_word_starts() -> Result<(), StoreError> {
+    let (_folder, store) = store()?;
+    store.insert(&record("s1", "acme", None, 10), b"one")?;
+    store.insert(&record("s2", "acme", None, 20), b"two")?;
+    store.index_text("s1", "Invoice for November", "Stripe invoices@stripe.com", "Your invoice INV-2026-11 is ready")?;
+    store.index_text("s2", "Lunch", "Ada ada@example.com", "Friday at the café")?;
+    assert_eq!(store.search_text("invo nov", 10)?.iter().map(|record| record.id.as_str()).collect::<Vec<_>>(), vec!["s1"]);
+    assert_eq!(store.search_text("cafe", 10)?.len(), 1);
+    assert_eq!(store.search_text("\"", 10)?.len(), 0);
+    store.set_shelf("s2", Shelf::Trashed, 1)?;
+    assert_eq!(store.search_text("friday", 10)?.len(), 0);
+    store.delete("s1")?;
+    assert_eq!(store.search_text("invoice", 10)?.len(), 0);
     Ok(())
 }

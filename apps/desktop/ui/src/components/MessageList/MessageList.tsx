@@ -9,7 +9,7 @@ import type { WorkspaceLooks } from '../../hooks/useWorkspaceLooks'
 import { endOfDay, sortMessages } from '../../lib/sort'
 import { WorkspaceIcon } from '../WorkspaceIcon/WorkspaceIcon'
 import { ListTools } from './ListTools'
-import { IconArchive, IconCaret, IconDelete, IconRename, IconFolder, IconInbox, IconSearch, IconStar, IconStarred, IconUnread, isWorkspaceGlyph, WORKSPACE_GLYPHS } from '../../icons'
+import { IconArchive, IconCaret, IconConversation, IconDelete, IconRename, IconFolder, IconInbox, IconSearch, IconStar, IconStarred, IconUnread, isWorkspaceGlyph, WORKSPACE_GLYPHS } from '../../icons'
 import { Avatar } from '../Avatar/Avatar'
 import { formatListed } from '../../lib/time'
 import { ContextMenu, isMenuKey, menuPoint } from '../ContextMenu/ContextMenu'
@@ -44,6 +44,9 @@ interface MessageListProps {
   /** The search box's words; the list shows only what matches them. */
   query: string
   onQuery: (query: string) => void
+  /** Whether the search box looks in this list or every folder's full text. */
+  scope: 'list' | 'all'
+  onScope: (scope: 'list' | 'all') => void
   /** The list fills the window (reading pane off): each message on one line. */
   wide: boolean
 }
@@ -54,7 +57,7 @@ const VIEW_GLYPHS = { starred: IconStar, archive: IconArchive, trash: IconDelete
  * The open folder's messages, or a view across workspaces, newest first, as flat rows split by hairlines. Unread is
  * heavier type and an envelope glyph. Right click, the menu key or Shift F10 on a row opens what can be done to it.
  */
-export function MessageList({ workspace, place, view, messages, selectedId, onSelect, actions, workspaceName, theme, sort, onSort, filter, onFilter, total, looks, query, onQuery, wide }: MessageListProps): ReactNode {
+export function MessageList({ workspace, place, view, messages, selectedId, onSelect, actions, workspaceName, theme, sort, onSort, filter, onFilter, total, looks, query, onQuery, scope, onScope, wide }: MessageListProps): ReactNode {
   const { t } = useTranslation(['mail', 'common'])
   const [menu, setMenu] = useState<MenuRequest | null>(null)
   const closeMenu = useCallback(() => setMenu(null), [])
@@ -91,8 +94,8 @@ export function MessageList({ workspace, place, view, messages, selectedId, onSe
       <header className="message-list__header">
         <div className="message-list__title">
           <TitleGlyph aria-hidden="true" className="message-list__glyph" />
-          <h1>{view === null ? (place?.folder ?? t(INBOX_LABEL)) : t(`views.${view}`)}</h1>
-          {view === null && workspace !== undefined && (
+          <h1>{scope === 'all' && query.trim() !== '' ? t('list.searchResults') : view === null ? (place?.folder ?? t(INBOX_LABEL)) : t(`views.${view}`)}</h1>
+          {view === null && workspace !== undefined && !(scope === 'all' && query.trim() !== '') && (
             <>
               <IconCaret aria-hidden="true" className="message-list__crumb" />
               <span className="message-list__workspace" aria-label={t('list.inWorkspace', { workspace: workspace.name })}>
@@ -130,6 +133,15 @@ export function MessageList({ workspace, place, view, messages, selectedId, onSe
           />
         </label>
         <ListTools filter={filter} onFilter={onFilter} onJump={jump} compact={!wide} />
+        {query.trim() !== '' && (
+          <div className="search-scope" role="radiogroup" aria-label={t('list.scope.label')}>
+            {(['list', 'all'] as const).map((choice) => (
+              <button key={choice} type="button" role="radio" aria-checked={scope === choice} className="search-scope__choice" onClick={() => onScope(choice)}>
+                {t(`list.scope.${choice}`)}
+              </button>
+            ))}
+          </div>
+        )}
       </header>
       {messages.length === 0 && total > 0 && query.trim() !== '' ? (
         <div className="message-list__empty">
@@ -171,7 +183,13 @@ export function MessageList({ workspace, place, view, messages, selectedId, onSe
                   {message.unread && <IconUnread className="message-row__unread" aria-label={t('list.unreadDot')} />}
                   {message.fromName}
                   {message.starred && <IconStarred className="message-row__star" aria-label={t('list.starredMark')} />}
-                  {view !== null && <span className="message-row__where">{workspaceName(message.workspace)}</span>}
+                  {message.threadSize > 1 && (
+                    <span className="message-row__thread" aria-label={t('list.conversation', { count: message.threadSize })}>
+                      <IconConversation aria-hidden="true" />
+                      {message.threadSize}
+                    </span>
+                  )}
+                  {(view !== null || (scope === 'all' && query.trim() !== '')) && <span className="message-row__where">{workspaceName(message.workspace)}</span>}
                 </span>
                 <time className="message-row__time" dateTime={message.receivedAt}>
                   {formatListed(message.receivedAt)}

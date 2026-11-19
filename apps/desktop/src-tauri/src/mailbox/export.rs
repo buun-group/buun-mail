@@ -178,6 +178,8 @@ mod tests {
             starred: true,
             shelf: Shelf::Active,
             tags: vec!["invoice".to_owned()],
+            thread_id: None,
+            thread_size: 1,
         };
         (record, raw)
     }

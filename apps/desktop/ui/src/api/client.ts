@@ -251,3 +251,13 @@ export async function sendMessage(draft: Draft): Promise<Message> {
 export async function suggestContacts(query: string): Promise<Contact[]> {
   return isTauri() ? invoke<Contact[]>(COMMANDS.suggestContacts, { query }) : preview.contacts(query)
 }
+
+/** Every message in a conversation outside the trash, oldest first. */
+export async function threadMessages(threadId: string): Promise<Message[]> {
+  return isTauri() ? invoke<Message[]>(COMMANDS.threadMessages, { threadId }) : preview.thread(threadId)
+}
+
+/** Searches every folder's subjects, people and text. */
+export async function searchAll(query: string): Promise<Message[]> {
+  return isTauri() ? invoke<Message[]>(COMMANDS.searchAll, { query }) : preview.searchAll(query)
+}

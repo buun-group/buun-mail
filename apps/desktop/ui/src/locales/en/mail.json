@@ -50,7 +50,15 @@
     },
     "inWorkspace": "in {{workspace}}",
     "searchMiss": "Nothing here matches “{{query}}”.",
-    "clearSearch": "Clear search"
+    "clearSearch": "Clear search",
+    "scope": {
+      "label": "Search in",
+      "list": "This list",
+      "all": "All mail"
+    },
+    "searchResults": "Search results",
+    "conversation_one": "{{count}} message in this conversation",
+    "conversation_other": "{{count}} messages in this conversation"
   },
   "reader": {
     "label": "Reader",
@@ -172,5 +180,12 @@
     "saved": "Saved",
     "desktopOnly": "Saving attachments works in the desktop app.",
     "failed": "The attachment could not be saved"
+  },
+  "conversation": {
+    "label": "Conversation",
+    "count_one": "{{count}} message",
+    "count_other": "{{count}} messages",
+    "open": "Open the message from {{who}}, {{when}}",
+    "sentBy": "You"
   }
 }

@@ -11,6 +11,7 @@ export const STORAGE_KEYS = {
   rememberPlace: 'buun-mail:remember-place',
   lastPlace: 'buun-mail:last-place',
   drafts: 'buun-mail:drafts',
+  conversations: 'buun-mail:conversations',
   outbox: 'buun-mail:outbox',
   looks: 'buun-mail:workspace-looks',
 } as const

@@ -47,6 +47,18 @@ pub fn run() {
             let mailbox = Arc::new(Mailbox::open(&paths)?);
             // Mail in the trash longer than thirty days goes for good. A failure here never stops the app opening.
             let _ = mailbox.empty_trash(true, &mailbox::Actor::App);
+            // Mail stored before conversations and search is linked and indexed in the background, a batch at a time.
+            let catching_up = Arc::clone(&mailbox);
+            let handle = app.handle().clone();
+            std::thread::spawn(move || {
+                let mut done = 0;
+                while let Ok(count @ 1..) = catching_up.catch_up(200) {
+                    done += count;
+                }
+                if done > 0 {
+                    events::mail_changed(&handle);
+                }
+            });
             app.manage(agent::AgentState::open(paths.config.clone(), Arc::clone(&mailbox), Some(app.handle().clone()))?);
             app.manage(sync::SyncService::start(paths.config.clone(), Arc::clone(&mailbox), Some(app.handle().clone())));
             app.manage(send::SendService::open(paths.config.clone(), Arc::clone(&mailbox)));
@@ -73,6 +85,8 @@ pub fn run() {
             commands::sendable_domains,
             commands::send_message,
             commands::suggest_contacts,
+            commands::thread_messages,
+            commands::search_all,
             commands::open_message,
             commands::mark_all_read,
             commands::tag_message,

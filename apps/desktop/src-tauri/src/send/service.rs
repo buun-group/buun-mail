@@ -416,6 +416,12 @@ mod tests {
         assert_eq!(kept.len(), 1);
         assert_eq!(mailbox.thread_of(&kept[0].id).ok().and_then(|ids| ids.references.first().cloned()), Some("q1@client.example".to_owned()));
 
+        let conversation = mailbox.thread(delivered.thread_id.as_deref().unwrap_or_default()).unwrap_or_default();
+        assert_eq!(conversation.iter().map(|message| message.subject.as_str()).collect::<Vec<_>>(), vec!["Quote", "Re: Quote"]);
+        assert_eq!(conversation.first().map(|message| message.thread_size), Some(2));
+        assert_eq!(mailbox.search_all("please quot").unwrap_or_default().len(), 1);
+        assert_eq!(mailbox.search_all("quote").unwrap_or_default().len(), 2);
+
         let refused = service.send(&DraftDto { from: contact("hi@new.dev"), ..draft });
         assert!(matches!(refused, Err(SendFailure { retry: false, .. })));
     }

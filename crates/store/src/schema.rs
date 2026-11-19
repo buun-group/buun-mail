@@ -43,6 +43,16 @@ const MIGRATIONS: &[&str] = &[
     ALTER TABLE messages ADD COLUMN shelf TEXT NOT NULL DEFAULT 'active' CHECK (shelf IN ('active', 'archived', 'trashed'));
     ALTER TABLE messages ADD COLUMN shelved_at INTEGER;
     CREATE INDEX messages_by_shelf ON messages (shelf, sent_at DESC);",
+    "ALTER TABLE messages ADD COLUMN thread_id TEXT;
+    CREATE INDEX messages_by_thread ON messages (thread_id, sent_at);
+    CREATE INDEX messages_by_message_id ON messages (message_id);
+    CREATE TABLE message_refs (
+        message TEXT NOT NULL REFERENCES messages (id) ON DELETE CASCADE,
+        ref     TEXT NOT NULL,
+        PRIMARY KEY (message, ref)
+    ) STRICT;
+    CREATE INDEX message_refs_by_ref ON message_refs (ref);
+    CREATE VIRTUAL TABLE message_text USING fts5(id UNINDEXED, subject, people, body, tokenize = 'unicode61 remove_diacritics 2');",
 ];
 
 /// Brings the database up to the latest version, one migration at a time, each in its own transaction.

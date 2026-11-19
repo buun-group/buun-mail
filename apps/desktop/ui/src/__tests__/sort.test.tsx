@@ -6,7 +6,7 @@ import { App } from '../App'
 import { sortMessages } from '../lib/sort'
 
 const message = (id: string, fromName: string, subject: string, receivedAt: string): Message => ({
-  id, workspace: 'w', folder: null, fromName, from: `${id}@x.com`, to: 'me@y.com', matched: null, folderMatched: null, subject, preview: '', receivedAt, unread: false, starred: false, shelf: 'active', tags: [],
+  id, workspace: 'w', folder: null, fromName, from: `${id}@x.com`, to: 'me@y.com', matched: null, folderMatched: null, subject, preview: '', receivedAt, unread: false, starred: false, shelf: 'active', tags: [], threadId: null, threadSize: 1,
 })
 
 const LIST = [message('a', 'Zoe', 'apples', '2026-11-18T10:00:00Z'), message('b', 'adam', 'Bananas', '2026-11-19T10:00:00Z'), message('c', 'Mia', 'cherries', '2026-11-17T10:00:00Z')]
