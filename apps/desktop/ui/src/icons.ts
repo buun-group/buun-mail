@@ -97,6 +97,7 @@ export {
   PiCaretUpLight as IconCaretUp,
   PiCheckLight as IconCheck,
   PiStarLight as IconStar,
+  PiGlobeLight as IconGlobe,
   PiArrowBendDoubleUpLeftLight as IconReplyAll,
   PiExportLight as IconExport,
   PiArrowDownLight as IconJump,

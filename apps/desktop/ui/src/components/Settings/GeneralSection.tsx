@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 
 import { DENSITIES, READING_PANES, THEME_PREFERENCES } from '../../constants/ui'
 import type { Preferences } from '../../hooks/usePreferences'
-import { DENSITY_GLYPHS, READING_PANE_GLYPHS, THEME_GLYPHS } from '../../icons'
+import { DENSITY_GLYPHS, IconGlobe, READING_PANE_GLYPHS, THEME_GLYPHS } from '../../icons'
 import { Segmented } from './Segmented'
 import { Switch } from './Switch'
 import { LANGUAGES } from '../../i18n/languages'
@@ -28,7 +28,10 @@ export function GeneralSection({ preferences }: { preferences: Preferences }): R
         <Select
           id="language"
           value={preferences.language}
-          options={[{ value: 'system', label: t('language.system') }, ...LANGUAGES.map((language) => ({ value: language.code, label: language.name }))]}
+          options={[
+            { value: 'system', label: t('language.system'), icon: <IconGlobe aria-hidden="true" /> },
+            ...LANGUAGES.map((language) => ({ value: language.code, label: language.name, icon: <img className="select__flag" src={language.flag} alt="" /> })),
+          ]}
           onChange={(language) => preferences.setLanguage(language as LanguagePreference)}
         />
       </div>

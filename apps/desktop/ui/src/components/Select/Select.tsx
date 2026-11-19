@@ -12,6 +12,8 @@ export interface SelectOption<V extends string> {
   label: string
   /** A quieter second line, such as what a domain forwards to now. */
   hint?: string
+  /** A small picture before the words, such as a language's flag or a glyph. Decorative. */
+  icon?: ReactNode
 }
 
 interface SelectProps<V extends string> {
@@ -32,8 +34,9 @@ const GAP = 4
 
 /**
  * A drop-down in the app's own look instead of the system's: a trigger like the text fields, and a list that opens below
- * it (above when there is no room), as wide as the trigger. Focus stays on the trigger; arrow keys, Home, End and the
- * first letter of an option move, Enter or Space chooses, Escape, Tab, a click elsewhere or a scroll outside closes.
+ * it (above when there is no room), at least as wide as the trigger and wider when an option needs it. Focus stays on
+ * the trigger; arrow keys, Home, End and the first letter of an option move, Enter or Space chooses, Escape, Tab, a
+ * click elsewhere or a scroll outside closes.
  */
 export function Select<V extends string>({ id, value, options, onChange, placeholder, disabled = false, className }: SelectProps<V>): ReactNode {
   const listId = useId()
@@ -71,8 +74,8 @@ export function Select<V extends string>({ id, value, options, onChange, placeho
   useLayoutEffect(() => {
     if (!open || trigger.current === null || list.current === null) return
     const anchor = trigger.current.getBoundingClientRect()
-    const height = list.current.getBoundingClientRect().height
-    setPlace(placeNear(anchor, { width: anchor.width, height }, 'below', GAP, 'start'))
+    const { width: listWidth, height } = list.current.getBoundingClientRect()
+    setPlace(placeNear(anchor, { width: listWidth, height }, 'below', GAP, 'start'))
   }, [open])
 
   useLayoutEffect(() => {
@@ -144,6 +147,7 @@ export function Select<V extends string>({ id, value, options, onChange, placeho
         onClick={() => (open ? close() : show())}
         onKeyDown={onKey}
       >
+        {current?.icon !== undefined && <span className="select__icon">{current.icon}</span>}
         <span className="select__value" data-placeholder={current === undefined}>
           {current?.label ?? placeholder ?? ''}
         </span>
@@ -158,7 +162,7 @@ export function Select<V extends string>({ id, value, options, onChange, placeho
             role="listbox"
             aria-labelledby={id}
             className="select__list"
-            style={place === null ? { visibility: 'hidden', width } : { left: place.left, top: place.top, width }}
+            style={place === null ? { visibility: 'hidden', minWidth: width } : { left: place.left, top: place.top, minWidth: width }}
           >
             {options.map((option, index) => (
               <div
@@ -176,6 +180,7 @@ export function Select<V extends string>({ id, value, options, onChange, placeho
                   if (event.key === 'Enter' || event.key === ' ') choose(index)
                 }}
               >
+                {option.icon !== undefined && <span className="select__icon">{option.icon}</span>}
                 <span className="select__words">
                   {option.label}
                   {option.hint !== undefined && <small>{option.hint}</small>}

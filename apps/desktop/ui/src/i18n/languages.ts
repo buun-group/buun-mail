@@ -1,8 +1,9 @@
 /**
  * The languages the app speaks. A new language is a folder under `src/locales/<code>/` with the same files as `en`,
- * an entry in `resources.ts`, and a row here. `locales.test.ts` fails when a language is missing a key English has.
+ * an entry in `resources.ts`, and a row here with its flag, a small SVG in `public/flags/`. `locales.test.ts` fails when
+ * a language is missing a key English has.
  */
-export const LANGUAGES = [{ code: 'en', name: 'English' }] as const
+export const LANGUAGES = [{ code: 'en', name: 'English', flag: '/flags/gb.svg' }] as const
 
 export type LanguageCode = (typeof LANGUAGES)[number]['code']
 
