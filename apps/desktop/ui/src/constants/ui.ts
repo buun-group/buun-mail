@@ -7,6 +7,7 @@ export const STORAGE_KEYS = {
   folded: 'buun-mail:folded-workspaces',
   notifications: 'buun-mail:notifications',
   language: 'buun-mail:language',
+  readingPane: 'buun-mail:reading-pane',
   looks: 'buun-mail:workspace-looks',
 } as const
 
@@ -25,6 +26,10 @@ export type Theme = Exclude<ThemePreference, 'system'>
 
 export const DENSITIES = ['comfortable', 'compact'] as const
 export type Density = (typeof DENSITIES)[number]
+
+/** Where an open message shows: beside the list, or in place of it with the list across the whole window (Outlook's reading pane off). */
+export const READING_PANES = ['right', 'off'] as const
+export type ReadingPane = (typeof READING_PANES)[number]
 
 /** The workspace the router keeps for mail no rule claims. Mirrors `UNSORTED_WORKSPACE` in the routing crate. */
 export const UNSORTED_WORKSPACE = 'unsorted'

@@ -5,7 +5,7 @@ import { Trans, useTranslation } from 'react-i18next'
 import type { Message, Workspace } from '../../api/types'
 import type { Theme } from '../../constants/ui'
 import type { MessageActions } from '../../hooks/useMessageActions'
-import { IconArchive, IconCopy, IconDelete, IconExternal, IconInbox, IconMarkRead, IconPutBack, IconReply, IconRoute, IconStar, IconStarred, IconText } from '../../icons'
+import { IconArchive, IconBack, IconCopy, IconDelete, IconExternal, IconInbox, IconMarkRead, IconPutBack, IconReply, IconRoute, IconStar, IconStarred, IconText } from '../../icons'
 import { openExternal } from '../../api/client'
 import { copyWithToast } from '../../lib/copy'
 import { formatFull } from '../../lib/time'
@@ -31,6 +31,10 @@ interface ReaderProps {
   onRemoveTag: (id: string, tag: string) => void
   tagSuggestions: string[]
   actions: MessageActions
+  /** With the reading pane off, goes back to the list; null beside the list. */
+  onBack: (() => void) | null
+  /** What the list is called, for the Back button. */
+  backTo: string
 }
 
 /** Why a message is where it is, in one plain sentence from the rules the router used. */
@@ -43,7 +47,7 @@ function RouteNote({ message, workspace }: { message: Message; workspace: Worksp
 }
 
 /** The open message. With nothing open, the other Buun Group products. */
-export function Reader({ message, body, workspace, theme, onAddTag, onRemoveTag, tagSuggestions, actions }: ReaderProps): ReactNode {
+export function Reader({ message, body, workspace, theme, onAddTag, onRemoveTag, tagSuggestions, actions, onBack, backTo }: ReaderProps): ReactNode {
   const { t } = useTranslation('mail')
   const article = useRef<HTMLElement | null>(null)
   const bodyText = useRef<HTMLDivElement | null>(null)
@@ -108,6 +112,14 @@ export function Reader({ message, body, workspace, theme, onAddTag, onRemoveTag,
   return (
     <section className="reader" aria-label={t('reader.label')}>
       <div className="reader__toolbar">
+        {onBack !== null && (
+          <>
+            <TipButton tip={`${t('reader.back', { folder: backTo })} (Esc)`} className="reader__tool" aria-label={t('reader.back', { folder: backTo })} onClick={onBack}>
+              <IconBack aria-hidden="true" />
+            </TipButton>
+            <span className="reader__divider" aria-hidden="true" />
+          </>
+        )}
         <TipButton tip={t('reader.replySoon')} className="reader__tool" aria-disabled="true" aria-label={t('reader.replyAs', { address: message.to })}>
           <IconReply aria-hidden="true" />
         </TipButton>

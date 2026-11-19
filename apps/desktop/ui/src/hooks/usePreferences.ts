@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 
-import { DENSITIES, STORAGE_KEYS, THEME_PREFERENCES } from '../constants/ui'
+import { DENSITIES, READING_PANES, STORAGE_KEYS, THEME_PREFERENCES } from '../constants/ui'
 import { applyLanguage, storedLanguage } from '../i18n'
 import { resolveLanguage } from '../i18n/languages'
 import type { LanguagePreference } from '../i18n/languages'
-import type { Density, Theme, ThemePreference } from '../constants/ui'
+import type { Density, ReadingPane, Theme, ThemePreference } from '../constants/ui'
 
 function read<T extends string>(key: string, allowed: readonly T[], fallback: T): T {
   try {
@@ -41,11 +41,13 @@ export interface Preferences {
   themePreference: ThemePreference
   theme: Theme
   density: Density
+  readingPane: ReadingPane
   grain: boolean
   sidebarCollapsed: boolean
   language: LanguagePreference
   setThemePreference: (value: ThemePreference) => void
   setDensity: (value: Density) => void
+  setReadingPane: (value: ReadingPane) => void
   setGrain: (value: boolean) => void
   setSidebarCollapsed: (value: boolean) => void
   setLanguage: (value: LanguagePreference) => void
@@ -57,6 +59,7 @@ const ON_OFF = ['on', 'off'] as const
 export function usePreferences(): Preferences {
   const [themePreference, setThemePreferenceState] = useState<ThemePreference>(() => read(STORAGE_KEYS.theme, THEME_PREFERENCES, 'system'))
   const [density, setDensityState] = useState<Density>(() => read(STORAGE_KEYS.density, DENSITIES, 'comfortable'))
+  const [readingPane, setReadingPaneState] = useState<ReadingPane>(() => read(STORAGE_KEYS.readingPane, READING_PANES, 'right'))
   const [grain, setGrainState] = useState<boolean>(() => read(STORAGE_KEYS.grain, ON_OFF, 'on') === 'on')
   const [sidebarCollapsed, setSidebarState] = useState<boolean>(() => read(STORAGE_KEYS.sidebar, ['open', 'collapsed'] as const, 'open') === 'collapsed')
   const [language, setLanguageState] = useState<LanguagePreference>(storedLanguage)
@@ -72,6 +75,7 @@ export function usePreferences(): Preferences {
     themePreference,
     theme,
     density,
+    readingPane,
     grain,
     sidebarCollapsed,
     language,
@@ -82,6 +86,10 @@ export function usePreferences(): Preferences {
     setDensity: (value) => {
       setDensityState(value)
       write(STORAGE_KEYS.density, value)
+    },
+    setReadingPane: (value) => {
+      setReadingPaneState(value)
+      write(STORAGE_KEYS.readingPane, value)
     },
     setGrain: (value) => {
       setGrainState(value)

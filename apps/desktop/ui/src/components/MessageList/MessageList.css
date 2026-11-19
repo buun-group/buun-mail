@@ -17,9 +17,15 @@
 
 .message-list__title {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: var(--space-2);
   min-width: 0;
+}
+
+.message-list__glyph {
+  flex: none;
+  font-size: var(--text-xl);
+  color: var(--text-secondary);
 }
 
 .message-list__title h1 {
@@ -80,7 +86,8 @@
 
 .message-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
   gap: var(--row-gap) var(--space-3);
   width: 100%;
   padding: var(--row-pad) var(--space-4);
@@ -117,9 +124,15 @@
   color: var(--text-muted);
 }
 
+.message-row > .avatar {
+  grid-row: 1 / span 3;
+  align-self: start;
+  margin-top: 2px;
+}
+
 .message-row__subject,
 .message-row__preview {
-  grid-column: 1 / -1;
+  grid-column: 2 / -1;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -176,4 +189,52 @@
 .message-list__empty-trash:focus-visible {
   outline: 2px solid var(--brand-100);
   outline-offset: 1px;
+}
+
+/* The list across the whole window: one line per message, as Outlook does with the reading pane off. */
+.message-list[data-wide='true'] {
+  border-right: 0;
+}
+
+.message-list[data-wide='true'] .message-list__search {
+  grid-column: auto;
+  width: min(28rem, 100%);
+  justify-self: end;
+}
+
+.message-list[data-wide='true'] .message-list__header {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
+.message-list[data-wide='true'] .message-row {
+  grid-template-columns: auto minmax(10rem, 14rem) fit-content(45%) minmax(0, 1fr) auto;
+  padding-block: var(--space-2);
+}
+
+.message-list[data-wide='true'] .message-row > .avatar {
+  grid-row: auto;
+  align-self: center;
+  margin-top: 0;
+  width: 1.75rem;
+  height: 1.75rem;
+}
+
+.message-list[data-wide='true'] .message-row__from {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.message-list[data-wide='true'] .message-row__subject {
+  grid-column: 3;
+  grid-row: 1;
+}
+
+.message-list[data-wide='true'] .message-row__preview {
+  grid-column: 4;
+  grid-row: 1;
+}
+
+.message-list[data-wide='true'] .message-row__time {
+  grid-column: 5;
+  grid-row: 1;
 }

@@ -33,7 +33,8 @@
     "trash": "Move to trash",
     "putBack": "Move back to {{folder}}",
     "deleteForever": "Delete forever",
-    "moreFolders": "Move to"
+    "moreFolders": "Move to",
+    "back": "Back to {{folder}}"
   },
   "tags": {
     "more": "+{{count}}",

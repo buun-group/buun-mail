@@ -12,7 +12,7 @@ import { MessageList } from './components/MessageList/MessageList'
 import { Reader } from './components/Reader/Reader'
 import { Settings } from './components/Settings/Settings'
 import { Sidebar } from './components/Sidebar/Sidebar'
-import { SETTINGS_SHORTCUT } from './constants/ui'
+import { INBOX_LABEL, SETTINGS_SHORTCUT } from './constants/ui'
 import type { SettingsSection } from './constants/ui'
 import { useFolded } from './hooks/useFolded'
 import { useMailbox } from './hooks/useMailbox'
@@ -27,7 +27,7 @@ import './styles/app.css'
 
 /** Three panes (workspaces, the open folder, the open message) and settings over them. */
 export function App(): ReactNode {
-  const { t } = useTranslation('mail')
+  const { t } = useTranslation(['mail', 'common'])
   const preferences = usePreferences()
   const mailbox = useMailbox()
   const looks = useWorkspaceLooks()
@@ -55,7 +55,7 @@ export function App(): ReactNode {
   const workspaceName = (id: string): string => mailbox.workspaces.find((item) => item.id === id)?.name ?? id
   const notifications = useNotifications(workspaceName)
   const actions = useMessageActions(mailbox, workspaceName)
-  useMailKeys(mailbox.selected?.message ?? null, mailbox.messages, mailbox.select, actions)
+  useMailKeys(mailbox.selected?.message ?? null, mailbox.messages, mailbox.select, actions, preferences.readingPane === 'off' ? mailbox.close : null)
 
   const openNotificationSettings = (): void => {
     setSection('notifications')
@@ -71,7 +71,7 @@ export function App(): ReactNode {
   }
 
   return (
-    <div className="app" data-sidebar={preferences.sidebarCollapsed ? 'collapsed' : 'open'}>
+    <div className="app" data-sidebar={preferences.sidebarCollapsed ? 'collapsed' : 'open'} data-reading={preferences.readingPane} data-open={mailbox.selected !== null}>
       <TitleBar
         themePreference={preferences.themePreference}
         onThemePreference={preferences.setThemePreference}
@@ -116,6 +116,8 @@ export function App(): ReactNode {
         menuFor={actions.menu}
         onEmptyTrash={actions.emptyTrash}
         workspaceName={workspaceName}
+        theme={preferences.theme}
+        wide={preferences.readingPane === 'off'}
       />
       <Reader
         message={mailbox.selected?.message ?? null}
@@ -126,6 +128,8 @@ export function App(): ReactNode {
         onRemoveTag={mailbox.removeTag}
         tagSuggestions={mailbox.tags}
         actions={actions}
+        onBack={preferences.readingPane === 'off' ? mailbox.close : null}
+        backTo={mailbox.view === null ? (mailbox.place?.folder ?? t(INBOX_LABEL)) : t(`views.${mailbox.view}`)}
       />
       <Settings
         open={settingsOpen}

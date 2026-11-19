@@ -12,6 +12,25 @@
   grid-template-columns: var(--rail-width) var(--list-width) minmax(0, 1fr);
 }
 
+/* Reading pane off: the list and the open message share the space beside the sidebar, one at a time. */
+.app[data-reading='off'] {
+  grid-template-columns: var(--sidebar-width) minmax(0, 1fr) 0;
+}
+
+.app[data-reading='off'][data-sidebar='collapsed'] {
+  grid-template-columns: var(--rail-width) minmax(0, 1fr) 0;
+}
+
+.app[data-reading='off'] > :is(.message-list, .reader) {
+  grid-row: 2;
+  grid-column: 2;
+}
+
+.app[data-reading='off'][data-open='true'] > .message-list,
+.app[data-reading='off'][data-open='false'] > .reader {
+  display: none;
+}
+
 .app-error {
   padding: var(--space-8);
   color: var(--text-secondary);

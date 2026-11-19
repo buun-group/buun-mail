@@ -26,6 +26,19 @@
   --surface-body: #f9f9f9;
   /* Where mail is read: solid, so the grain under the panes never sits behind text. */
   --surface-reading: #fcfcfc;
+  /* Avatar tints: soft grounds with a deeper ink, one per sender by address. */
+  --avatar-1-bg: #fde8dd;
+  --avatar-1-fg: #9a3412;
+  --avatar-2-bg: #e0ecfb;
+  --avatar-2-fg: #1e4f8a;
+  --avatar-3-bg: #e2f3e6;
+  --avatar-3-fg: #276738;
+  --avatar-4-bg: #efe5fa;
+  --avatar-4-fg: #5b3591;
+  --avatar-5-bg: #fbf0d6;
+  --avatar-5-fg: #855c0b;
+  --avatar-6-bg: #e5eeee;
+  --avatar-6-fg: #2f5a5a;
   --surface-card: #fbfbfb;
   --surface-card-hover: #ffffff;
   --surface-sunken: #f2f2f2;
@@ -140,6 +153,18 @@
 
   --surface-body: #0a0a0a;
   --surface-reading: #111111;
+  --avatar-1-bg: #3a2218;
+  --avatar-1-fg: #f6b08a;
+  --avatar-2-bg: #1b2a3d;
+  --avatar-2-fg: #9cc3f2;
+  --avatar-3-bg: #1b3022;
+  --avatar-3-fg: #93d6a5;
+  --avatar-4-bg: #2b2140;
+  --avatar-4-fg: #c8aef0;
+  --avatar-5-bg: #352b14;
+  --avatar-5-fg: #ecc878;
+  --avatar-6-bg: #1f2e2e;
+  --avatar-6-fg: #a3cccc;
   --surface-card: #141414;
   --surface-card-hover: #1a1a1a;
   --surface-sunken: #0f0f0f;

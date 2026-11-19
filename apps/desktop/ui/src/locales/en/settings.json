@@ -65,5 +65,11 @@
       "star": "star",
       "chat": "chat"
     }
+  },
+  "readingPane": {
+    "title": "Reading pane",
+    "hint": "Off lets the list fill the window; opening a message shows it in full, with Back to the list.",
+    "right": "Right",
+    "off": "Off"
   }
 }

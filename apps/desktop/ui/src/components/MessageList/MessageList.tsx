@@ -4,7 +4,9 @@ import { Trans, useTranslation } from 'react-i18next'
 
 import type { MailView, Message, Place, Workspace } from '../../api/types'
 import { INBOX_LABEL } from '../../constants/ui'
-import { IconSearch, IconStarred, IconUnread } from '../../icons'
+import type { Theme } from '../../constants/ui'
+import { IconArchive, IconDelete, IconFolder, IconInbox, IconSearch, IconStar, IconStarred, IconUnread, isWorkspaceGlyph, WORKSPACE_GLYPHS } from '../../icons'
+import { Avatar } from '../Avatar/Avatar'
 import { formatReceived } from '../../lib/time'
 import { ContextMenu, isMenuKey, menuPoint } from '../ContextMenu/ContextMenu'
 import type { MenuItem, MenuRequest } from '../ContextMenu/ContextMenu'
@@ -25,25 +27,33 @@ interface MessageListProps {
   onEmptyTrash: (count: number) => void
   /** Names a workspace, for rows in a list across workspaces. */
   workspaceName: (id: string) => string
+  theme: Theme
+  /** The list fills the window (reading pane off): each message on one line. */
+  wide: boolean
 }
+
+const VIEW_GLYPHS = { starred: IconStar, archive: IconArchive, trash: IconDelete } as const satisfies Record<MailView, unknown>
 
 /**
  * The open folder's messages, or a view across workspaces, newest first, as flat rows split by hairlines. Unread is
  * heavier type and an envelope glyph. Right click, the menu key or Shift F10 on a row opens what can be done to it.
  */
-export function MessageList({ workspace, place, view, messages, selectedId, onSelect, menuFor, onEmptyTrash, workspaceName }: MessageListProps): ReactNode {
+export function MessageList({ workspace, place, view, messages, selectedId, onSelect, menuFor, onEmptyTrash, workspaceName, theme, wide }: MessageListProps): ReactNode {
   const { t } = useTranslation(['mail', 'common'])
   const [menu, setMenu] = useState<MenuRequest | null>(null)
   const closeMenu = useCallback(() => setMenu(null), [])
   const unread = messages.filter((message) => message.unread).length
+  const folderIcon = workspace?.folders.find((folder) => folder.name === place?.folder)?.icon
+  const TitleGlyph = view !== null ? VIEW_GLYPHS[view] : (place?.folder ?? null) === null ? IconInbox : isWorkspaceGlyph(folderIcon) ? WORKSPACE_GLYPHS[folderIcon] : IconFolder
   const openMenu = (event: MouseEvent | KeyboardEvent, message: Message): void => {
     event.preventDefault()
     setMenu({ ...menuPoint(event), label: t('actions.menuLabel', { subject: message.subject }), items: menuFor(message) })
   }
   return (
-    <section className="message-list" aria-label={t('list.label')}>
+    <section className="message-list" data-wide={wide} aria-label={t('list.label')}>
       <header className="message-list__header">
         <div className="message-list__title">
+          <TitleGlyph aria-hidden="true" className="message-list__glyph" />
           <h1>{view === null ? (place?.folder ?? t(INBOX_LABEL)) : t(`views.${view}`)}</h1>
           {view === null && <span>{workspace?.name}</span>}
         </div>
@@ -79,6 +89,7 @@ export function MessageList({ workspace, place, view, messages, selectedId, onSe
                   if (isMenuKey(event)) openMenu(event, message)
                 }}
               >
+                <Avatar name={message.fromName} address={message.from} theme={theme} />
                 <span className="message-row__from">
                   {message.unread && <IconUnread className="message-row__unread" aria-label={t('list.unreadDot')} />}
                   {message.fromName}

@@ -44,12 +44,14 @@ import {
   PiSunLight,
   PiTrayArrowDownLight,
   PiListLight,
+  PiRectangleLight,
+  PiSquareSplitHorizontalLight,
 } from 'react-icons/pi'
 import { SiBrevo, SiClaude, SiCloudflare, SiCursor, SiGmail, SiIcloud, SiMailgun, SiModelcontextprotocol, SiProtonmail, SiResend, SiSparkpost, SiZoho } from 'react-icons/si'
 
 import type { AgentClientId } from './constants/agents'
 import type { IntegrationId } from './constants/integrations'
-import type { Density, SettingsSection, ThemePreference } from './constants/ui'
+import type { Density, ReadingPane, SettingsSection, ThemePreference } from './constants/ui'
 
 export {
   PiArchiveLight as IconArchive,
@@ -86,6 +88,7 @@ export {
   PiCaretDownLight as IconCaretDown,
   PiCheckLight as IconCheck,
   PiStarLight as IconStar,
+  PiArrowLeftLight as IconBack,
   PiTextAaLight as IconText,
   PiCheckCircleLight as IconDone,
   PiInfoLight as IconInfo,
@@ -158,6 +161,8 @@ export const INTEGRATION_GLYPHS: Record<IntegrationId, IconType> = {
 export const THEME_GLYPHS: Record<ThemePreference, IconType> = { system: PiDesktopLight, light: PiSunLight, dark: PiMoonLight }
 
 export const DENSITY_GLYPHS: Record<Density, IconType> = { comfortable: PiRowsLight, compact: PiListLight }
+
+export const READING_PANE_GLYPHS: Record<ReadingPane, IconType> = { right: PiSquareSplitHorizontalLight, off: PiRectangleLight }
 
 export const SECTION_GLYPHS: Record<SettingsSection, IconType> = {
   general: PiGearSixLight,

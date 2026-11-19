@@ -1,16 +1,26 @@
 .toasts {
+  /* Every side is set on its own: some engines give a popover top and left of 0, which would stretch the stack and
+     every toast in it to the window's height. Rows are only as tall as their toast and gather at the bottom. */
   position: fixed;
-  inset: auto var(--space-4) var(--space-4) auto;
+  top: auto;
+  right: var(--space-4);
+  bottom: var(--space-4);
+  left: auto;
   z-index: 240;
+  display: grid;
+  grid-auto-rows: max-content;
+  align-content: end;
+  align-items: start;
+  gap: var(--space-2);
+  width: min(22rem, calc(100vw - 2rem));
+  height: fit-content;
+  max-height: calc(100vh - 2 * var(--space-4));
   margin: 0;
   padding: 0;
   border: 0;
   overflow: visible;
   background: none;
   color: inherit;
-  display: grid;
-  gap: var(--space-2);
-  width: min(22rem, calc(100vw - 2rem));
   pointer-events: none;
 }
 

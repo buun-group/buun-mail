@@ -20,6 +20,8 @@ export interface Mailbox {
   open: (place: Place) => void
   openView: (view: MailView) => void
   select: (message: Message) => void
+  /** Closes the open message, back to the list. */
+  close: () => void
   /** Puts changed messages back in the list where they are, without a reload. */
   update: (changed: Message[]) => void
   /** Before a message leaves the list, opens the one after it (or before it), when it was the open one. */
@@ -144,6 +146,7 @@ export function useMailbox(): Mailbox {
       setSelectedId(null)
     },
     select,
+    close: () => setSelectedId(null),
     update,
     stepPast,
     reveal: (target) => {

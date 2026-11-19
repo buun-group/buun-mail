@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { DENSITIES, THEME_PREFERENCES } from '../../constants/ui'
+import { DENSITIES, READING_PANES, THEME_PREFERENCES } from '../../constants/ui'
 import type { Preferences } from '../../hooks/usePreferences'
-import { DENSITY_GLYPHS, THEME_GLYPHS } from '../../icons'
+import { DENSITY_GLYPHS, READING_PANE_GLYPHS, THEME_GLYPHS } from '../../icons'
 import { Segmented } from './Segmented'
 import { Switch } from './Switch'
 import { LANGUAGES } from '../../i18n/languages'
@@ -15,6 +15,7 @@ export function GeneralSection({ preferences }: { preferences: Preferences }): R
   const { t } = useTranslation(['settings', 'common'])
   const themeLabels = { system: t('common:themes.system'), light: t('common:themes.light'), dark: t('common:themes.dark') }
   const densityLabels = { comfortable: t('density.comfortable'), compact: t('density.compact') }
+  const paneLabels = { right: t('readingPane.right'), off: t('readingPane.off') }
   return (
     <div className="settings__rows">
       <div className="settings__row">
@@ -48,6 +49,15 @@ export function GeneralSection({ preferences }: { preferences: Preferences }): R
           <p className="settings__hint">{t('density.hint')}</p>
         </div>
         <Segmented name="density" labelledBy="density-label" options={DENSITIES} labels={densityLabels} glyphs={DENSITY_GLYPHS} value={preferences.density} onChange={preferences.setDensity} />
+      </div>
+      <div className="settings__row">
+        <div>
+          <p id="reading-pane-label" className="settings__label">
+            {t('readingPane.title')}
+          </p>
+          <p className="settings__hint">{t('readingPane.hint')}</p>
+        </div>
+        <Segmented name="reading-pane" labelledBy="reading-pane-label" options={READING_PANES} labels={paneLabels} glyphs={READING_PANE_GLYPHS} value={preferences.readingPane} onChange={preferences.setReadingPane} />
       </div>
       <div className="settings__row">
         <div>
