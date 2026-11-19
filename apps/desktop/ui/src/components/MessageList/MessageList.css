@@ -75,6 +75,10 @@
   list-style: none;
 }
 
+.message-list__rows li {
+  position: relative;
+}
+
 .message-list__rows li + li {
   border-top: 1px solid var(--border-faint);
 }
@@ -237,4 +241,79 @@
 .message-list[data-wide='true'] .message-row__time {
   grid-column: 5;
   grid-row: 1;
+}
+
+/* Quick actions sit over the row's time while the row is pointed at or has focus inside it. */
+.quick-actions {
+  position: absolute;
+  top: calc(var(--row-pad) - 4px);
+  right: var(--space-3);
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: var(--radius-md);
+  background: var(--surface-card-hover);
+  box-shadow: 0 0 0 1px var(--alpha-12), 0 4px 12px -6px rgba(0, 0, 0, 0.35);
+  opacity: 0;
+  transform: translateY(2px);
+  transition:
+    opacity var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
+  pointer-events: none;
+}
+
+.message-list__rows li:hover .quick-actions,
+.message-list__rows li:focus-within .quick-actions {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.message-list__rows li:hover .message-row__time,
+.message-list__rows li:focus-within .message-row__time {
+  visibility: hidden;
+}
+
+.quick-actions__tool {
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-base);
+  color: var(--text-secondary);
+}
+
+.quick-actions__tool:hover {
+  background: var(--alpha-8);
+  color: var(--text-primary);
+}
+
+.quick-actions__tool[data-danger='true']:hover {
+  color: var(--status-danger-fg);
+}
+
+.quick-actions__tool[data-on='true'] {
+  color: var(--brand-text);
+}
+
+.quick-actions__tool:focus-visible {
+  outline: 2px solid var(--brand-100);
+  outline-offset: 1px;
+}
+
+.message-list[data-wide='true'] .quick-actions {
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.message-list[data-wide='true'] .message-list__rows li:hover .quick-actions,
+.message-list[data-wide='true'] .message-list__rows li:focus-within .quick-actions {
+  transform: translateY(-50%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .quick-actions {
+    transition: none;
+  }
 }

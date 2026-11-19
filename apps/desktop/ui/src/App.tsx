@@ -113,8 +113,7 @@ export function App(): ReactNode {
         messages={mailbox.messages}
         selectedId={mailbox.selected?.message.id ?? null}
         onSelect={mailbox.select}
-        menuFor={actions.menu}
-        onEmptyTrash={actions.emptyTrash}
+        actions={actions}
         workspaceName={workspaceName}
         theme={preferences.theme}
         wide={preferences.readingPane === 'off'}

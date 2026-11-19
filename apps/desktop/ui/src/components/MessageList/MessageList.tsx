@@ -9,7 +9,9 @@ import { IconArchive, IconDelete, IconFolder, IconInbox, IconSearch, IconStar, I
 import { Avatar } from '../Avatar/Avatar'
 import { formatReceived } from '../../lib/time'
 import { ContextMenu, isMenuKey, menuPoint } from '../ContextMenu/ContextMenu'
-import type { MenuItem, MenuRequest } from '../ContextMenu/ContextMenu'
+import type { MenuRequest } from '../ContextMenu/ContextMenu'
+import type { MessageActions } from '../../hooks/useMessageActions'
+import { QuickActions } from './QuickActions'
 import { TagChips } from '../Tags/Tags'
 
 import './MessageList.css'
@@ -22,9 +24,8 @@ interface MessageListProps {
   messages: Message[]
   selectedId: string | null
   onSelect: (message: Message) => void
-  /** The right-click menu for a message. */
-  menuFor: (message: Message) => MenuItem[]
-  onEmptyTrash: (count: number) => void
+  /** Everything that can be done to a message: its right-click menu, its quick actions, emptying the trash. */
+  actions: MessageActions
   /** Names a workspace, for rows in a list across workspaces. */
   workspaceName: (id: string) => string
   theme: Theme
@@ -38,7 +39,7 @@ const VIEW_GLYPHS = { starred: IconStar, archive: IconArchive, trash: IconDelete
  * The open folder's messages, or a view across workspaces, newest first, as flat rows split by hairlines. Unread is
  * heavier type and an envelope glyph. Right click, the menu key or Shift F10 on a row opens what can be done to it.
  */
-export function MessageList({ workspace, place, view, messages, selectedId, onSelect, menuFor, onEmptyTrash, workspaceName, theme, wide }: MessageListProps): ReactNode {
+export function MessageList({ workspace, place, view, messages, selectedId, onSelect, actions, workspaceName, theme, wide }: MessageListProps): ReactNode {
   const { t } = useTranslation(['mail', 'common'])
   const [menu, setMenu] = useState<MenuRequest | null>(null)
   const closeMenu = useCallback(() => setMenu(null), [])
@@ -47,7 +48,7 @@ export function MessageList({ workspace, place, view, messages, selectedId, onSe
   const TitleGlyph = view !== null ? VIEW_GLYPHS[view] : (place?.folder ?? null) === null ? IconInbox : isWorkspaceGlyph(folderIcon) ? WORKSPACE_GLYPHS[folderIcon] : IconFolder
   const openMenu = (event: MouseEvent | KeyboardEvent, message: Message): void => {
     event.preventDefault()
-    setMenu({ ...menuPoint(event), label: t('actions.menuLabel', { subject: message.subject }), items: menuFor(message) })
+    setMenu({ ...menuPoint(event), label: t('actions.menuLabel', { subject: message.subject }), items: actions.menu(message) })
   }
   return (
     <section className="message-list" data-wide={wide} aria-label={t('list.label')}>
@@ -58,7 +59,7 @@ export function MessageList({ workspace, place, view, messages, selectedId, onSe
           {view === null && <span>{workspace?.name}</span>}
         </div>
         {view === 'trash' && messages.length > 0 ? (
-          <button type="button" className="message-list__empty-trash" onClick={() => onEmptyTrash(messages.length)}>
+          <button type="button" className="message-list__empty-trash" onClick={() => actions.emptyTrash(messages.length)}>
             {t('list.emptyTrash')}
           </button>
         ) : (
@@ -105,6 +106,7 @@ export function MessageList({ workspace, place, view, messages, selectedId, onSe
                 </span>
                 <span className="message-row__preview">{message.preview}</span>
               </button>
+              <QuickActions message={message} actions={actions} />
             </li>
           ))}
         </ul>
