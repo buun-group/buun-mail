@@ -503,3 +503,23 @@
   margin: var(--space-1) 0;
   background: var(--border-faint);
 }
+
+.import-report {
+  display: grid;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
+}
+
+.import-report p {
+  margin: 0;
+}
+
+.import-report ul {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}

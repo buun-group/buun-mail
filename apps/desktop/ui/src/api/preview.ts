@@ -1,4 +1,4 @@
-import type { Message, Place, Workspace } from './types'
+import type { Message, MessageDetail, Place, Workspace } from './types'
 
 /**
  * A small stand-in mailbox for `pnpm dev:ui`, where there is no Rust side, so the layout can be tuned in a plain
@@ -39,4 +39,10 @@ export function previewWorkspaces(): Workspace[] {
 
 export function previewMessages(place: Place): Message[] {
   return MESSAGES.filter((message) => message.workspace === place.workspace && message.folder === place.folder)
+}
+
+export function previewDetail(id: string): MessageDetail {
+  const message = MESSAGES.find((item) => item.id === id) ?? MESSAGES[0]
+  if (message === undefined) throw new Error('The preview mailbox is empty.')
+  return { message: { ...message, unread: false }, body: message.preview }
 }

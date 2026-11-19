@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 
+import { routingPath } from '../../api/client'
 import type { Workspace } from '../../api/types'
 import { BRAND_ICONS } from '../../constants/products'
 import type { BrandIcon } from '../../constants/products'
@@ -27,10 +28,16 @@ const BRAND_KEYS = Object.keys(BRAND_ICONS) as BrandIcon[]
 /** Every workspace as the routing file defines it, each with a picker for its icon or image. */
 export function WorkspacesSection({ workspaces, looks, onLook, editing, onEditing, theme }: WorkspacesSectionProps): ReactNode {
   const defined = workspaces.filter((workspace) => workspace.id !== UNSORTED_WORKSPACE)
+  const [path, setPath] = useState<string | null>(null)
+  useEffect(() => {
+    routingPath()
+      .then(setPath)
+      .catch(() => setPath(null))
+  }, [])
   return (
     <>
       <p className="settings__intro">
-        Workspaces come from your routing file, <code>workspaces.toml</code>. Give each one an icon or an image here; it is kept on this computer and wins over the file&apos;s <code>icon</code>.
+        Workspaces come from your routing file{path === null ? <>, <code>workspaces.toml</code></> : <> at <code>{path}</code></>}. Edit it and restart to change which addresses land where. Give each workspace an icon or an image here; it is kept on this computer and wins over the file&apos;s <code>icon</code>.
       </p>
       <ul className="settings__list">
         {defined.map((workspace) => (

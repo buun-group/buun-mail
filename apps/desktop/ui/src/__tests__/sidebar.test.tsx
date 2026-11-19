@@ -30,11 +30,12 @@ describe('the sidebar', () => {
     expect(localStorage.getItem('buun-mail:folded-workspaces')).toContain('plotwork')
   })
 
-  it('opens a menu on right click with the store-only items turned off', async () => {
+  it('opens a menu on right click, with rename off until the routing file can be edited here', async () => {
     await ready()
     fireEvent.contextMenu(screen.getByRole('button', { name: /Billing/ }), { clientX: 40, clientY: 80 })
     const menu = screen.getByRole('menu', { name: 'Buun Group, Billing' })
     expect(within(menu).getByRole('menuitem', { name: /Rename/ }).getAttribute('aria-disabled')).toBe('true')
+    expect(within(menu).getByRole('menuitem', { name: /Mark all as read/ }).getAttribute('aria-disabled')).toBeNull()
     fireEvent.keyDown(menu, { key: 'Escape' })
     expect(screen.queryByRole('menu')).toBeNull()
   })

@@ -121,4 +121,10 @@
 
 .reader__body p {
   margin: 0 0 var(--space-4);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.reader__body[aria-busy='true'] {
+  color: var(--text-muted);
 }

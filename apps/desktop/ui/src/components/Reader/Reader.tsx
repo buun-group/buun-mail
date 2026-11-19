@@ -11,6 +11,8 @@ import './Reader.css'
 
 interface ReaderProps {
   message: Message | null
+  /** The message's text, null while it loads. */
+  body: string | null
   workspace: Workspace | undefined
   theme: Theme
 }
@@ -31,7 +33,7 @@ function RouteNote({ message, workspace }: { message: Message; workspace: Worksp
 }
 
 /** The open message. With nothing open, the other Buun Group products. */
-export function Reader({ message, workspace, theme }: ReaderProps): ReactNode {
+export function Reader({ message, body, workspace, theme }: ReaderProps): ReactNode {
   if (message === null) {
     return (
       <section className="reader" aria-label="Reader">
@@ -79,8 +81,12 @@ export function Reader({ message, workspace, theme }: ReaderProps): ReactNode {
             <RouteNote message={message} workspace={workspace} />
           </span>
         </p>
-        <div className="reader__body">
-          <p>{message.preview}</p>
+        <div className="reader__body" aria-busy={body === null}>
+          {(body ?? message.preview).split(/\n{2,}/).map((paragraph, index) => (
+            // Paragraphs have no id of their own; their order is fixed for a message.
+            // eslint-disable-next-line react/no-array-index-key
+            <p key={index}>{paragraph}</p>
+          ))}
         </div>
       </article>
     </section>

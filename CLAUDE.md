@@ -8,8 +8,10 @@ This repository follows the [Buun Group coding standards](./.standards/docs/stan
 
 ## Layout and boundaries
 
-- `crates/*` are libraries. `crates/routing` is pure: no I/O, no Tauri, no async. Anything that reads a file, a socket
-  or a clock lives in an app.
+- `crates/*` are libraries. `routing` and `message` are pure: no I/O, no Tauri, no async. `store` owns the disk and
+  nothing else. Anything that reads a socket or a clock lives in an app.
+- Every mail source goes through `apps/desktop/src-tauri/src/ingest.rs` (parse, route, store), so a message is placed
+  the same way whichever door it came through.
 - `apps/desktop/src-tauri` is a thin shell: commands parse and answer, logic lives in `mailbox.rs` and the crates.
 - `apps/desktop/ui` never decides where mail goes. It shows what the Rust side sends. `src/api/client.ts` is the only
   file that calls Tauri.

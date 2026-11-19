@@ -1,6 +1,6 @@
 # Desktop shell source
 
-The Rust side of the app. Commands are thin reads; the mailbox holds the router and the placed messages.
+The Rust side of the app. Commands are thin; the mailbox sits on the routing file and the local store, and every message comes in through `ingest`.
 
 ## Standards
 
@@ -13,8 +13,10 @@ Code here follows:
 | Path | Purpose |
 |---|---|
 | `main.rs` | The binary; calls `run` |
-| `lib.rs` | Builds the app: opener plugin, the mailbox as state, the commands |
-| `commands.rs` | `list_workspaces`, `list_messages` |
-| `mailbox.rs` | Routes messages and answers the commands; a local store replaces its list later |
+| `lib.rs` | Builds the app: plugins, the mailbox as state, the commands |
+| `paths.rs` | Where the routing file and the store live on this platform; writes the example routing file on first run |
+| `ingest.rs` | Parse, route and store one message. Every mail source goes through it |
+| `mailbox.rs` | What the UI reads and changes: workspaces with counts, messages, open, mark read, import |
+| `commands.rs` | The thin Tauri commands |
 | `dto.rs` | The shapes sent to the UI, mirrored in `ui/src/api/types.ts` |
-| `demo.rs` | The example routing file and demo messages, until the Worker sync exists |
+| `error.rs` | `AppError`, sent to the UI as its message |

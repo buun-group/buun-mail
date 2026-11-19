@@ -57,9 +57,10 @@ export function App(): ReactNode {
         onFold={folded.toggle}
         onEditIcon={editIcon}
         onResetIcon={(id) => looks.set(id, null)}
+        onMarkAllRead={mailbox.markAllRead}
       />
-      <MessageList workspace={workspace} place={mailbox.place} messages={mailbox.messages} selectedId={mailbox.selected?.id ?? null} onSelect={mailbox.select} />
-      <Reader message={mailbox.selected} workspace={workspace} theme={preferences.theme} />
+      <MessageList workspace={workspace} place={mailbox.place} messages={mailbox.messages} selectedId={mailbox.selected?.message.id ?? null} onSelect={mailbox.select} />
+      <Reader message={mailbox.selected?.message ?? null} body={mailbox.selected?.body ?? null} workspace={workspace} theme={preferences.theme} />
       <Settings open={settingsOpen} onClose={() => setSettingsOpen(false)} preferences={preferences} workspaces={mailbox.workspaces}
         looks={looks.looks}
         onLook={looks.set}
@@ -67,6 +68,7 @@ export function App(): ReactNode {
         onSection={setSection}
         editing={editing}
         onEditing={setEditing}
+        onImported={mailbox.refresh}
       />
       {preferences.grain && <Grain />}
       <Splash done={mailbox.ready} />

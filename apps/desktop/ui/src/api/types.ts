@@ -42,3 +42,22 @@ export interface Place {
   workspace: string
   folder: string | null
 }
+
+/** An open message: its summary and its readable text. */
+export interface MessageDetail {
+  message: Message
+  body: string
+}
+
+/** One thing an import could not take in. */
+export interface ImportFailure {
+  source: string
+  reason: string
+}
+
+/** What an import did. */
+export interface ImportReport {
+  added: number
+  duplicates: number
+  failed: ImportFailure[]
+}

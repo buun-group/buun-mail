@@ -1,0 +1,16 @@
+[package]
+name = "buun-mail-message"
+description = "Reads raw mail (.eml, .mbox) into the parts Buun Mail shows. Pure: no I/O."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+mail-parser.workspace = true
+sha2.workspace = true
+thiserror.workspace = true
+
+[lints]
+workspace = true

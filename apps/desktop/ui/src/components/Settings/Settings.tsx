@@ -31,10 +31,12 @@ interface SettingsProps {
   /** The workspace whose icon picker is open, if any. */
   editing: string | null
   onEditing: (id: string | null) => void
+  /** Called after an import adds mail, so the mailbox reloads. */
+  onImported: () => void
 }
 
 /** Settings in a native modal dialog: sections down the left, the chosen one on the right. Escape closes it. */
-export function Settings({ open, onClose, preferences, workspaces, looks, onLook, section, onSection, editing, onEditing }: SettingsProps): ReactNode {
+export function Settings({ open, onClose, preferences, workspaces, looks, onLook, section, onSection, editing, onEditing, onImported }: SettingsProps): ReactNode {
   const dialog = useRef<HTMLDialogElement | null>(null)
 
   useEffect(() => {
@@ -68,7 +70,7 @@ export function Settings({ open, onClose, preferences, workspaces, looks, onLook
         <div className="settings__body">
           {section === 'general' && <GeneralSection preferences={preferences} />}
           {section === 'workspaces' && <WorkspacesSection workspaces={workspaces} looks={looks} onLook={onLook} editing={editing} onEditing={onEditing} theme={preferences.theme} />}
-          {section === 'integrations' && <IntegrationsSection />}
+          {section === 'integrations' && <IntegrationsSection onImported={onImported} />}
         </div>
       </div>
     </dialog>

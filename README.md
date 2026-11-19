@@ -17,9 +17,10 @@ The envelope recipient survives the hop, so placing a message is a table lookup,
 | Step | State |
 |---|---|
 | Routing crate: address, patterns, workspaces, folders, "why is it here" | Done, tested |
-| Desktop shell (Tauri 2) with the three-pane UI, settings, integrations and Buun Group products | Done, demo data |
+| Desktop shell (Tauri 2) with the three-pane UI, settings, integrations and Buun Group products | Done |
+| Local store (SQLite index, raw `.eml` on disk), `.eml` and `.mbox` import, read state | Done |
 | Catch-all Email Worker storing mail for the client to pull | Next |
-| Local store (SQLite, raw `.eml` on disk) and search | After |
+| Search | After |
 | Reply and compose as the right address (Resend, SPF, DKIM, DMARC per domain) | After |
 | IMAP pull for Gmail, Outlook and Proton Bridge | Last |
 
@@ -35,6 +36,9 @@ The envelope recipient survives the hop, so placing a message is a table lookup,
 | `pnpm dev:brand` | The brand preview on http://localhost:28610 |
 | `pnpm brand:build` | Rebuilds the brand kit from the mark's geometry |
 
+Rust comes from `rust-toolchain.toml` (1.99) through rustup. Make sure `~/.cargo/bin` comes first on your `PATH`, or the
+pin is ignored and an older compiler refuses the build.
+
 Linux needs the WebKitGTK libraries Tauri uses: `libwebkit2gtk-4.1-dev libgtk-3-dev librsvg2-dev`.
 
 Releases: a `v*` tag builds installers for Linux (x86_64 and arm64: `.deb`, `.rpm`, `.AppImage`), macOS (Apple silicon
@@ -45,6 +49,8 @@ and Intel: `.dmg`) and Windows (`.msi`, setup `.exe`) into a draft release. Arch
 | Path | What it is |
 |---|---|
 | [`crates/routing`](crates/routing/README.md) | Pure routing: which workspace and folder a message belongs to. No I/O |
+| [`crates/message`](crates/message/README.md) | Pure parsing: raw mail to what the app shows. No I/O |
+| [`crates/store`](crates/store/README.md) | The local store: SQLite index and raw `.eml` files |
 | [`apps/desktop`](apps/desktop/README.md) | The Tauri app: Rust shell in `src-tauri`, React UI in `ui` |
 | [`packages/brand`](packages/brand/README.md) | The brand kit: mark, lockups, icons, social card, motion |
 | [`packaging`](packaging/README.md) | Arch PKGBUILD, the Linux desktop entry, which installer to pick |

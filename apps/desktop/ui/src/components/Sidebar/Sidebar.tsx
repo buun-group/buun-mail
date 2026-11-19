@@ -48,6 +48,7 @@ interface SidebarProps {
   onFold: (id: string) => void
   onEditIcon: (id: string) => void
   onResetIcon: (id: string) => void
+  onMarkAllRead: (place: Place, wholeWorkspace: boolean) => void
 }
 
 const THEME_NAMES: Record<ThemePreference, string> = { system: 'Match system', light: 'Light', dark: 'Dark' }
@@ -57,8 +58,8 @@ function nextTheme(current: ThemePreference): ThemePreference {
   return THEME_PREFERENCES[(THEME_PREFERENCES.indexOf(current) + 1) % THEME_PREFERENCES.length] ?? 'system'
 }
 
-/** Why the items that need the local store are off. */
-const NEEDS_STORE = 'Arrives with the local store'
+/** Why rename is off: names live in the routing file, which settings cannot edit yet. */
+const NEEDS_EDITOR = 'Edit the routing file for now'
 
 /** True for the keys that open a context menu from the keyboard: the menu key, or Shift and F10. */
 function isMenuKey(event: KeyboardEvent): boolean {
@@ -76,7 +77,7 @@ function menuPoint(event: MouseEvent | KeyboardEvent): { x: number; y: number } 
  * Every workspace and its folders, the open one marked. Collapsed, it is a rail of icons; pointing at it, scrolling
  * over it or tabbing into it slides it open over the list, and it folds back when the pointer and focus leave.
  */
-export function Sidebar({ workspaces, place, theme, themePreference, onThemePreference, looks, folded, collapsed, onCollapse, onOpen, onSettings, onFold, onEditIcon, onResetIcon }: SidebarProps): ReactNode {
+export function Sidebar({ workspaces, place, theme, themePreference, onThemePreference, looks, folded, collapsed, onCollapse, onOpen, onSettings, onFold, onEditIcon, onResetIcon, onMarkAllRead }: SidebarProps): ReactNode {
   const nav = useRef<HTMLElement | null>(null)
   const [peek, setPeek] = usePeek(nav, collapsed)
   const rail = collapsed && !peek
@@ -97,22 +98,22 @@ export function Sidebar({ workspaces, place, theme, themePreference, onThemePref
     const items: MenuItem[] = [
       { id: 'open', label: 'Open inbox', glyph: IconInbox, onSelect: () => onOpen({ workspace: workspace.id, folder: null }) },
       { id: 'fold', label: folded.has(workspace.id) ? 'Show folders' : 'Hide folders', glyph: IconCaretDown, onSelect: () => onFold(workspace.id) },
-      { id: 'read', label: 'Mark all as read', glyph: IconMarkRead, disabledReason: NEEDS_STORE },
+      { id: 'read', label: 'Mark all as read', glyph: IconMarkRead, onSelect: () => onMarkAllRead({ workspace: workspace.id, folder: null }, true), ...(workspace.unread === 0 ? { disabledReason: 'Nothing unread' } : {}) },
     ]
     if (isUnsorted) return items
     return [
       ...items,
       { id: 'icon', label: 'Change icon', glyph: IconImage, onSelect: () => onEditIcon(workspace.id), separated: true },
       ...(looks[workspace.id] === undefined ? [] : [{ id: 'reset', label: 'Use the routing file icon', glyph: IconReset, onSelect: () => onResetIcon(workspace.id) }]),
-      { id: 'rename', label: 'Rename', glyph: IconRename, disabledReason: NEEDS_STORE },
+      { id: 'rename', label: 'Rename', glyph: IconRename, disabledReason: NEEDS_EDITOR },
       { ...copyItem(workspace.addresses), separated: true },
     ]
   }
 
-  const folderMenu = (workspace: Workspace, folder: string | null): MenuItem[] => [
+  const folderMenu = (workspace: Workspace, folder: string | null, unread: number): MenuItem[] => [
     { id: 'open', label: 'Open', glyph: folder === null ? IconInbox : IconFolder, onSelect: () => onOpen({ workspace: workspace.id, folder }) },
-    { id: 'read', label: 'Mark all as read', glyph: IconMarkRead, disabledReason: NEEDS_STORE },
-    ...(folder === null ? [] : [{ id: 'rename', label: 'Rename', glyph: IconRename, disabledReason: NEEDS_STORE }]),
+    { id: 'read', label: 'Mark all as read', glyph: IconMarkRead, onSelect: () => onMarkAllRead({ workspace: workspace.id, folder }, false), ...(unread === 0 ? { disabledReason: 'Nothing unread' } : {}) },
+    ...(folder === null ? [] : [{ id: 'rename', label: 'Rename', glyph: IconRename, disabledReason: NEEDS_EDITOR }]),
     ...(workspace.addresses.length > 0 ? [{ ...copyItem(workspace.addresses), separated: true }] : []),
   ]
 
@@ -196,9 +197,9 @@ export function Sidebar({ workspaces, place, theme, themePreference, onThemePref
                         aria-current={current ? 'page' : undefined}
                         aria-label={rail ? `${workspace.name}, ${label}${folder.unread > 0 ? `, ${folder.unread} unread` : ''}` : undefined}
                         onClick={() => onOpen({ workspace: workspace.id, folder: folder.name })}
-                        onContextMenu={(event) => openMenu(event, `${workspace.name}, ${label}`, folderMenu(workspace, folder.name))}
+                        onContextMenu={(event) => openMenu(event, `${workspace.name}, ${label}`, folderMenu(workspace, folder.name, folder.unread))}
                         onKeyDown={(event) => {
-                          if (isMenuKey(event)) openMenu(event, `${workspace.name}, ${label}`, folderMenu(workspace, folder.name))
+                          if (isMenuKey(event)) openMenu(event, `${workspace.name}, ${label}`, folderMenu(workspace, folder.name, folder.unread))
                         }}
                       >
                         {brand === null ? <Glyph aria-hidden="true" /> : <img className="sidebar__folder-mark" src={brand} alt="" aria-hidden="true" />}
