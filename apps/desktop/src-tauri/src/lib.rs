@@ -43,6 +43,8 @@ pub fn run() {
         .setup(|app| {
             let paths = AppPaths::resolve(app.handle())?;
             let mailbox = Arc::new(Mailbox::open(&paths)?);
+            // Mail in the trash longer than thirty days goes for good. A failure here never stops the app opening.
+            let _ = mailbox.empty_trash(true, &mailbox::Actor::App);
             app.manage(agent::AgentState::open(paths.config.clone(), Arc::clone(&mailbox), Some(app.handle().clone()))?);
             app.manage(sync::SyncService::start(paths.config.clone(), Arc::clone(&mailbox), Some(app.handle().clone())));
             app.manage(mailbox);
@@ -51,6 +53,13 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::list_workspaces,
             commands::list_messages,
+            commands::list_view,
+            commands::set_messages_unread,
+            commands::set_messages_starred,
+            commands::shelve_messages,
+            commands::delete_messages_forever,
+            commands::empty_trash,
+            commands::move_message,
             commands::open_message,
             commands::mark_all_read,
             commands::tag_message,

@@ -3,8 +3,8 @@ import { open } from '@tauri-apps/plugin-dialog'
 import { openUrl } from '@tauri-apps/plugin-opener'
 
 import { COMMANDS, IMPORT_EXTENSIONS } from './commands'
-import { preview, previewDetail, previewMessages, previewWorkspaces } from './preview'
-import type { Activity, AgentStatus, AvailableDomain, GatewayDomain, GatewayStatus, ImportReport, Message, MessageDetail, Place, Rule, TagCount, Workspace } from './types'
+import { preview, previewDetail, previewMessages, previewView, previewWorkspaces } from './preview'
+import type { Activity, AgentStatus, AvailableDomain, GatewayDomain, GatewayStatus, ImportReport, MailView, Message, MessageDetail, Place, Rule, Shelf, TagCount, Workspace } from './types'
 
 /**
  * The one door to the Rust side. In the desktop app every call is a Tauri command; in a plain browser (`pnpm dev:ui`)
@@ -17,6 +17,41 @@ export async function listWorkspaces(): Promise<Workspace[]> {
 
 export async function listMessages(place: Place): Promise<Message[]> {
   return isTauri() ? invoke<Message[]>(COMMANDS.listMessages, { workspace: place.workspace, folder: place.folder }) : previewMessages(place)
+}
+
+/** Starred, archived or trashed messages across every workspace. */
+export async function listView(view: MailView): Promise<Message[]> {
+  return isTauri() ? invoke<Message[]>(COMMANDS.listView, { view }) : previewView(view)
+}
+
+/** Marks messages read or unread. Resolves to them as they are now. */
+export async function setMessagesUnread(ids: string[], unread: boolean): Promise<Message[]> {
+  return isTauri() ? invoke<Message[]>(COMMANDS.setMessagesUnread, { ids, unread }) : preview.change(ids, { unread })
+}
+
+/** Stars or unstars messages. Resolves to them as they are now. */
+export async function setMessagesStarred(ids: string[], starred: boolean): Promise<Message[]> {
+  return isTauri() ? invoke<Message[]>(COMMANDS.setMessagesStarred, { ids, starred }) : preview.change(ids, { starred })
+}
+
+/** Archives, trashes or puts back messages. Resolves to how many changed. */
+export async function shelveMessages(ids: string[], shelf: Shelf): Promise<number> {
+  return isTauri() ? invoke<number>(COMMANDS.shelveMessages, { ids, shelf }) : preview.change(ids, { shelf }).length
+}
+
+/** Deletes messages for good. Resolves to how many went. */
+export async function deleteMessagesForever(ids: string[]): Promise<number> {
+  return isTauri() ? invoke<number>(COMMANDS.deleteMessagesForever, { ids }) : preview.remove(ids)
+}
+
+/** Empties the trash. Resolves to how many went. */
+export async function emptyTrash(): Promise<number> {
+  return isTauri() ? invoke<number>(COMMANDS.emptyTrash) : preview.remove(previewView('trash').map((message) => message.id))
+}
+
+/** Moves a message to another folder. Resolves to it as it is now. */
+export async function moveMessage(id: string, place: Place): Promise<Message> {
+  return isTauri() ? invoke<Message>(COMMANDS.moveMessage, { id, workspace: place.workspace, folder: place.folder }) : preview.move(id, place)
 }
 
 /** Opens a message: its text, and it is marked read. */

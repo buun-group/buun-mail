@@ -3,7 +3,9 @@ import { useCallback, useState } from 'react'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { Confirm } from './components/Confirm/Confirm'
 import { Grain } from './components/Grain/Grain'
+import { Notice } from './components/Notice/Notice'
 import { NotificationBell } from './components/NotificationBell/NotificationBell'
 import { TitleBar } from './components/TitleBar/TitleBar'
 import { Toasts } from './components/Toasts/Toasts'
@@ -15,6 +17,8 @@ import { SETTINGS_SHORTCUT } from './constants/ui'
 import type { SettingsSection } from './constants/ui'
 import { useFolded } from './hooks/useFolded'
 import { useMailbox } from './hooks/useMailbox'
+import { useMailKeys } from './hooks/useMailKeys'
+import { useMessageActions } from './hooks/useMessageActions'
 import { useNotifications } from './hooks/useNotifications'
 import { usePreferences } from './hooks/usePreferences'
 import { useShortcut } from './hooks/useShortcut'
@@ -40,8 +44,11 @@ export function App(): ReactNode {
   }
   useShortcut(SETTINGS_SHORTCUT, openSettings)
   const workspace = mailbox.workspaces.find((item) => item.id === mailbox.place?.workspace)
+  const openWorkspace = mailbox.workspaces.find((item) => item.id === mailbox.selected?.message.workspace)
   const workspaceName = (id: string): string => mailbox.workspaces.find((item) => item.id === id)?.name ?? id
   const notifications = useNotifications(workspaceName)
+  const actions = useMessageActions(mailbox, workspaceName)
+  useMailKeys(mailbox.selected?.message ?? null, mailbox.messages, mailbox.select, actions)
 
   const openNotificationSettings = (): void => {
     setSection('notifications')
@@ -80,25 +87,38 @@ export function App(): ReactNode {
       <Sidebar
         workspaces={mailbox.workspaces}
         place={mailbox.place}
+        view={mailbox.view}
         theme={preferences.theme}
         looks={looks.looks}
         folded={folded.folded}
         collapsed={preferences.sidebarCollapsed}
         onOpen={mailbox.open}
+        onOpenView={mailbox.openView}
         onFold={folded.toggle}
         onEditIcon={editIcon}
         onResetIcon={(id) => looks.set(id, null)}
         onMarkAllRead={mailbox.markAllRead}
       />
-      <MessageList workspace={workspace} place={mailbox.place} messages={mailbox.messages} selectedId={mailbox.selected?.message.id ?? null} onSelect={mailbox.select} />
+      <MessageList
+        workspace={workspace}
+        place={mailbox.place}
+        view={mailbox.view}
+        messages={mailbox.messages}
+        selectedId={mailbox.selected?.message.id ?? null}
+        onSelect={mailbox.select}
+        menuFor={actions.menu}
+        onEmptyTrash={actions.emptyTrash}
+        workspaceName={workspaceName}
+      />
       <Reader
         message={mailbox.selected?.message ?? null}
         body={mailbox.selected?.body ?? null}
-        workspace={workspace}
+        workspace={openWorkspace}
         theme={preferences.theme}
         onAddTag={mailbox.addTag}
         onRemoveTag={mailbox.removeTag}
         tagSuggestions={mailbox.tags}
+        actions={actions}
       />
       <Settings
         open={settingsOpen}
@@ -115,6 +135,8 @@ export function App(): ReactNode {
         notifications={notifications}
       />
       <Toasts toasts={notifications.toasts} workspaceName={workspaceName} onOpen={mailbox.reveal} onDismiss={notifications.dismissToast} />
+      <Notice notice={actions.notice} undoLabel={t('actions.undo')} dismissLabel={t('actions.dismiss')} onDismiss={actions.dismissNotice} />
+      <Confirm request={actions.confirmation} cancelLabel={t('actions.cancel')} onClose={actions.closeConfirmation} />
       {preferences.grain && <Grain />}
       <Splash done={mailbox.ready} />
     </div>

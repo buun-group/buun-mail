@@ -4,7 +4,7 @@
 use buun_mail_message::{MessageError, is_mbox, parse, split_mbox};
 use buun_mail_routing::{Address, Envelope, Router};
 use buun_mail_rules::{CheckedRule, Facts, evaluate};
-use buun_mail_store::{Activity, Inserted, MessageRecord, Placement, Store, StoreError};
+use buun_mail_store::{Activity, Inserted, MessageRecord, Placement, Shelf, Store, StoreError};
 use thiserror::Error;
 
 /// Why one message was not taken in.
@@ -80,6 +80,8 @@ pub fn ingest(incoming: Incoming<'_>, router: &Router, rules: &[CheckedRule], st
         sent_at: parsed.sent_at,
         message_id: parsed.message_id,
         unread: !outcome.mark_read,
+        starred: false,
+        shelf: Shelf::Active,
         tags: outcome.tags.clone(),
     };
     if store.insert(&record, incoming.raw)? == Inserted::Duplicate {

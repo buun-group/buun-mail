@@ -2,7 +2,7 @@
 //! agent server both call it, so a change from either shows in the other.
 //!
 //! - `read`: workspaces, folders, messages, search, the activity log
-//! - `change`: tags, moves, read state
+//! - `change`: tags, moves, read state, stars, archive and trash
 //! - `rules`: adding, editing, deleting and re-running rules
 //! - `import`: taking in `.eml` and `.mbox` files
 //! - `remote`: taking in one message from a source that knows its recipient, such as the mail gateway
@@ -37,6 +37,8 @@ pub enum Actor {
     Rule(String),
     /// An agent over MCP, by the name its client gave.
     Agent(String),
+    /// The app on its own, such as emptying old mail from the trash.
+    App,
 }
 
 impl Actor {
@@ -45,6 +47,7 @@ impl Actor {
             Self::You => "you".to_owned(),
             Self::Rule(name) => format!("rule:{name}"),
             Self::Agent(name) => format!("agent:{name}"),
+            Self::App => "app".to_owned(),
         }
     }
 }

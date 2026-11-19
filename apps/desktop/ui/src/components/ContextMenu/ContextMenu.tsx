@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import type { KeyboardEvent, ReactNode } from 'react'
+import type { KeyboardEvent, MouseEvent, ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { IconType } from 'react-icons'
 
@@ -21,6 +21,18 @@ export interface MenuRequest {
   y: number
   label: string
   items: MenuItem[]
+}
+
+/** True for the keys that open a context menu from the keyboard: the menu key, or Shift and F10. */
+export function isMenuKey(event: KeyboardEvent): boolean {
+  return event.key === 'ContextMenu' || (event.shiftKey && event.key === 'F10')
+}
+
+/** Where to open a menu: at the pointer for a right click, under the row for the keyboard. */
+export function menuPoint(event: MouseEvent | KeyboardEvent): { x: number; y: number } {
+  if ('clientX' in event && event.clientX !== 0) return { x: event.clientX, y: event.clientY }
+  const box = (event.currentTarget as HTMLElement).getBoundingClientRect()
+  return { x: box.left + 24, y: box.bottom }
 }
 
 /** The gap kept between the menu and the window's edge. */

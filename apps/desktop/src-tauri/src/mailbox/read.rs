@@ -4,7 +4,7 @@ use std::collections::BTreeSet;
 
 use buun_mail_message::body_text;
 use buun_mail_routing::{UNSORTED_NAME, UNSORTED_WORKSPACE};
-use buun_mail_store::{Placement, UnreadCount};
+use buun_mail_store::{Placement, UnreadCount, View};
 
 use super::Mailbox;
 use crate::dto::{ActivityDto, FolderDto, MessageDetailDto, MessageDto, TagCountDto, WorkspaceDto};
@@ -77,6 +77,15 @@ impl Mailbox {
     /// [`AppError`] when the store cannot be read.
     pub fn messages(&self, placement: &Placement) -> Result<Vec<MessageDto>, AppError> {
         Ok(self.store.lock()?.list(placement)?.into_iter().map(MessageDto::from).collect())
+    }
+
+    /// A list across every workspace: starred, archived or the trash.
+    ///
+    /// # Errors
+    ///
+    /// [`AppError`] when the store cannot be read.
+    pub fn view(&self, view: View) -> Result<Vec<MessageDto>, AppError> {
+        Ok(self.store.lock()?.view(view)?.into_iter().map(MessageDto::from).collect())
     }
 
     /// Opens a message: marks it read and returns it with its text.

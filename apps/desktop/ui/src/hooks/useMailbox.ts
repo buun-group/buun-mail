@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 
-import { listMessages, listTags, listWorkspaces, markAllRead, openMessage, tagMessage, untagMessage } from '../api/client'
+import { listMessages, listTags, listView, listWorkspaces, markAllRead, openMessage, tagMessage, untagMessage } from '../api/client'
 import { onMailChanged } from '../api/events'
-import type { Message, MessageDetail, Place, Workspace } from '../api/types'
+import type { MailView, Message, MessageDetail, Place, Workspace } from '../api/types'
 
 export interface Mailbox {
   workspaces: Workspace[]
@@ -11,12 +11,19 @@ export interface Mailbox {
   /** True once the workspaces have loaded. */
   ready: boolean
   place: Place | null
+  /** A list across every workspace, shown instead of `place` while set. */
+  view: MailView | null
   messages: Message[]
   /** The open message with its text, or the summary alone while the text loads. */
   selected: { message: Message; body: string | null } | null
   error: string | null
   open: (place: Place) => void
+  openView: (view: MailView) => void
   select: (message: Message) => void
+  /** Puts changed messages back in the list where they are, without a reload. */
+  update: (changed: Message[]) => void
+  /** Before a message leaves the list, opens the one after it (or before it), when it was the open one. */
+  stepPast: (id: string) => void
   /** Opens a message's folder and the message, from a notification. */
   reveal: (message: Message) => void
   markAllRead: (place: Place, wholeWorkspace: boolean) => void
@@ -36,6 +43,7 @@ export function useMailbox(): Mailbox {
   const [tags, setTags] = useState<string[]>([])
   const [ready, setReady] = useState(false)
   const [place, setPlace] = useState<Place | null>(null)
+  const [view, setView] = useState<MailView | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
   const [detail, setDetail] = useState<MessageDetail | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -57,8 +65,8 @@ export function useMailbox(): Mailbox {
   }, [fail])
 
   const loadMessages = useCallback(
-    (target: Place, isCurrent: () => boolean = () => true) => {
-      listMessages(target)
+    (target: Place | MailView, isCurrent: () => boolean = () => true) => {
+      ;(typeof target === 'string' ? listView(target) : listMessages(target))
         .then((found) => {
           if (isCurrent()) setMessages(found)
         })
@@ -69,24 +77,30 @@ export function useMailbox(): Mailbox {
 
   useEffect(loadWorkspaces, [loadWorkspaces])
 
+  const showing = view ?? place
+
   useEffect(() => {
-    if (place === null) return
+    if (showing === null) return
     let current = true
-    loadMessages(place, () => current)
+    loadMessages(showing, () => current)
     return () => {
       current = false
     }
-  }, [place, loadMessages])
+  }, [showing, loadMessages])
 
   const refresh = useCallback(() => {
     loadWorkspaces()
-    if (place !== null) loadMessages(place)
-  }, [loadWorkspaces, loadMessages, place])
+    if (showing !== null) loadMessages(showing)
+  }, [loadWorkspaces, loadMessages, showing])
 
   // An agent or a rule changed something under the window: reload what is on screen.
   useEffect(() => onMailChanged(refresh), [refresh])
 
-  const replace = (updated: Message): void => setMessages((list) => list.map((item) => (item.id === updated.id ? updated : item)))
+  const update = (changed: Message[]): void => {
+    const byId = new Map(changed.map((item) => [item.id, item]))
+    setMessages((list) => list.map((item) => byId.get(item.id) ?? item))
+  }
+  const replace = (updated: Message): void => update([updated])
 
   const select = (picked: Message): void => {
     setSelectedId(picked.id)
@@ -103,21 +117,38 @@ export function useMailbox(): Mailbox {
 
   const selectedSummary = messages.find((item) => item.id === selectedId) ?? null
 
+  const stepPast = (id: string): void => {
+    if (selectedId !== id) return
+    const at = messages.findIndex((item) => item.id === id)
+    const next = messages[at + 1] ?? messages[at - 1]
+    if (next === undefined) setSelectedId(null)
+    else select(next)
+  }
+
   return {
     workspaces,
     tags,
     ready,
     place,
+    view,
     messages,
     selected: selectedSummary === null ? null : { message: selectedSummary, body: detail?.message.id === selectedId ? detail.body : null },
     error,
     open: (next) => {
       setPlace(next)
+      setView(null)
+      setSelectedId(null)
+    },
+    openView: (next) => {
+      setView(next)
       setSelectedId(null)
     },
     select,
+    update,
+    stepPast,
     reveal: (target) => {
       setPlace({ workspace: target.workspace, folder: target.folder })
+      setView(null)
       select(target)
     },
     markAllRead: (target, wholeWorkspace) => {

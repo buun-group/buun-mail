@@ -1,6 +1,6 @@
 //! The store against a real folder on disk.
 
-use buun_mail_store::{Inserted, MessageRecord, Placement, Store, StoreError};
+use buun_mail_store::{Inserted, MessageRecord, Placement, Shelf, Store, StoreError, View};
 
 fn placement(workspace: &str, folder: Option<&str>) -> Placement {
     Placement { workspace: workspace.to_owned(), folder: folder.map(str::to_owned) }
@@ -20,6 +20,8 @@ fn record(id: &str, workspace: &str, folder: Option<&str>, sent_at: i64) -> Mess
         sent_at,
         message_id: None,
         unread: true,
+        starred: false,
+        shelf: Shelf::Active,
         tags: Vec::new(),
     }
 }
@@ -134,5 +136,47 @@ fn logs_activity_newest_first() -> Result<(), StoreError> {
         store.log(&buun_mail_store::Activity { at, actor: "agent:claude".to_owned(), action: action.to_owned(), detail: String::new() })?;
     }
     assert_eq!(store.activity(10)?.first().map(|entry| entry.action.as_str()), Some("move"));
+    Ok(())
+}
+
+#[test]
+fn archives_trashes_restores_and_deletes_for_good() -> Result<(), StoreError> {
+    let (_folder, store) = store()?;
+    store.insert(&record("aa01", "acme", None, 10), b"one")?;
+    store.insert(&record("bb02", "acme", None, 20), b"two")?;
+    let inbox = placement("acme", None);
+
+    assert!(store.set_shelf("aa01", Shelf::Archived, 100)?);
+    assert_eq!(store.list(&inbox)?.len(), 1);
+    assert_eq!(store.view(View::Archived)?.first().map(|record| record.id.as_str()), Some("aa01"));
+    assert_eq!(store.unread_counts()?.first().map(|count| count.unread), Some(1));
+
+    assert!(store.set_shelf("bb02", Shelf::Trashed, 200)?);
+    assert_eq!(store.list(&inbox)?.len(), 0);
+    assert_eq!(store.trashed_before(Some(150))?, Vec::<String>::new());
+    assert_eq!(store.trashed_before(Some(250))?, vec!["bb02".to_owned()]);
+
+    assert!(store.set_shelf("aa01", Shelf::Active, 300)?);
+    assert_eq!(store.list(&inbox)?.first().map(|record| record.shelf), Some(Shelf::Active));
+
+    assert!(store.delete("bb02")?);
+    assert!(store.raw("bb02").is_err());
+    assert_eq!(store.view(View::Trashed)?.len(), 0);
+    assert!(!store.delete("bb02")?);
+    Ok(())
+}
+
+#[test]
+fn stars_and_marks_unread() -> Result<(), StoreError> {
+    let (_folder, store) = store()?;
+    store.insert(&record("cc03", "acme", None, 10), b"three")?;
+    assert!(store.set_starred("cc03", true)?);
+    assert!(!store.set_starred("cc03", true)?);
+    assert_eq!(store.view(View::Starred)?.len(), 1);
+    store.set_shelf("cc03", Shelf::Trashed, 5)?;
+    assert_eq!(store.view(View::Starred)?.len(), 0);
+    assert!(store.mark_read("cc03")?);
+    assert!(store.set_unread("cc03", true)?);
+    assert!(store.get("cc03")?.unread);
     Ok(())
 }

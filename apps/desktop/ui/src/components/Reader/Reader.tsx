@@ -3,10 +3,12 @@ import { Trans, useTranslation } from 'react-i18next'
 
 import type { Message, Workspace } from '../../api/types'
 import type { Theme } from '../../constants/ui'
-import { IconArchive, IconReply, IconRoute } from '../../icons'
+import type { MessageActions } from '../../hooks/useMessageActions'
+import { IconArchive, IconDelete, IconInbox, IconMarkRead, IconPutBack, IconReply, IconRoute, IconStar, IconStarred } from '../../icons'
 import { formatFull } from '../../lib/time'
 import { MoreFromBuun } from '../MoreFromBuun/MoreFromBuun'
 import { TagEditor } from '../Tags/Tags'
+import { TipButton } from '../Tooltip/TipButton'
 
 import './Reader.css'
 
@@ -19,6 +21,7 @@ interface ReaderProps {
   onAddTag: (id: string, tag: string) => void
   onRemoveTag: (id: string, tag: string) => void
   tagSuggestions: string[]
+  actions: MessageActions
 }
 
 /** Why a message is where it is, in one plain sentence from the rules the router used. */
@@ -31,7 +34,7 @@ function RouteNote({ message, workspace }: { message: Message; workspace: Worksp
 }
 
 /** The open message. With nothing open, the other Buun Group products. */
-export function Reader({ message, body, workspace, theme, onAddTag, onRemoveTag, tagSuggestions }: ReaderProps): ReactNode {
+export function Reader({ message, body, workspace, theme, onAddTag, onRemoveTag, tagSuggestions, actions }: ReaderProps): ReactNode {
   const { t } = useTranslation('mail')
   if (message === null) {
     return (
@@ -47,13 +50,34 @@ export function Reader({ message, body, workspace, theme, onAddTag, onRemoveTag,
   return (
     <section className="reader" aria-label={t('reader.label')}>
       <div className="reader__toolbar">
-        <button type="button" className="reader__tool" disabled aria-label={t('reader.replyAs', { address: message.to })}>
+        <TipButton tip={t('reader.replySoon')} className="reader__tool" aria-disabled="true" aria-label={t('reader.replyAs', { address: message.to })}>
           <IconReply aria-hidden="true" />
-        </button>
-        <button type="button" className="reader__tool" disabled aria-label={t('reader.archive')}>
-          <IconArchive aria-hidden="true" />
-        </button>
-        <span className="reader__soon">{t('reader.soon')}</span>
+        </TipButton>
+        {message.shelf === 'active' ? (
+          <TipButton tip={`${t('reader.archive')} (E)`} className="reader__tool" aria-label={t('reader.archive')} onClick={() => actions.archive(message)}>
+            <IconArchive aria-hidden="true" />
+          </TipButton>
+        ) : (
+          <TipButton tip={t('reader.putBack', { folder: message.folder ?? workspace?.name ?? '' })} className="reader__tool" aria-label={t('reader.putBack', { folder: message.folder ?? workspace?.name ?? '' })} onClick={() => actions.putBack(message)}>
+            <IconPutBack aria-hidden="true" />
+          </TipButton>
+        )}
+        {message.shelf === 'trashed' ? (
+          <TipButton tip={t('reader.deleteForever')} className="reader__tool reader__tool--danger" aria-label={t('reader.deleteForever')} onClick={() => actions.deleteForever(message)}>
+            <IconDelete aria-hidden="true" />
+          </TipButton>
+        ) : (
+          <TipButton tip={`${t('reader.trash')} (#)`} className="reader__tool" aria-label={t('reader.trash')} onClick={() => actions.trash(message)}>
+            <IconDelete aria-hidden="true" />
+          </TipButton>
+        )}
+        <span className="reader__divider" aria-hidden="true" />
+        <TipButton tip={`${message.unread ? t('actions.markRead') : t('reader.markUnread')} (U)`} className="reader__tool" aria-label={message.unread ? t('actions.markRead') : t('reader.markUnread')} onClick={() => actions.toggleRead(message)}>
+          {message.unread ? <IconMarkRead aria-hidden="true" /> : <IconInbox aria-hidden="true" />}
+        </TipButton>
+        <TipButton tip={`${message.starred ? t('reader.unstar') : t('reader.star')} (S)`} className="reader__tool" data-on={message.starred} aria-pressed={message.starred} aria-label={t('reader.star')} onClick={() => actions.toggleStar(message)}>
+          {message.starred ? <IconStarred aria-hidden="true" /> : <IconStar aria-hidden="true" />}
+        </TipButton>
       </div>
 
       <article className="reader__message">

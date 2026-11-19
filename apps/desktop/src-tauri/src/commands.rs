@@ -11,7 +11,7 @@ use buun_mail_store::Placement;
 use tauri::{AppHandle, State};
 
 use crate::agent::{AgentState, AgentStatusDto};
-use crate::dto::{ActivityDto, ImportReportDto, MessageDetailDto, MessageDto, TagCountDto, WorkspaceDto};
+use crate::dto::{ActivityDto, ImportReportDto, MessageDetailDto, MessageDto, ShelfDto, TagCountDto, ViewDto, WorkspaceDto};
 use crate::error::AppError;
 use crate::events;
 use crate::mailbox::{Actor, Mailbox};
@@ -27,6 +27,48 @@ pub fn list_workspaces(mailbox: State<'_, Arc<Mailbox>>) -> Result<Vec<Workspace
 #[tauri::command]
 pub fn list_messages(mailbox: State<'_, Arc<Mailbox>>, workspace: String, folder: Option<String>) -> Result<Vec<MessageDto>, AppError> {
     mailbox.messages(&Placement { workspace, folder })
+}
+
+/// A list across every workspace: starred, archive or trash.
+#[tauri::command]
+pub fn list_view(mailbox: State<'_, Arc<Mailbox>>, view: ViewDto) -> Result<Vec<MessageDto>, AppError> {
+    mailbox.view(view.into())
+}
+
+/// Marks messages read or unread.
+#[tauri::command]
+pub fn set_messages_unread(mailbox: State<'_, Arc<Mailbox>>, ids: Vec<String>, unread: bool) -> Result<Vec<MessageDto>, AppError> {
+    mailbox.set_unread(&ids, unread, &Actor::You)
+}
+
+/// Stars or unstars messages.
+#[tauri::command]
+pub fn set_messages_starred(mailbox: State<'_, Arc<Mailbox>>, ids: Vec<String>, starred: bool) -> Result<Vec<MessageDto>, AppError> {
+    mailbox.set_starred(&ids, starred, &Actor::You)
+}
+
+/// Archives, trashes or puts back messages.
+#[tauri::command]
+pub fn shelve_messages(mailbox: State<'_, Arc<Mailbox>>, ids: Vec<String>, shelf: ShelfDto) -> Result<usize, AppError> {
+    mailbox.shelve(&ids, shelf.into(), &Actor::You)
+}
+
+/// Deletes messages for good.
+#[tauri::command]
+pub fn delete_messages_forever(mailbox: State<'_, Arc<Mailbox>>, ids: Vec<String>) -> Result<usize, AppError> {
+    mailbox.delete_forever(&ids, &Actor::You)
+}
+
+/// Empties the trash.
+#[tauri::command]
+pub fn empty_trash(mailbox: State<'_, Arc<Mailbox>>) -> Result<usize, AppError> {
+    mailbox.empty_trash(false, &Actor::You)
+}
+
+/// Moves a message to another folder or workspace.
+#[tauri::command]
+pub fn move_message(mailbox: State<'_, Arc<Mailbox>>, id: String, workspace: String, folder: Option<String>) -> Result<MessageDto, AppError> {
+    mailbox.move_message(&id, &Placement { workspace, folder }, &Actor::You)
 }
 
 /// Opens one message: its text, and it is marked read.

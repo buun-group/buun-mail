@@ -7,7 +7,7 @@ use rusqlite::{Connection, OptionalExtension, Row, params};
 
 use crate::error::StoreError;
 use crate::raw::RawFiles;
-use crate::record::{Activity, MessageRecord, Placement, StoredRule, UnreadCount};
+use crate::record::{Activity, MessageRecord, Placement, Shelf, StoredRule, UnreadCount, View};
 use crate::schema::migrate;
 
 /// The index file's name inside the store folder.
@@ -17,12 +17,12 @@ const INDEX_FILE: &str = "index.sqlite";
 const RAW_DIR: &str = "raw";
 
 /// Every column of a message row, in the order [`record_from_row`] reads them. Tags come last, joined with [`TAG_SEPARATOR`].
-const COLUMNS: &str = "id, workspace, folder, matched, folder_matched, from_name, from_address, to_address, subject, preview, sent_at, message_id, unread, \
+const COLUMNS: &str = "id, workspace, folder, matched, folder_matched, from_name, from_address, to_address, subject, preview, sent_at, message_id, unread, starred, shelf, \
     (SELECT group_concat(tag, char(31)) FROM (SELECT tag FROM tags WHERE tags.message_id = messages.id ORDER BY tag))";
 
 /// The columns written on insert, without the derived tags.
 const INSERT_COLUMNS: &str =
-    "id, workspace, folder, matched, folder_matched, from_name, from_address, to_address, subject, preview, sent_at, message_id, unread";
+    "id, workspace, folder, matched, folder_matched, from_name, from_address, to_address, subject, preview, sent_at, message_id, unread, starred, shelf";
 
 /// Joins a message's tags in one column. The unit separator never appears in a tag.
 const TAG_SEPARATOR: char = '\u{1f}';
@@ -79,7 +79,7 @@ impl Store {
         // The file first: a row must never point at bytes that are not there.
         self.raw.write(&record.id, raw)?;
         self.index.execute(
-            &format!("INSERT INTO messages ({INSERT_COLUMNS}) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)"),
+            &format!("INSERT INTO messages ({INSERT_COLUMNS}) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)"),
             params![
                 record.id,
                 record.placement.workspace,
@@ -94,6 +94,8 @@ impl Store {
                 record.sent_at,
                 record.message_id,
                 record.unread,
+                record.starred,
+                record.shelf.as_str(),
             ],
         )?;
         self.add_tags(&record.id, &record.tags)?;
@@ -106,8 +108,9 @@ impl Store {
     ///
     /// [`StoreError`] when the index cannot be read.
     pub fn list(&self, placement: &Placement) -> Result<Vec<MessageRecord>, StoreError> {
-        let mut statement =
-            self.index.prepare_cached(&format!("SELECT {COLUMNS} FROM messages WHERE workspace = ?1 AND folder IS ?2 ORDER BY sent_at DESC"))?;
+        let mut statement = self
+            .index
+            .prepare_cached(&format!("SELECT {COLUMNS} FROM messages WHERE workspace = ?1 AND folder IS ?2 AND shelf = 'active' ORDER BY sent_at DESC"))?;
         let rows = statement.query_map(params![placement.workspace, placement.folder], record_from_row)?;
         Ok(rows.collect::<rusqlite::Result<_>>()?)
     }
@@ -139,7 +142,8 @@ impl Store {
     ///
     /// [`StoreError`] when the index cannot be read.
     pub fn unread_counts(&self) -> Result<Vec<UnreadCount>, StoreError> {
-        let mut statement = self.index.prepare_cached("SELECT workspace, folder, COUNT(*) FROM messages WHERE unread = 1 GROUP BY workspace, folder")?;
+        let mut statement =
+            self.index.prepare_cached("SELECT workspace, folder, COUNT(*) FROM messages WHERE unread = 1 AND shelf = 'active' GROUP BY workspace, folder")?;
         let rows =
             statement.query_map([], |row| Ok(UnreadCount { placement: Placement { workspace: row.get(0)?, folder: row.get(1)? }, unread: row.get(2)? }))?;
         Ok(rows.collect::<rusqlite::Result<_>>()?)
@@ -173,10 +177,10 @@ impl Store {
     /// [`StoreError`] when the index cannot be written.
     pub fn mark_all_read(&self, placement: &Placement, whole_workspace: bool) -> Result<usize, StoreError> {
         let changed = if whole_workspace {
-            self.index.execute("UPDATE messages SET unread = 0 WHERE workspace = ?1 AND unread = 1", [&placement.workspace])?
+            self.index.execute("UPDATE messages SET unread = 0 WHERE workspace = ?1 AND unread = 1 AND shelf = 'active'", [&placement.workspace])?
         } else {
             self.index.execute(
-                "UPDATE messages SET unread = 0 WHERE workspace = ?1 AND folder IS ?2 AND unread = 1",
+                "UPDATE messages SET unread = 0 WHERE workspace = ?1 AND folder IS ?2 AND unread = 1 AND shelf = 'active'",
                 params![placement.workspace, placement.folder],
             )?
         };
@@ -194,7 +198,7 @@ impl Store {
         let mut statement = self.index.prepare_cached(&format!(
             "SELECT {COLUMNS} FROM messages WHERE (?1 = '%%' OR subject LIKE ?1 ESCAPE '\\' OR from_address LIKE ?1 ESCAPE '\\' OR from_name LIKE ?1 ESCAPE '\\' \
              OR to_address LIKE ?1 ESCAPE '\\' OR preview LIKE ?1 ESCAPE '\\' OR EXISTS (SELECT 1 FROM tags WHERE tags.message_id = messages.id AND tag LIKE ?1 ESCAPE '\\')) \
-             AND (?2 IS NULL OR workspace = ?2) AND (?3 = 0 OR unread = 1) ORDER BY sent_at DESC LIMIT ?4"
+             AND (?2 IS NULL OR workspace = ?2) AND (?3 = 0 OR unread = 1) AND shelf != 'trashed' ORDER BY sent_at DESC LIMIT ?4"
         ))?;
         let limit = i64::try_from(limit.min(SEARCH_LIMIT)).unwrap_or(0);
         let rows = statement.query_map(params![pattern, workspace, unread_only, limit], record_from_row)?;
@@ -249,6 +253,74 @@ impl Store {
             return Err(StoreError::NotFound(id.to_owned()));
         }
         Ok(())
+    }
+
+    /// The messages in a list across every workspace: starred, archived or the trash.
+    ///
+    /// # Errors
+    ///
+    /// [`StoreError`] when the index cannot be read.
+    pub fn view(&self, view: View) -> Result<Vec<MessageRecord>, StoreError> {
+        let filter = match view {
+            View::Starred => "starred = 1 AND shelf != 'trashed' ORDER BY sent_at DESC",
+            View::Archived => "shelf = 'archived' ORDER BY shelved_at DESC, sent_at DESC",
+            View::Trashed => "shelf = 'trashed' ORDER BY shelved_at DESC, sent_at DESC",
+        };
+        let mut statement = self.index.prepare_cached(&format!("SELECT {COLUMNS} FROM messages WHERE {filter}"))?;
+        let rows = statement.query_map([], record_from_row)?;
+        Ok(rows.collect::<rusqlite::Result<_>>()?)
+    }
+
+    /// Marks one message read or unread. Returns false when it already was, or does not exist.
+    ///
+    /// # Errors
+    ///
+    /// [`StoreError`] when the index cannot be written.
+    pub fn set_unread(&self, id: &str, unread: bool) -> Result<bool, StoreError> {
+        Ok(self.index.execute("UPDATE messages SET unread = ?2 WHERE id = ?1 AND unread != ?2", params![id, unread])? == 1)
+    }
+
+    /// Stars or unstars one message. Returns false when it already was, or does not exist.
+    ///
+    /// # Errors
+    ///
+    /// [`StoreError`] when the index cannot be written.
+    pub fn set_starred(&self, id: &str, starred: bool) -> Result<bool, StoreError> {
+        Ok(self.index.execute("UPDATE messages SET starred = ?2 WHERE id = ?1 AND starred != ?2", params![id, starred])? == 1)
+    }
+
+    /// Archives, trashes or restores one message, noting when (`at`, Unix seconds). It keeps its workspace and folder.
+    /// Returns false when it already was there, or does not exist.
+    ///
+    /// # Errors
+    ///
+    /// [`StoreError`] when the index cannot be written.
+    pub fn set_shelf(&self, id: &str, to: Shelf, at: i64) -> Result<bool, StoreError> {
+        Ok(self.index.execute("UPDATE messages SET shelf = ?2, shelved_at = ?3 WHERE id = ?1 AND shelf != ?2", params![id, to.as_str(), at])? == 1)
+    }
+
+    /// Deletes one message for good: its row, its tags and its bytes. Returns false when it did not exist.
+    ///
+    /// # Errors
+    ///
+    /// [`StoreError`] when the index or the file cannot be removed.
+    pub fn delete(&self, id: &str) -> Result<bool, StoreError> {
+        let removed = self.index.execute("DELETE FROM messages WHERE id = ?1", [id])? == 1;
+        if removed {
+            self.raw.remove(id)?;
+        }
+        Ok(removed)
+    }
+
+    /// The ids of messages in the trash since before `before` (Unix seconds), or every one when `before` is `None`.
+    ///
+    /// # Errors
+    ///
+    /// [`StoreError`] when the index cannot be read.
+    pub fn trashed_before(&self, before: Option<i64>) -> Result<Vec<String>, StoreError> {
+        let mut statement = self.index.prepare_cached("SELECT id FROM messages WHERE shelf = 'trashed' AND (?1 IS NULL OR shelved_at < ?1)")?;
+        let rows = statement.query_map([before], |row| row.get(0))?;
+        Ok(rows.collect::<rusqlite::Result<_>>()?)
     }
 
     /// Every rule, in the order they run.
@@ -340,6 +412,8 @@ fn record_from_row(row: &Row<'_>) -> rusqlite::Result<MessageRecord> {
         sent_at: row.get(10)?,
         message_id: row.get(11)?,
         unread: row.get(12)?,
-        tags: row.get::<_, Option<String>>(13)?.map(|joined| joined.split(TAG_SEPARATOR).map(str::to_owned).collect()).unwrap_or_default(),
+        starred: row.get(13)?,
+        shelf: Shelf::from_stored(&row.get::<_, String>(14)?),
+        tags: row.get::<_, Option<String>>(15)?.map(|joined| joined.split(TAG_SEPARATOR).map(str::to_owned).collect()).unwrap_or_default(),
     })
 }

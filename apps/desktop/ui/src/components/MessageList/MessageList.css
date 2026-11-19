@@ -103,12 +103,10 @@
   white-space: nowrap;
 }
 
-.message-row__dot {
+.message-row__unread {
   flex: none;
-  width: 0.4375rem;
-  height: 0.4375rem;
-  border-radius: var(--radius-full);
-  background: var(--brand-100);
+  font-size: var(--text-sm);
+  color: var(--brand-text);
 }
 
 .message-row__time {
@@ -146,4 +144,34 @@
 .message-row[data-unread='true'] .message-row__subject {
   color: var(--text-primary);
   font-weight: 600;
+}
+
+.message-row__star {
+  flex: none;
+  font-size: var(--text-sm);
+  color: var(--brand-text);
+}
+
+.message-row__where {
+  overflow: hidden;
+  font-weight: 400;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  text-overflow: ellipsis;
+}
+
+.message-list__empty-trash {
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  color: var(--status-danger-fg);
+}
+
+.message-list__empty-trash:hover {
+  background: var(--alpha-8);
+}
+
+.message-list__empty-trash:focus-visible {
+  outline: 2px solid var(--brand-100);
+  outline-offset: 1px;
 }

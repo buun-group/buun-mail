@@ -40,15 +40,34 @@
   color: var(--text-secondary);
 }
 
-.reader__tool:disabled {
+.reader__tool:not([aria-disabled='true']):hover {
+  background: var(--alpha-8);
+  color: var(--text-primary);
+}
+
+.reader__tool:focus-visible {
+  outline: 2px solid var(--brand-100);
+  outline-offset: 1px;
+}
+
+.reader__tool[aria-disabled='true'] {
   opacity: 0.4;
   cursor: default;
 }
 
-.reader__soon {
-  margin-left: var(--space-2);
-  font-size: var(--text-xs);
-  color: var(--text-muted);
+.reader__tool[data-on='true'] {
+  color: var(--brand-text);
+}
+
+.reader__tool--danger:hover {
+  color: var(--status-danger-fg);
+}
+
+.reader__divider {
+  width: 1px;
+  height: 1.25rem;
+  margin: 0 var(--space-1);
+  background: var(--border-faint);
 }
 
 .reader__message {

@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 
 import type { Message } from '../../api/types'
 import type { Arrival } from '../../hooks/useNotifications'
-import { IconBell, IconBellOff } from '../../icons'
+import { IconBell, IconBellOff, IconBellRinging } from '../../icons'
 import { placeNear } from '../../lib/place'
 import { formatReceived } from '../../lib/time'
 import { TipButton } from '../Tooltip/TipButton'
@@ -28,13 +28,14 @@ interface NotificationBellProps {
 export function NotificationBell({ feed, unseen, quiet, workspaceName, onOpenMessage, onSeen, onClear, onSettings }: NotificationBellProps): ReactNode {
   const { t } = useTranslation(['notifications', 'common'])
   const [anchor, setAnchor] = useState<DOMRect | null>(null)
-  const Glyph = quiet ? IconBellOff : IconBell
+  const Glyph = quiet ? IconBellOff : unseen > 0 ? IconBellRinging : IconBell
   const close = (): void => setAnchor(null)
 
   return (
     <>
       <TipButton
         className="title-bar__button notification-bell"
+        data-new={unseen > 0}
         tip={unseen > 0 ? t('bell.newTip', { count: unseen }) : t('common:notifications')}
         aria-label={unseen > 0 ? t('bell.newLabel', { count: unseen }) : t('common:notifications')}
         aria-expanded={anchor !== null}
@@ -45,7 +46,7 @@ export function NotificationBell({ feed, unseen, quiet, workspaceName, onOpenMes
         }}
       >
         <Glyph aria-hidden="true" />
-        {unseen > 0 && <span className="notification-bell__badge">{unseen > 9 ? t('bell.badgeMany') : unseen}</span>}
+        {unseen > 0 && <span className="notification-bell__count">{unseen > 9 ? t('bell.badgeMany') : unseen}</span>}
       </TipButton>
       {anchor !== null &&
         createPortal(

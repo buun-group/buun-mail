@@ -42,6 +42,14 @@ impl RawFiles {
         fs::read(self.path(id))
     }
 
+    /// Removes a message's bytes. A file already gone is fine.
+    pub(crate) fn remove(&self, id: &str) -> io::Result<()> {
+        match fs::remove_file(self.path(id)) {
+            Err(error) if error.kind() != io::ErrorKind::NotFound => Err(error),
+            _ => Ok(()),
+        }
+    }
+
     pub(crate) fn root(&self) -> &Path {
         &self.root
     }

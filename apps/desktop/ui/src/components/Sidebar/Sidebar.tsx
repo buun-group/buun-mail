@@ -2,28 +2,31 @@ import { useCallback, useRef, useState } from 'react'
 import type { KeyboardEvent, MouseEvent, ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import type { Place, Workspace } from '../../api/types'
+import type { MailView, Place, Workspace } from '../../api/types'
 import { BRAND_ICONS, isBrandIcon } from '../../constants/products'
 import { INBOX_LABEL, UNSORTED_WORKSPACE } from '../../constants/ui'
 import type { Theme } from '../../constants/ui'
 import { usePeek } from '../../hooks/usePeek'
 import type { WorkspaceLooks } from '../../hooks/useWorkspaceLooks'
 import {
+  IconArchive,
   IconCaretDown,
   IconCompose,
   IconCopy,
+  IconDelete,
   IconFolder,
   IconImage,
   IconInbox,
   IconMarkRead,
   IconRename,
   IconReset,
+  IconStar,
   IconUnsorted,
   isWorkspaceGlyph,
   WORKSPACE_GLYPHS,
 } from '../../icons'
 import { copyText } from '../../lib/clipboard'
-import { ContextMenu } from '../ContextMenu/ContextMenu'
+import { ContextMenu, isMenuKey, menuPoint } from '../ContextMenu/ContextMenu'
 import type { MenuItem, MenuRequest } from '../ContextMenu/ContextMenu'
 import { BuunFooter } from '../BuunFooter/BuunFooter'
 import { TipButton } from '../Tooltip/TipButton'
@@ -34,35 +37,33 @@ import './Sidebar.css'
 interface SidebarProps {
   workspaces: Workspace[]
   place: Place | null
+  /** The open view across workspaces, if one is open instead of a folder. */
+  view: MailView | null
   theme: Theme
   looks: WorkspaceLooks
   folded: Set<string>
   collapsed: boolean
   onOpen: (place: Place) => void
+  onOpenView: (view: MailView) => void
   onFold: (id: string) => void
   onEditIcon: (id: string) => void
   onResetIcon: (id: string) => void
   onMarkAllRead: (place: Place, wholeWorkspace: boolean) => void
 }
 
-/** True for the keys that open a context menu from the keyboard: the menu key, or Shift and F10. */
-function isMenuKey(event: KeyboardEvent): boolean {
-  return event.key === 'ContextMenu' || (event.shiftKey && event.key === 'F10')
-}
-
-/** Where to open a menu: at the pointer for a right click, under the row for the keyboard. */
-function menuPoint(event: MouseEvent | KeyboardEvent): { x: number; y: number } {
-  if ('clientX' in event && event.clientX !== 0) return { x: event.clientX, y: event.clientY }
-  const box = (event.currentTarget as HTMLElement).getBoundingClientRect()
-  return { x: box.left + 24, y: box.bottom }
-}
+/** The lists across every workspace, in sidebar order. */
+const VIEWS = [
+  { id: 'starred', glyph: IconStar },
+  { id: 'archive', glyph: IconArchive },
+  { id: 'trash', glyph: IconDelete },
+] as const satisfies readonly { id: MailView; glyph: unknown }[]
 
 /**
  * Every workspace and its folders, the open one marked. Collapsed, it is a rail of icons; pointing at it, scrolling
  * over it or tabbing into it slides it open over the list, and it folds back when the pointer and focus leave.
  */
-export function Sidebar({ workspaces, place, theme, looks, folded, collapsed, onOpen, onFold, onEditIcon, onResetIcon, onMarkAllRead }: SidebarProps): ReactNode {
-  const { t } = useTranslation(['sidebar', 'common'])
+export function Sidebar({ workspaces, place, view, theme, looks, folded, collapsed, onOpen, onOpenView, onFold, onEditIcon, onResetIcon, onMarkAllRead }: SidebarProps): ReactNode {
+  const { t } = useTranslation(['sidebar', 'common', 'mail'])
   // Why rename is off: names live in the routing file, which settings cannot edit yet.
   const needsEditor = t('menu.needsEditor')
   const nav = useRef<HTMLElement | null>(null)
@@ -140,7 +141,7 @@ export function Sidebar({ workspaces, place, theme, looks, folded, collapsed, on
               </h2>
               <ul hidden={folded.has(workspace.id)}>
                 {workspace.folders.map((folder) => {
-                  const current = place?.workspace === workspace.id && place.folder === folder.name
+                  const current = view === null && place?.workspace === workspace.id && place.folder === folder.name
                   const Glyph = folder.name === null ? IconInbox : isWorkspaceGlyph(folder.icon) ? WORKSPACE_GLYPHS[folder.icon] : IconFolder
                   const brand = folder.name !== null && isBrandIcon(folder.icon) ? BRAND_ICONS[folder.icon].mark[theme] : null
                   const label = folder.name ?? t(INBOX_LABEL)
@@ -151,6 +152,7 @@ export function Sidebar({ workspaces, place, theme, looks, folded, collapsed, on
                         tip={rail ? where : null}
                         side="right"
                         className="sidebar__folder"
+                        data-unread={folder.unread > 0}
                         aria-current={current ? 'page' : undefined}
                         aria-label={rail ? (folder.unread > 0 ? t('nav.folderUnread', { workspace: workspace.name, folder: label, count: folder.unread }) : where) : undefined}
                         onClick={() => onOpen({ workspace: workspace.id, folder: folder.name })}
@@ -174,6 +176,21 @@ export function Sidebar({ workspaces, place, theme, looks, folded, collapsed, on
               </ul>
             </section>
           ))}
+          <section className="sidebar__workspace sidebar__views" aria-label={t('mail:views.label')}>
+            <ul>
+              {VIEWS.map((item) => {
+                const label = t(`mail:views.${item.id}`)
+                return (
+                  <li key={item.id}>
+                    <TipButton tip={rail ? label : null} side="right" className="sidebar__folder" aria-current={view === item.id ? 'page' : undefined} aria-label={rail ? label : undefined} onClick={() => onOpenView(item.id)}>
+                      <item.glyph aria-hidden="true" />
+                      <span className="sidebar__folder-name sidebar__text">{label}</span>
+                    </TipButton>
+                  </li>
+                )
+              })}
+            </ul>
+          </section>
         </div>
 
         <BuunFooter theme={theme} />

@@ -48,7 +48,7 @@ export function AgentsSection(): ReactNode {
 
   if (status === null) return <p className="settings__empty">{t('loading')}</p>
   const chosen = AGENT_CLIENTS.find((item) => item.id === client) ?? AGENT_CLIENTS[0]
-  const token = showToken ? status.token : '•'.repeat(24)
+  const token = showToken ? status.token : '*'.repeat(24)
 
   return (
     <>

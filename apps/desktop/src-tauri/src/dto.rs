@@ -2,8 +2,8 @@
 //! `apps/desktop/ui/src/api/types.ts` mirrors these; change both together.
 
 use buun_mail_message::rfc3339;
-use buun_mail_store::{Activity, MessageRecord};
-use serde::Serialize;
+use buun_mail_store::{Activity, MessageRecord, Shelf, View};
+use serde::{Deserialize, Serialize};
 
 /// One workspace in the sidebar.
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
@@ -63,8 +63,66 @@ pub struct MessageDto {
     pub received_at: String,
     /// True until read.
     pub unread: bool,
+    /// Starred.
+    pub starred: bool,
+    /// In its folder, archived or in the trash.
+    pub shelf: ShelfDto,
     /// Tags, sorted.
     pub tags: Vec<String>,
+}
+
+/// Where a message sits: in its folder, archived, or in the trash. Sent and received as `active`, `archived`, `trashed`.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum ShelfDto {
+    /// In its folder.
+    Active,
+    /// Archived.
+    Archived,
+    /// In the trash.
+    Trashed,
+}
+
+impl From<Shelf> for ShelfDto {
+    fn from(shelf: Shelf) -> Self {
+        match shelf {
+            Shelf::Active => Self::Active,
+            Shelf::Archived => Self::Archived,
+            Shelf::Trashed => Self::Trashed,
+        }
+    }
+}
+
+impl From<ShelfDto> for Shelf {
+    fn from(shelf: ShelfDto) -> Self {
+        match shelf {
+            ShelfDto::Active => Self::Active,
+            ShelfDto::Archived => Self::Archived,
+            ShelfDto::Trashed => Self::Trashed,
+        }
+    }
+}
+
+/// A list across every workspace, as the UI names it.
+#[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum ViewDto {
+    /// Starred messages.
+    Starred,
+    /// Archived messages.
+    Archive,
+    /// The trash.
+    Trash,
+}
+
+impl From<ViewDto> for View {
+    fn from(view: ViewDto) -> Self {
+        match view {
+            ViewDto::Starred => Self::Starred,
+            ViewDto::Archive => Self::Archived,
+            ViewDto::Trash => Self::Trashed,
+        }
+    }
 }
 
 impl From<MessageRecord> for MessageDto {
@@ -82,6 +140,8 @@ impl From<MessageRecord> for MessageDto {
             preview: record.preview,
             received_at: rfc3339(record.sent_at),
             unread: record.unread,
+            starred: record.starred,
+            shelf: record.shelf.into(),
             tags: record.tags,
         }
     }

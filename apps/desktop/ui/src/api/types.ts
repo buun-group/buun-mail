@@ -35,8 +35,16 @@ export interface Message {
   preview: string
   receivedAt: string
   unread: boolean
+  starred: boolean
+  shelf: Shelf
   tags: string[]
 }
+
+/** Where a message sits: in its folder, archived, or in the trash. It keeps its workspace and folder throughout. */
+export type Shelf = 'active' | 'archived' | 'trashed'
+
+/** A list across every workspace. */
+export type MailView = 'starred' | 'archive' | 'trash'
 
 /** Where the list is pointed: one folder of one workspace. */
 export interface Place {

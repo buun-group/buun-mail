@@ -8,18 +8,32 @@
     "searchPlaceholder": "Search",
     "empty": "Nothing here. Mail to <addresses/> lands in this folder.",
     "thisWorkspace": "this workspace",
-    "unreadDot": "Unread"
+    "unreadDot": "Unread",
+    "emptyView": {
+      "starred": "Nothing starred. Star a message to keep it here.",
+      "archive": "Nothing archived. Archive a message to clear it from its folder and keep it here.",
+      "trash": "The trash is empty. Mail here goes for good after 30 days."
+    },
+    "starredMark": "Starred",
+    "emptyTrash": "Empty trash"
   },
   "reader": {
     "label": "Reader",
     "nothingOpen": "Pick a message to read it.",
     "replyAs": "Reply as {{address}}",
     "archive": "Archive",
-    "soon": "Reply and archive arrive with sending.",
     "to": "to <address/>",
     "routeUnsorted": "No rule claims this address yet, so it waits in Unsorted.",
     "routeWorkspace": "{{workspace}} because it was sent to <address/>",
-    "routeWorkspaceFolder": "{{workspace}} because it was sent to <address/>, {{folder}} because it is from <sender/>"
+    "routeWorkspaceFolder": "{{workspace}} because it was sent to <address/>, {{folder}} because it is from <sender/>",
+    "replySoon": "Replying arrives with sending.",
+    "star": "Star",
+    "unstar": "Unstar",
+    "markUnread": "Mark as unread",
+    "trash": "Move to trash",
+    "putBack": "Move back to {{folder}}",
+    "deleteForever": "Delete forever",
+    "moreFolders": "Move to"
   },
   "tags": {
     "more": "+{{count}}",
@@ -27,5 +41,45 @@
     "addLabel": "Add a tag",
     "addFirst": "Add a tag",
     "addAnother": "Add"
+  },
+  "views": {
+    "label": "Views",
+    "starred": "Starred",
+    "archive": "Archive",
+    "trash": "Trash"
+  },
+  "actions": {
+    "menuLabel": "Actions for {{subject}}",
+    "open": "Open",
+    "markRead": "Mark as read",
+    "markUnread": "Mark as unread",
+    "star": "Star",
+    "unstar": "Unstar",
+    "archive": "Archive",
+    "putBack": "Move back to {{folder}}",
+    "trash": "Move to trash",
+    "deleteForever": "Delete forever",
+    "moveTo": "Move to {{folder}}",
+    "copySender": "Copy sender address",
+    "copySubject": "Copy subject",
+    "archived_one": "Archived",
+    "archived_other": "{{count}} archived",
+    "trashed_one": "Moved to trash",
+    "trashed_other": "{{count}} moved to trash",
+    "putBackDone": "Moved back to {{folder}}",
+    "moved": "Moved to {{folder}}",
+    "deleted_one": "Deleted for good",
+    "deleted_other": "{{count}} deleted for good",
+    "undo": "Undo",
+    "dismiss": "Dismiss",
+    "confirmDeleteTitle": "Delete this message for good?",
+    "confirmDeleteBody": "“{{subject}}” and its original file are removed from this computer. This cannot be undone.",
+    "confirmEmptyTitle": "Empty the trash?",
+    "confirmEmptyBody_one": "{{count}} message and its original file are removed from this computer. This cannot be undone.",
+    "confirmEmptyBody_other": "{{count}} messages and their original files are removed from this computer. This cannot be undone.",
+    "confirmDelete": "Delete forever",
+    "confirmEmpty": "Empty trash",
+    "cancel": "Cancel",
+    "shortcutsHint": "E archive, # trash, U unread, S star"
   }
 }

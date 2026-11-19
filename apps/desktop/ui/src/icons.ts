@@ -85,6 +85,12 @@ export {
   PiPencilSimpleLight as IconRename,
   PiCaretDownLight as IconCaretDown,
   PiCheckLight as IconCheck,
+  PiStarLight as IconStar,
+  PiEnvelopeSimpleFill as IconUnread,
+  PiBellRingingLight as IconBellRinging,
+  PiStarFill as IconStarred,
+  PiArrowUUpLeftLight as IconPutBack,
+  PiArrowsLeftRightLight as IconMove,
   PiEnvelopeOpenLight as IconMarkRead,
 } from 'react-icons/pi'
 

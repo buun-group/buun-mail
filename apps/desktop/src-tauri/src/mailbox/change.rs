@@ -1,8 +1,8 @@
-//! Changing messages: tags, moves and read state. Every change is logged with who made it.
+//! Changing messages: tags, moves, read state, stars, archive and trash. Every change is logged with who made it.
 
-use buun_mail_store::Placement;
+use buun_mail_store::{Placement, Shelf, Store};
 
-use super::{Actor, Mailbox, log};
+use super::{Actor, Mailbox, log, unix_now};
 use crate::dto::MessageDto;
 use crate::error::AppError;
 
@@ -79,6 +79,100 @@ impl Mailbox {
         log(&store, actor, "move", format!("\"{}\" to {}", message.subject, describe(placement)))?;
         Ok(message.into())
     }
+}
+
+/// How long a message stays in the trash before it is deleted for good: thirty days.
+pub(super) const TRASH_DAYS: i64 = 30;
+
+impl Mailbox {
+    /// Marks messages read or unread and returns them as they are now.
+    ///
+    /// # Errors
+    ///
+    /// [`AppError`] for an unknown id, or when the store cannot be written.
+    pub fn set_unread(&self, ids: &[String], unread: bool, actor: &Actor) -> Result<Vec<MessageDto>, AppError> {
+        let store = self.store.lock()?;
+        let changed = count(ids, |id| store.set_unread(id, unread))?;
+        if changed > 0 {
+            log(&store, actor, if unread { "mark_unread" } else { "mark_read" }, format!("{changed} marked {}", if unread { "unread" } else { "read" }))?;
+        }
+        fetch(&store, ids)
+    }
+
+    /// Stars or unstars messages and returns them as they are now.
+    ///
+    /// # Errors
+    ///
+    /// [`AppError`] for an unknown id, or when the store cannot be written.
+    pub fn set_starred(&self, ids: &[String], starred: bool, actor: &Actor) -> Result<Vec<MessageDto>, AppError> {
+        let store = self.store.lock()?;
+        let changed = count(ids, |id| store.set_starred(id, starred))?;
+        if changed > 0 {
+            log(&store, actor, if starred { "star" } else { "unstar" }, format!("{changed} {}", if starred { "starred" } else { "unstarred" }))?;
+        }
+        fetch(&store, ids)
+    }
+
+    /// Archives, trashes or puts back messages. Returns how many changed.
+    ///
+    /// # Errors
+    ///
+    /// [`AppError`] when the store cannot be written.
+    pub fn shelve(&self, ids: &[String], to: Shelf, actor: &Actor) -> Result<usize, AppError> {
+        let store = self.store.lock()?;
+        let now = unix_now();
+        let changed = count(ids, |id| store.set_shelf(id, to, now))?;
+        if changed > 0 {
+            let (action, words) = match to {
+                Shelf::Active => ("restore", "put back"),
+                Shelf::Archived => ("archive", "archived"),
+                Shelf::Trashed => ("trash", "moved to the trash"),
+            };
+            log(&store, actor, action, format!("{changed} {words}"))?;
+        }
+        Ok(changed)
+    }
+
+    /// Deletes messages for good, bytes and all. Returns how many were deleted.
+    ///
+    /// # Errors
+    ///
+    /// [`AppError`] when the store cannot be written.
+    pub fn delete_forever(&self, ids: &[String], actor: &Actor) -> Result<usize, AppError> {
+        let store = self.store.lock()?;
+        let deleted = count(ids, |id| store.delete(id))?;
+        if deleted > 0 {
+            log(&store, actor, "delete", format!("{deleted} deleted for good"))?;
+        }
+        Ok(deleted)
+    }
+
+    /// Empties the trash, or only what has been there longer than [`TRASH_DAYS`] when `only_expired`. Returns how many
+    /// were deleted.
+    ///
+    /// # Errors
+    ///
+    /// [`AppError`] when the store cannot be written.
+    pub fn empty_trash(&self, only_expired: bool, actor: &Actor) -> Result<usize, AppError> {
+        let ids = self.store.lock()?.trashed_before(only_expired.then(|| unix_now() - TRASH_DAYS * 24 * 60 * 60))?;
+        self.delete_forever(&ids, actor)
+    }
+}
+
+/// Runs `change` on each id and counts the ones it changed.
+fn count(ids: &[String], mut change: impl FnMut(&str) -> Result<bool, buun_mail_store::StoreError>) -> Result<usize, AppError> {
+    let mut changed = 0;
+    for id in ids {
+        if change(id)? {
+            changed += 1;
+        }
+    }
+    Ok(changed)
+}
+
+/// The messages with these ids, as they are now.
+fn fetch(store: &Store, ids: &[String]) -> Result<Vec<MessageDto>, AppError> {
+    ids.iter().map(|id| Ok(store.get(id)?.into())).collect()
 }
 
 /// A place in words: `acme` or `acme, Receipts`.

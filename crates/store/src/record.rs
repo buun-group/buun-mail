@@ -37,8 +37,58 @@ pub struct MessageRecord {
     pub message_id: Option<String>,
     /// True until read.
     pub unread: bool,
+    /// Starred by a person or an agent.
+    pub starred: bool,
+    /// In its folder, archived, or in the trash.
+    pub shelf: Shelf,
     /// Tags, sorted. Empty for a new message until rules or a person add some.
     pub tags: Vec<String>,
+}
+
+/// Where a message sits apart from its folder: in it, archived out of it, or in the trash. It keeps its workspace and
+/// folder throughout, so putting it back returns it where it was.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub enum Shelf {
+    /// In its folder.
+    #[default]
+    Active,
+    /// Out of its folder, kept.
+    Archived,
+    /// In the trash, deleted for good after a while.
+    Trashed,
+}
+
+impl Shelf {
+    /// The word the index stores.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Active => "active",
+            Self::Archived => "archived",
+            Self::Trashed => "trashed",
+        }
+    }
+
+    /// Reads the stored word; anything unknown counts as [`Shelf::Active`], so a message never disappears.
+    #[must_use]
+    pub fn from_stored(word: &str) -> Self {
+        match word {
+            "archived" => Self::Archived,
+            "trashed" => Self::Trashed,
+            _ => Self::Active,
+        }
+    }
+}
+
+/// A list across every workspace rather than one folder.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum View {
+    /// Starred messages that are not in the trash.
+    Starred,
+    /// Archived messages.
+    Archived,
+    /// The trash, most recently deleted first.
+    Trashed,
 }
 
 /// How many unread messages one folder holds.

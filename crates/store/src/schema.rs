@@ -39,6 +39,10 @@ const MIGRATIONS: &[&str] = &[
         detail TEXT NOT NULL
     ) STRICT;
     CREATE INDEX activity_by_time ON activity (at DESC);",
+    "ALTER TABLE messages ADD COLUMN starred INTEGER NOT NULL DEFAULT 0;
+    ALTER TABLE messages ADD COLUMN shelf TEXT NOT NULL DEFAULT 'active' CHECK (shelf IN ('active', 'archived', 'trashed'));
+    ALTER TABLE messages ADD COLUMN shelved_at INTEGER;
+    CREATE INDEX messages_by_shelf ON messages (shelf, sent_at DESC);",
 ];
 
 /// Brings the database up to the latest version, one migration at a time, each in its own transaction.
