@@ -48,6 +48,12 @@
   cursor: default;
 }
 
+.context-menu__check {
+  flex: none;
+  margin-left: auto;
+  color: var(--brand-text);
+}
+
 .context-menu__words {
   display: grid;
 }

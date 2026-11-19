@@ -89,6 +89,8 @@ export {
   PiCaretUpLight as IconCaretUp,
   PiCheckLight as IconCheck,
   PiStarLight as IconStar,
+  PiArrowDownLight as IconJump,
+  PiFunnelSimpleLight as IconFilter,
   PiArrowLeftLight as IconBack,
   PiTextAaLight as IconText,
   PiCheckCircleLight as IconDone,

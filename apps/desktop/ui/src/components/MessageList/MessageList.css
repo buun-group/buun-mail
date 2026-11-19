@@ -37,9 +37,29 @@
   letter-spacing: -0.02em;
 }
 
-.message-list__title span {
-  overflow: hidden;
+.message-list__crumb {
+  flex: none;
+  font-size: var(--text-sm);
   color: var(--text-muted);
+}
+
+/* The workspace beside the folder's name: its own icon in a soft chip, as in the sidebar. */
+.message-list__workspace {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  min-width: 0;
+  padding: 2px var(--space-2) 2px 3px;
+  border-radius: var(--radius-md);
+  background: var(--alpha-4);
+  box-shadow: inset 0 0 0 1px var(--alpha-8);
+  font-size: var(--text-sm);
+  font-weight: 550;
+  color: var(--text-secondary);
+}
+
+.message-list__workspace > span {
+  overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
@@ -51,7 +71,7 @@
 }
 
 .message-list__search {
-  grid-column: 1 / -1;
+  grid-column: 1 / span 1;
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -72,6 +92,105 @@
 
 .message-row__inline-preview {
   display: none;
+}
+
+.list-tools {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.list-tools__button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  height: 2rem;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+}
+
+.list-tools__button svg {
+  font-size: var(--text-base);
+}
+
+.list-tools__button:hover,
+.list-tools__button[aria-expanded='true'] {
+  background: var(--alpha-8);
+  color: var(--text-primary);
+}
+
+.list-tools__button[data-on='true'] {
+  color: var(--brand-text);
+}
+
+.list-tools__button:focus-visible {
+  outline: 2px solid var(--brand-100);
+  outline-offset: 1px;
+}
+
+.jump {
+  display: grid;
+  min-width: 13rem;
+}
+
+.jump__date {
+  display: flex;
+  gap: var(--space-1-5);
+  margin-top: var(--space-1);
+  padding: var(--space-2) var(--space-1) var(--space-1);
+  box-shadow: 0 -1px 0 var(--border-faint);
+}
+
+.jump__field {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--space-1-5);
+  min-width: 0;
+  height: 2rem;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-md);
+  background: var(--surface-card);
+  box-shadow: var(--shadow-well);
+  color: var(--text-muted);
+}
+
+.jump__field input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: none;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: var(--text-sm);
+  color-scheme: light dark;
+  outline: none;
+}
+
+.jump__field:focus-within {
+  box-shadow: var(--shadow-well), 0 0 0 2px var(--brand-40);
+}
+
+.jump__go {
+  height: 2rem;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--surface-card);
+  box-shadow: 0 0 0 1px var(--alpha-12), 0 1px 2px var(--alpha-8);
+  font-size: var(--text-sm);
+  font-weight: 550;
+}
+
+.jump__go:hover {
+  color: var(--brand-text);
+}
+
+.message-list__clear {
+  margin-top: var(--space-2);
+  color: var(--brand-text);
+  font-weight: 550;
 }
 
 /* The rows under their column headers; the headers stay put while the rows scroll. */
@@ -300,7 +419,7 @@
 }
 
 .message-list[data-wide='true'] .message-list__header {
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
 }
 
 .message-list[data-wide='true'] .message-row {

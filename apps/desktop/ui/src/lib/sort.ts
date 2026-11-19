@@ -1,5 +1,5 @@
 import type { Message } from '../api/types'
-import type { ListSort } from '../constants/ui'
+import type { ListFilter, ListSort } from '../constants/ui'
 
 const byText = new Intl.Collator(undefined, { sensitivity: 'base', numeric: true })
 
@@ -13,4 +13,21 @@ export function sortMessages(messages: readonly Message[], sort: ListSort): Mess
   }
   const sign = sort.descending ? -1 : 1
   return [...messages].sort((a, b) => sign * compare(a, b) || newest(a, b))
+}
+
+/** The messages a filter keeps. */
+export function filterMessages(messages: readonly Message[], filter: ListFilter): Message[] {
+  const keep: Record<ListFilter, (message: Message) => boolean> = {
+    all: () => true,
+    unread: (message) => message.unread,
+    read: (message) => !message.unread,
+    starred: (message) => message.starred,
+    tagged: (message) => message.tags.length > 0,
+  }
+  return messages.filter(keep[filter])
+}
+
+/** Midnight at the end of the day `date` falls in: every message received before it is from that day or earlier. */
+export function endOfDay(date: Date): number {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1).getTime()
 }

@@ -62,3 +62,7 @@ export interface ListSort {
   key: SortKey
   descending: boolean
 }
+
+/** What the list can be narrowed to, from what the app knows about each message. */
+export const LIST_FILTERS = ['all', 'unread', 'read', 'starred', 'tagged'] as const
+export type ListFilter = (typeof LIST_FILTERS)[number]

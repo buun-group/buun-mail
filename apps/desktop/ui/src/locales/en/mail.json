@@ -24,7 +24,30 @@
       "ascending": "{{column}}, sorted first to last",
       "descending": "{{column}}, sorted last to first",
       "sortBy": "Sort by {{column}}"
-    }
+    },
+    "jump": {
+      "button": "Jump to",
+      "label": "Jump to a date",
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "lastWeek": "Last week",
+      "lastMonth": "Last month",
+      "lastYear": "Last year",
+      "date": "A date",
+      "go": "Go"
+    },
+    "filter": {
+      "button": "Filter",
+      "label": "Show",
+      "all": "All",
+      "unread": "Unread",
+      "read": "Read",
+      "starred": "Starred",
+      "tagged": "Tagged",
+      "empty": "No {{filter}} messages here.",
+      "clear": "Show all"
+    },
+    "inWorkspace": "in {{workspace}}"
   },
   "reader": {
     "label": "Reader",

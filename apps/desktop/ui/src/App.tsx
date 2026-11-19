@@ -118,6 +118,10 @@ export function App(): ReactNode {
         theme={preferences.theme}
         sort={mailbox.sort}
         onSort={mailbox.setSort}
+        filter={mailbox.filter}
+        onFilter={mailbox.setFilter}
+        total={mailbox.total}
+        looks={looks.looks}
         wide={preferences.readingPane === 'off'}
       />
       <Reader

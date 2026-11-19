@@ -3,6 +3,8 @@ import type { KeyboardEvent, MouseEvent, ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { IconType } from 'react-icons'
 
+import { IconCheck } from '../../icons'
+
 import './ContextMenu.css'
 
 export interface MenuItem {
@@ -14,6 +16,8 @@ export interface MenuItem {
   disabledReason?: string
   /** Draws a hairline above the item. */
   separated?: boolean
+  /** For a choice among several, such as a filter: whether this one is chosen. Shows a tick. */
+  checked?: boolean
 }
 
 export interface MenuRequest {
@@ -53,7 +57,7 @@ export function ContextMenu({ request, onClose }: { request: MenuRequest; onClos
     if (element === null) return
     const { width, height } = element.getBoundingClientRect()
     setPlace({ left: Math.min(request.x, window.innerWidth - width - EDGE), top: Math.min(request.y, window.innerHeight - height - EDGE) })
-    element.querySelector<HTMLElement>('[role="menuitem"]:not([aria-disabled="true"])')?.focus()
+    element.querySelector<HTMLElement>('[role^="menuitem"]:not([aria-disabled="true"])')?.focus()
   }, [request])
 
   useEffect(() => {
@@ -75,7 +79,7 @@ export function ContextMenu({ request, onClose }: { request: MenuRequest; onClos
   }, [onClose])
 
   const onKey = (event: KeyboardEvent<HTMLDivElement>): void => {
-    const items = [...(menu.current?.querySelectorAll<HTMLElement>('[role="menuitem"]:not([aria-disabled="true"])') ?? [])]
+    const items = [...(menu.current?.querySelectorAll<HTMLElement>('[role^="menuitem"]:not([aria-disabled="true"])') ?? [])]
     const at = items.indexOf(document.activeElement as HTMLElement)
     const go = (index: number): void => items[(index + items.length) % items.length]?.focus()
     if (event.key === 'Escape' || event.key === 'Tab') {
@@ -105,7 +109,8 @@ export function ContextMenu({ request, onClose }: { request: MenuRequest; onClos
           <button
             key={item.id}
             type="button"
-            role="menuitem"
+            role={item.checked === undefined ? 'menuitem' : 'menuitemradio'}
+            aria-checked={item.checked}
             aria-disabled={off || undefined}
             className="context-menu__item"
             data-separated={item.separated ?? false}
@@ -120,6 +125,7 @@ export function ContextMenu({ request, onClose }: { request: MenuRequest; onClos
               {item.label}
               {off && <small>{item.disabledReason}</small>}
             </span>
+            {item.checked === true && <IconCheck aria-hidden="true" className="context-menu__check" />}
           </button>
         )
       })}
