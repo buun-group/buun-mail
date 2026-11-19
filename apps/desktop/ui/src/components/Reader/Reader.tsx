@@ -2,7 +2,8 @@ import { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 
-import type { Message, Workspace } from '../../api/types'
+import type { Contact, Message, Recipients, Workspace } from '../../api/types'
+import { Avatar } from '../Avatar/Avatar'
 import type { Theme } from '../../constants/ui'
 import type { MessageActions } from '../../hooks/useMessageActions'
 import { EXPORT_GLYPHS, IconArchive, IconBack, IconCopy, IconExport, IconReplyAll, IconDelete, IconExternal, IconInbox, IconMarkRead, IconPutBack, IconReply, IconRoute, IconStar, IconStarred, IconText } from '../../icons'
@@ -27,6 +28,8 @@ interface ReaderProps {
   message: Message | null
   /** The message's text, null while it loads. */
   body: string | null
+  /** Its To, Cc and Reply-To headers, null while it loads. */
+  recipients: Recipients | null
   workspace: Workspace | undefined
   theme: Theme
   onAddTag: (id: string, tag: string) => void
@@ -74,8 +77,49 @@ function ReplyTools({ address, onOpenIntegrations }: { address: string; onOpenIn
   )
 }
 
+/** People on a header line: each name, then the address, which copies on click. */
+function People({ people }: { people: Contact[] }): ReactNode {
+  return (
+    <ul className="reader__people">
+      {people.map((person) => (
+        <li key={person.address} className="reader__person">
+          {person.name !== null && <span className="reader__person-name">{person.name}</span>}
+          <Copyable text={person.address} kind="email" className="reader__address" />
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+/**
+ * Who the message was sent to, as rows of a small table split by hairlines: To, then Cc and Reply to when it has them.
+ * Before the headers load, To shows the address it was delivered to.
+ */
+function Fields({ message, recipients }: { message: Message; recipients: Recipients | null }): ReactNode {
+  const { t } = useTranslation('mail')
+  const to = recipients !== null && recipients.to.length > 0 ? recipients.to : [{ name: null, address: message.to }]
+  const replyTo = (recipients?.replyTo ?? []).filter((person) => person.address !== message.from)
+  const rows = [
+    { id: 'to', label: t('reader.fields.to'), people: to },
+    { id: 'cc', label: t('reader.fields.cc'), people: recipients?.cc ?? [] },
+    { id: 'reply-to', label: t('reader.fields.replyTo'), people: replyTo },
+  ].filter((row) => row.people.length > 0)
+  return (
+    <dl className="reader__fields" aria-label={t('reader.fields.label')}>
+      {rows.map((row) => (
+        <div key={row.id} className="reader__field">
+          <dt>{row.label}</dt>
+          <dd>
+            <People people={row.people} />
+          </dd>
+        </div>
+      ))}
+    </dl>
+  )
+}
+
 /** The open message. With nothing open, the other Buun Group products. */
-export function Reader({ message, body, workspace, theme, onAddTag, onRemoveTag, tagSuggestions, actions, onBack, backTo, onOpenIntegrations }: ReaderProps): ReactNode {
+export function Reader({ message, body, recipients, workspace, theme, onAddTag, onRemoveTag, tagSuggestions, actions, onBack, backTo, onOpenIntegrations }: ReaderProps): ReactNode {
   const { t } = useTranslation('mail')
   const article = useRef<HTMLElement | null>(null)
   const bodyText = useRef<HTMLDivElement | null>(null)
@@ -196,16 +240,17 @@ export function Reader({ message, body, workspace, theme, onAddTag, onRemoveTag,
 
       <article ref={attachArticle} className="reader__message">
         <h2>{message.subject}</h2>
-        <div className="reader__people">
-          <span className="reader__from">{message.fromName}</span>
-          <Copyable text={message.from} kind="email" className="reader__address" />
+        <div className="reader__sender">
+          <Avatar name={message.fromName} address={message.from} theme={theme} size="lg" />
+          <div className="reader__who">
+            <span className="reader__from">{message.fromName}</span>
+            <Copyable text={message.from} kind="email" className="reader__address" />
+          </div>
           <time className="reader__when" dateTime={message.receivedAt}>
             {formatFull(message.receivedAt)}
           </time>
         </div>
-        <p className="reader__to">
-          <Trans t={t} i18nKey="reader.to" components={{ address: <Copyable text={message.to} kind="email" className="reader__address" /> }} />
-        </p>
+        <Fields message={message} recipients={recipients} />
         <div className="reader__tags">
           <TagEditor tags={message.tags} suggestions={tagSuggestions} onAdd={(tag) => onAddTag(message.id, tag)} onRemove={(tag) => onRemoveTag(message.id, tag)} />
         </div>

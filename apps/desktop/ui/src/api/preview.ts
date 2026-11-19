@@ -50,7 +50,8 @@ export function previewDetail(id: string): MessageDetail {
   const message = MESSAGES.find((item) => item.id === id) ?? MESSAGES[0]
   if (message === undefined) throw new Error('The preview mailbox is empty.')
   message.unread = false
-  return { message: { ...message }, body: message.preview }
+  const cc = message.id === 'p2' ? [{ name: 'Their studio', address: 'studio@client.example' }] : []
+  return { message: { ...message }, body: message.preview, recipients: { to: [{ name: null, address: message.to }], cc, replyTo: [] } }
 }
 
 /** The rules, tags and agent status the preview keeps in memory, so those screens can be worked on in a browser. */

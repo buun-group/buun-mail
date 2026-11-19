@@ -144,6 +144,7 @@ export function App(): ReactNode {
       <Reader
         message={mailbox.selected?.message ?? null}
         body={mailbox.selected?.body ?? null}
+        recipients={mailbox.selected?.recipients ?? null}
         workspace={openWorkspace}
         theme={preferences.theme}
         onAddTag={mailbox.addTag}

@@ -55,7 +55,6 @@
     "label": "Reader",
     "nothingOpen": "Pick a message to read it.",
     "archive": "Archive",
-    "to": "to <address/>",
     "routeUnsorted": "No rule claims this address yet, so it waits in Unsorted.",
     "routeWorkspace": "{{workspace}} because it was sent to <address/>",
     "routeWorkspaceFolder": "{{workspace}} because it was sent to <address/>, {{folder}} because it is from <sender/>",
@@ -71,7 +70,13 @@
     "replyAll": "Reply all",
     "needsSending": "Replying from {{domain}} needs a sending integration. Click to set one up.",
     "export": "Export",
-    "exportLabel": "Export this message"
+    "exportLabel": "Export this message",
+    "fields": {
+      "label": "Who it was sent to",
+      "to": "To",
+      "cc": "Cc",
+      "replyTo": "Reply to"
+    }
   },
   "tags": {
     "more": "+{{count}}",

@@ -2,7 +2,7 @@
 
 use std::collections::BTreeSet;
 
-use buun_mail_message::body_text;
+use buun_mail_message::{body_text, recipients};
 use buun_mail_routing::{UNSORTED_NAME, UNSORTED_WORKSPACE};
 use buun_mail_store::{Placement, UnreadCount, View};
 
@@ -96,8 +96,8 @@ impl Mailbox {
     pub fn open_message(&self, id: &str) -> Result<MessageDetailDto, AppError> {
         let store = self.store.lock()?;
         store.mark_read(id)?;
-        let body = body_text(&store.raw(id)?);
-        Ok(MessageDetailDto { message: store.get(id)?.into(), body })
+        let raw = store.raw(id)?;
+        Ok(MessageDetailDto { message: store.get(id)?.into(), body: body_text(&raw), recipients: recipients(&raw).into() })
     }
 
     /// One message with its text, without marking it read. For agents, which read without being seen to.
@@ -107,8 +107,8 @@ impl Mailbox {
     /// [`AppError`] for an unknown id, or when the store cannot be read.
     pub fn read_message(&self, id: &str) -> Result<MessageDetailDto, AppError> {
         let store = self.store.lock()?;
-        let body = body_text(&store.raw(id)?);
-        Ok(MessageDetailDto { message: store.get(id)?.into(), body })
+        let raw = store.raw(id)?;
+        Ok(MessageDetailDto { message: store.get(id)?.into(), body: body_text(&raw), recipients: recipients(&raw).into() })
     }
 
     /// Messages matching `query` in subject, sender, recipient, preview or tags, newest first.

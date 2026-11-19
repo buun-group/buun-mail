@@ -90,31 +90,95 @@
   text-wrap: balance;
 }
 
-.reader__people {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--space-1) var(--space-2);
+.reader__sender {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.reader__who {
+  display: grid;
+  min-width: 0;
 }
 
 .reader__from {
+  overflow: hidden;
+  font-weight: 650;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.reader__who .reader__address {
+  justify-self: start;
+}
+
+.reader__when {
+  align-self: start;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* To, Cc and Reply to as rows of a small card, a hairline between each, labels in their own column. */
+.reader__fields {
+  display: grid;
+  margin: var(--space-4) 0 0;
+  border-radius: var(--radius-md);
+  background: var(--alpha-4);
+  box-shadow: inset 0 0 0 1px var(--border-faint);
+  font-size: var(--text-sm);
+}
+
+.reader__field {
+  display: grid;
+  grid-template-columns: 5.5rem minmax(0, 1fr);
+  align-items: baseline;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+}
+
+.reader__field + .reader__field {
+  border-top: 1px solid var(--border-faint);
+}
+
+.reader__field dt {
+  font-size: var(--text-xs);
   font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.reader__field dd {
+  margin: 0;
+  min-width: 0;
+}
+
+.reader__people {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.reader__person {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-1-5);
+  min-width: 0;
+}
+
+.reader__person-name {
+  font-weight: 550;
+  color: var(--text-primary);
 }
 
 .reader__address {
   font-family: var(--font-mono);
   font-size: var(--text-xs);
-  color: var(--text-muted);
-}
-
-.reader__when {
-  flex-basis: 100%;
-  font-size: var(--text-xs);
-  color: var(--text-muted);
-}
-
-.reader__to {
-  margin: 2px 0 0;
   color: var(--text-muted);
 }
 

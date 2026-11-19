@@ -56,6 +56,20 @@ export interface Place {
 export interface MessageDetail {
   message: Message
   body: string
+  recipients: Recipients
+}
+
+/** One person on a message. Mirrors `ContactDto`. */
+export interface Contact {
+  name: string | null
+  address: string
+}
+
+/** The To, Cc and Reply-To headers of an open message. Mirrors `RecipientsDto`. */
+export interface Recipients {
+  to: Contact[]
+  cc: Contact[]
+  replyTo: Contact[]
 }
 
 /** One thing an import could not take in. */

@@ -40,3 +40,15 @@ describe('copying from a message', () => {
     await waitFor(() => expect(writeText).toHaveBeenCalledWith('projects@client.example'))
   })
 })
+
+describe('the message header', () => {
+  it('lists To and Cc as rows, each address copyable', async () => {
+    render(<App />)
+    fireEvent.click(await screen.findByText('Quote for the booking site'))
+    const fields = await screen.findByLabelText('Who it was sent to')
+    expect(within(fields).getByText('To')).toBeTruthy()
+    expect(within(fields).getByText('Cc')).toBeTruthy()
+    expect(within(fields).getByText('Their studio')).toBeTruthy()
+    expect(within(fields).getByRole('button', { name: 'Copy studio@client.example' })).toBeTruthy()
+  })
+})

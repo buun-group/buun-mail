@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { listMessages, listTags, listView, listWorkspaces, markAllRead, openMessage, tagMessage, untagMessage } from '../api/client'
 import { onMailChanged } from '../api/events'
-import type { MailView, Message, MessageDetail, Place, Workspace } from '../api/types'
+import type { MailView, Message, MessageDetail, Place, Recipients, Workspace } from '../api/types'
 import type { ListFilter, ListSort } from '../constants/ui'
 import type { SavedPlace } from '../lib/lastPlace'
 import { filterMessages, searchMessages, sortMessages } from '../lib/sort'
@@ -29,7 +29,7 @@ export interface Mailbox {
   query: string
   setQuery: (query: string) => void
   /** The open message with its text, or the summary alone while the text loads. */
-  selected: { message: Message; body: string | null } | null
+  selected: { message: Message; body: string | null; recipients: Recipients | null } | null
   error: string | null
   open: (place: Place) => void
   openView: (view: MailView) => void
@@ -175,7 +175,7 @@ export function useMailbox(restore: SavedPlace | null = null): Mailbox {
     total: loaded.length,
     query,
     setQuery,
-    selected: selectedSummary === null ? null : { message: selectedSummary, body: detail?.message.id === selectedId ? detail.body : null },
+    selected: selectedSummary === null ? null : { message: selectedSummary, body: detail?.message.id === selectedId ? detail.body : null, recipients: detail?.message.id === selectedId ? detail.recipients : null },
     error,
     open: (next) => {
       setPlace(next)

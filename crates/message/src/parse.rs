@@ -62,6 +62,46 @@ pub fn body_text(raw: &[u8]) -> String {
     MessageParser::default().parse(raw).and_then(|message| message.body_text(0).map(|text| text.trim().to_owned())).unwrap_or_default()
 }
 
+/// One person on a message: their display name when it has one, and their address.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Contact {
+    /// The display name, `None` when the header gives only an address.
+    pub name: Option<String>,
+    /// The address, lowercased.
+    pub address: String,
+}
+
+/// Who a message was written to, as its headers say: To, Cc and Reply-To. Each is empty when the header is missing.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Recipients {
+    /// The To header.
+    pub to: Vec<Contact>,
+    /// The Cc header.
+    pub cc: Vec<Contact>,
+    /// The Reply-To header.
+    pub reply_to: Vec<Contact>,
+}
+
+/// The To, Cc and Reply-To headers of a message, groups opened up. Empty lists when it cannot be read.
+#[must_use]
+pub fn recipients(raw: &[u8]) -> Recipients {
+    let Some(message) = MessageParser::default().parse(raw) else { return Recipients::default() };
+    let contacts = |header: Option<mail_parser::AddressList<'_>>| -> Vec<Contact> {
+        header
+            .map(|list| {
+                list.mailboxes()
+                    .filter_map(|person| {
+                        let address = person.address()?.trim().to_lowercase();
+                        let name = person.name().map(one_line).filter(|name| !name.is_empty() && name.to_lowercase() != address);
+                        Some(Contact { name, address })
+                    })
+                    .collect()
+            })
+            .unwrap_or_default()
+    };
+    Recipients { to: contacts(message.to()), cc: contacts(message.cc()), reply_to: contacts(message.reply_to()) }
+}
+
 /// Collapses every run of whitespace, line breaks included, into one space.
 fn one_line(text: &str) -> String {
     text.split_whitespace().collect::<Vec<_>>().join(" ")
@@ -70,6 +110,24 @@ fn one_line(text: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn reads_to_cc_and_reply_to_with_names() {
+        let raw =
+            b"From: a@b.com\r\nTo: \"Team\" <Team@Acme.com>, solo@acme.com\r\nCc: Ops <ops@acme.com>\r\nReply-To: help@acme.com\r\nSubject: x\r\n\r\nbody\r\n";
+        let found = recipients(raw);
+        assert_eq!(
+            found.to,
+            vec![Contact { name: Some("Team".to_owned()), address: "team@acme.com".to_owned() }, Contact { name: None, address: "solo@acme.com".to_owned() }]
+        );
+        assert_eq!(found.cc, vec![Contact { name: Some("Ops".to_owned()), address: "ops@acme.com".to_owned() }]);
+        assert_eq!(found.reply_to.first().map(|contact| contact.address.as_str()), Some("help@acme.com"));
+    }
+
+    #[test]
+    fn has_empty_lists_when_headers_are_missing() {
+        assert_eq!(recipients(b"From: a@b.com\r\nSubject: x\r\n\r\nbody"), Recipients::default());
+    }
 
     const PLAIN: &[u8] = b"From: \"Stripe\" <Invoices@Stripe.com>\r\nDelivered-To: billing@acme.com\r\nTo: team@acme.com\r\nSubject: Your invoice\r\nDate: Thu, 19 Nov 2026 07:42:00 +0000\r\nMessage-ID: <abc@stripe.com>\r\n\r\nInvoice INV-11\r\nis ready.\r\n";
 

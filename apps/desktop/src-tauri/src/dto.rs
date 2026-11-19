@@ -155,6 +155,38 @@ pub struct MessageDetailDto {
     pub message: MessageDto,
     /// The plain text body, or the HTML body as text.
     pub body: String,
+    /// Who it was written to, from its headers.
+    pub recipients: RecipientsDto,
+}
+
+/// One person on a message.
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct ContactDto {
+    /// Their display name, when the header gives one.
+    pub name: Option<String>,
+    /// Their address.
+    pub address: String,
+}
+
+/// The To, Cc and Reply-To headers of an open message.
+#[derive(Debug, Clone, Default, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct RecipientsDto {
+    /// The To header.
+    pub to: Vec<ContactDto>,
+    /// The Cc header.
+    pub cc: Vec<ContactDto>,
+    /// The Reply-To header.
+    pub reply_to: Vec<ContactDto>,
+}
+
+impl From<buun_mail_message::Recipients> for RecipientsDto {
+    fn from(found: buun_mail_message::Recipients) -> Self {
+        let people =
+            |list: Vec<buun_mail_message::Contact>| list.into_iter().map(|contact| ContactDto { name: contact.name, address: contact.address }).collect();
+        Self { to: people(found.to), cc: people(found.cc), reply_to: people(found.reply_to) }
+    }
 }
 
 /// What an import did, for the report under the import button.
