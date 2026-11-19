@@ -10,6 +10,7 @@ export const COMMANDS = {
   emptyTrash: 'empty_trash',
   moveMessage: 'move_message',
   exportMessages: 'export_messages',
+  saveAttachment: 'save_attachment',
   openMessage: 'open_message',
   markAllRead: 'mark_all_read',
   importFiles: 'import_files',

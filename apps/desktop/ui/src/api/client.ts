@@ -89,6 +89,15 @@ export async function exportMessages(ids: string[], format: ExportFormat, sugges
   return path
 }
 
+/** Asks where, then saves one attachment there. Resolves to the path, or null when cancelled or in a plain browser. */
+export async function saveAttachment(id: string, index: number, name: string): Promise<string | null> {
+  if (!isTauri()) return null
+  const path = await save({ defaultPath: name })
+  if (path === null) return null
+  await invoke<string>(COMMANDS.saveAttachment, { id, index, path })
+  return path
+}
+
 /** Where the routing file lives, or null in a plain browser. */
 export async function routingPath(): Promise<string | null> {
   return isTauri() ? invoke<string>(COMMANDS.routingPath) : null

@@ -25,6 +25,8 @@ tauri-plugin-opener = "=2.7.2"
 tauri-plugin-dialog = "=2.8.4"
 tauri-plugin-notification = "=2.8.1"
 mail-parser = "=1.0.1"
+mail-builder = "=2.0.1"
+base64 = "=0.23.1"
 rusqlite = { version = "=0.42.0", features = ["bundled"] }
 sha2 = "=0.11.1"
 tempfile = "=3.27.0"

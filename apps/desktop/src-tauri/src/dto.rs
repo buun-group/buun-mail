@@ -157,6 +157,42 @@ pub struct MessageDetailDto {
     pub body: String,
     /// Who it was written to, from its headers.
     pub recipients: RecipientsDto,
+    /// Its HTML, inline images embedded, when it has an HTML part.
+    pub html: Option<HtmlDto>,
+    /// Its attachments, in order.
+    pub attachments: Vec<AttachmentDto>,
+}
+
+/// A message's HTML, ready for the reader's sealed frame.
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct HtmlDto {
+    /// The HTML.
+    pub html: String,
+    /// How many remote images or styles it would fetch, all blocked until the person allows them.
+    pub remote: usize,
+}
+
+/// One attachment, as the reader lists it.
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct AttachmentDto {
+    /// Its position, for saving it.
+    pub index: usize,
+    /// Its file name.
+    pub name: String,
+    /// Its media type.
+    pub mime: String,
+    /// Its size in bytes.
+    pub size: usize,
+    /// True for a picture shown inside the HTML.
+    pub inline: bool,
+}
+
+impl From<buun_mail_message::AttachmentInfo> for AttachmentDto {
+    fn from(info: buun_mail_message::AttachmentInfo) -> Self {
+        Self { index: info.index, name: info.name, mime: info.mime, size: info.size, inline: info.inline }
+    }
 }
 
 /// One person on a message.

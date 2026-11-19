@@ -71,6 +71,12 @@ pub fn export_messages(mailbox: State<'_, Arc<Mailbox>>, ids: Vec<String>, forma
     mailbox.export(&ids, format, &path)
 }
 
+/// Saves one attachment to the file the person chose. Returns its name.
+#[tauri::command]
+pub fn save_attachment(mailbox: State<'_, Arc<Mailbox>>, id: String, index: usize, path: PathBuf) -> Result<String, AppError> {
+    mailbox.save_attachment(&id, index, &path)
+}
+
 /// Moves a message to another folder or workspace.
 #[tauri::command]
 pub fn move_message(mailbox: State<'_, Arc<Mailbox>>, id: String, workspace: String, folder: Option<String>) -> Result<MessageDto, AppError> {

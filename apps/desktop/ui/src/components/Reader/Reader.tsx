@@ -2,7 +2,9 @@ import { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 
-import type { Contact, Message, Recipients, Workspace } from '../../api/types'
+import type { Contact, Message, MessageDetail, Recipients, Workspace } from '../../api/types'
+import { Attachments } from './Attachments'
+import { MessageHtml } from './MessageHtml'
 import { Avatar } from '../Avatar/Avatar'
 import type { Theme } from '../../constants/ui'
 import type { MessageActions } from '../../hooks/useMessageActions'
@@ -30,6 +32,8 @@ interface ReaderProps {
   body: string | null
   /** Its To, Cc and Reply-To headers, null while it loads. */
   recipients: Recipients | null
+  /** Its HTML and attachments, null while it loads. */
+  detail: MessageDetail | null
   workspace: Workspace | undefined
   theme: Theme
   onAddTag: (id: string, tag: string) => void
@@ -119,11 +123,18 @@ function Fields({ message, recipients }: { message: Message; recipients: Recipie
 }
 
 /** The open message. With nothing open, the other Buun Group products. */
-export function Reader({ message, body, recipients, workspace, theme, onAddTag, onRemoveTag, tagSuggestions, actions, onBack, backTo, onOpenIntegrations }: ReaderProps): ReactNode {
+export function Reader({ message, body, recipients, detail, workspace, theme, onAddTag, onRemoveTag, tagSuggestions, actions, onBack, backTo, onOpenIntegrations }: ReaderProps): ReactNode {
   const { t } = useTranslation('mail')
   const article = useRef<HTMLElement | null>(null)
   const bodyText = useRef<HTMLDivElement | null>(null)
   const [menu, setMenu] = useState<MenuRequest | null>(null)
+  // Plain text instead of the sender's layout, for this message only.
+  const [asText, setAsText] = useState(false)
+  const [textFor, setTextFor] = useState<string | null>(null)
+  if ((message?.id ?? null) !== textFor) {
+    setTextFor(message?.id ?? null)
+    setAsText(false)
+  }
   const closeMenu = useCallback(() => setMenu(null), [])
   // The menu reads the latest message and selection when it opens, so the listener is added once per article.
   const onMenu = useRef<(event: MouseEvent) => void>(() => {})
@@ -260,23 +271,40 @@ export function Reader({ message, body, recipients, workspace, theme, onAddTag, 
             <RouteNote message={message} workspace={workspace} />
           </span>
         </p>
-        <div ref={bodyText} className="reader__body" aria-busy={body === null}>
-          {(body ?? message.preview).split(/\n{2,}/).map((paragraph, index) => (
-            // Paragraphs have no id of their own; their order is fixed for a message.
-            // eslint-disable-next-line react/no-array-index-key
-            <p key={index}>
-              {tokenize(paragraph).map((token, at) =>
-                token.kind === 'text' ? (
-                  token.text
-                ) : (
-                  // Tokens have no id of their own; their order is fixed for a paragraph.
-                  // eslint-disable-next-line react/no-array-index-key
-                  <Copyable key={at} text={token.text} kind={token.kind} />
-                ),
-              )}
-            </p>
-          ))}
-        </div>
+        {detail !== null && <Attachments messageId={message.id} attachments={detail.attachments} />}
+        {detail?.html != null && !asText ? (
+          <>
+            <MessageHtml key={message.id} html={detail.html.html} remote={detail.html.remote} />
+            <button type="button" className="reader__switch" onClick={() => setAsText(true)}>
+              {t('html.showText')}
+            </button>
+          </>
+        ) : (
+          <>
+            <div ref={bodyText} className="reader__body" aria-busy={body === null}>
+              {(body ?? message.preview).split(/\n{2,}/).map((paragraph, index) => (
+                // Paragraphs have no id of their own; their order is fixed for a message.
+                // eslint-disable-next-line react/no-array-index-key
+                <p key={index}>
+                  {tokenize(paragraph).map((token, at) =>
+                    token.kind === 'text' ? (
+                      token.text
+                    ) : (
+                      // Tokens have no id of their own; their order is fixed for a paragraph.
+                      // eslint-disable-next-line react/no-array-index-key
+                      <Copyable key={at} text={token.text} kind={token.kind} />
+                    ),
+                  )}
+                </p>
+              ))}
+            </div>
+            {detail?.html != null && (
+              <button type="button" className="reader__switch" onClick={() => setAsText(false)}>
+                {t('html.showHtml')}
+              </button>
+            )}
+          </>
+        )}
       </article>
       <SelectionCopy within={article} />
       {menu !== null && <ContextMenu request={menu} onClose={closeMenu} />}

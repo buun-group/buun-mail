@@ -1,5 +1,5 @@
 //! Writing messages out: the original `.eml`, several as `.mbox`, or a summary with the readable text as JSON, CSV or
-//! plain text.
+//! plain text; and saving one attachment.
 
 use std::fs;
 use std::path::Path;
@@ -49,6 +49,19 @@ struct Exported<'a> {
 const CSV_COLUMNS: [&str; 9] = ["received_at", "from_name", "from", "to", "subject", "workspace", "folder", "tags", "body"];
 
 impl Mailbox {
+    /// Saves one attachment of a message to `path`. Returns its file name.
+    ///
+    /// # Errors
+    ///
+    /// [`AppError`] for an unknown message or attachment, or when the file cannot be written.
+    pub fn save_attachment(&self, id: &str, index: usize, path: &Path) -> Result<String, AppError> {
+        let raw = self.store.lock()?.raw(id)?;
+        let (info, bytes) =
+            buun_mail_message::attachment(&raw, index).ok_or_else(|| AppError::Unreadable("That attachment is not in the message.".to_owned()))?;
+        fs::write(path, bytes).map_err(|source| AppError::File { path: path.display().to_string(), source })?;
+        Ok(info.name)
+    }
+
     /// Writes messages to `path` in `format`. Returns how many were written.
     ///
     /// # Errors

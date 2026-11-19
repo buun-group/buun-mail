@@ -13,6 +13,7 @@
 //! # Ok::<(), buun_mail_message::MessageError>(())
 //! ```
 
+mod content;
 mod error;
 mod id;
 mod mbox;
@@ -20,6 +21,7 @@ mod parse;
 mod recipient;
 mod time;
 
+pub use content::{AttachmentInfo, HtmlView, attachment, attachments, html_view};
 pub use error::MessageError;
 pub use id::content_id;
 pub use mbox::{is_mbox, mbox_entry, split_mbox};

@@ -149,5 +149,22 @@
     "fileType": "{{format}} file",
     "desktopOnly": "Exporting works in the desktop app.",
     "failed": "The export did not work"
+  },
+  "html": {
+    "frame": "The message",
+    "remoteBlocked_one": "{{count}} remote image is blocked, so the sender cannot tell you opened this.",
+    "remoteBlocked_other": "{{count}} remote images are blocked, so the sender cannot tell you opened this.",
+    "loadRemote": "Load images",
+    "showText": "Show as text",
+    "showHtml": "Show as sent",
+    "linkTo": "Opens {{url}}"
+  },
+  "attachments": {
+    "label_one": "{{count}} attachment",
+    "label_other": "{{count}} attachments",
+    "save": "Save {{name}}",
+    "saved": "Saved",
+    "desktopOnly": "Saving attachments works in the desktop app.",
+    "failed": "The attachment could not be saved"
   }
 }

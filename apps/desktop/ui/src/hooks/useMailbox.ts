@@ -29,7 +29,8 @@ export interface Mailbox {
   query: string
   setQuery: (query: string) => void
   /** The open message with its text, or the summary alone while the text loads. */
-  selected: { message: Message; body: string | null; recipients: Recipients | null } | null
+  /** The open message, with what its text, headers, HTML and attachments are once they load (null until then). */
+  selected: { message: Message; body: string | null; recipients: Recipients | null; detail: MessageDetail | null } | null
   error: string | null
   open: (place: Place) => void
   openView: (view: MailView) => void
@@ -175,7 +176,7 @@ export function useMailbox(restore: SavedPlace | null = null): Mailbox {
     total: loaded.length,
     query,
     setQuery,
-    selected: selectedSummary === null ? null : { message: selectedSummary, body: detail?.message.id === selectedId ? detail.body : null, recipients: detail?.message.id === selectedId ? detail.recipients : null },
+    selected: selectedSummary === null ? null : { message: selectedSummary, body: detail?.message.id === selectedId ? detail.body : null, recipients: detail?.message.id === selectedId ? detail.recipients : null, detail: detail?.message.id === selectedId ? detail : null },
     error,
     open: (next) => {
       setPlace(next)

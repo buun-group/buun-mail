@@ -21,6 +21,7 @@ describe('copying from a message', () => {
     fireEvent.click(await screen.findByRole('button', { name: /Billing/ }))
     fireEvent.click(await screen.findByText('Your invoice for November is ready'))
     const reader = screen.getByRole('region', { name: 'Reader' })
+    fireEvent.click(await within(reader).findByRole('button', { name: 'Show as text' }))
     const code = await within(reader).findByRole('button', { name: 'Copy INV-2026-11' })
 
     fireEvent.click(code)
@@ -50,5 +51,23 @@ describe('the message header', () => {
     expect(within(fields).getByText('Cc')).toBeTruthy()
     expect(within(fields).getByText('Their studio')).toBeTruthy()
     expect(within(fields).getByRole('button', { name: 'Copy studio@client.example' })).toBeTruthy()
+  })
+})
+
+describe('a message with HTML and attachments', () => {
+  it('shows the sealed page with remote images blocked, lists attachments, and switches to text', async () => {
+    render(<App />)
+    fireEvent.click(await screen.findByRole('button', { name: /Billing/ }))
+    fireEvent.click(await screen.findByText('Your invoice for November is ready'))
+    const reader = screen.getByRole('region', { name: 'Reader' })
+    const frame = await within(reader).findByTitle('The message')
+    expect(frame.getAttribute('sandbox')).toBe('allow-same-origin')
+    expect(frame.getAttribute('srcdoc')).toContain("default-src 'none'; img-src data:;")
+    expect(within(reader).getByText('1 remote image is blocked, so the sender cannot tell you opened this.')).toBeTruthy()
+    fireEvent.click(within(reader).getByRole('button', { name: 'Load images' }))
+    expect(within(reader).getByTitle('The message').getAttribute('srcdoc')).toContain('img-src data: https: http:')
+    expect(within(reader).getByRole('button', { name: 'Save INV-2026-11.pdf' })).toBeTruthy()
+    fireEvent.click(within(reader).getByRole('button', { name: 'Show as text' }))
+    expect(within(reader).queryByTitle('The message')).toBeNull()
   })
 })

@@ -2,12 +2,12 @@
 
 use std::collections::BTreeSet;
 
-use buun_mail_message::{body_text, recipients};
+use buun_mail_message::{attachments, body_text, html_view, recipients};
 use buun_mail_routing::{UNSORTED_NAME, UNSORTED_WORKSPACE};
 use buun_mail_store::{Placement, UnreadCount, View};
 
 use super::Mailbox;
-use crate::dto::{ActivityDto, FolderDto, MessageDetailDto, MessageDto, TagCountDto, WorkspaceDto};
+use crate::dto::{ActivityDto, FolderDto, HtmlDto, MessageDetailDto, MessageDto, TagCountDto, WorkspaceDto};
 use crate::error::AppError;
 
 /// How many activity entries the log returns at most.
@@ -97,7 +97,7 @@ impl Mailbox {
         let store = self.store.lock()?;
         store.mark_read(id)?;
         let raw = store.raw(id)?;
-        Ok(MessageDetailDto { message: store.get(id)?.into(), body: body_text(&raw), recipients: recipients(&raw).into() })
+        Ok(detail(store.get(id)?.into(), &raw))
     }
 
     /// One message with its text, without marking it read. For agents, which read without being seen to.
@@ -108,7 +108,7 @@ impl Mailbox {
     pub fn read_message(&self, id: &str) -> Result<MessageDetailDto, AppError> {
         let store = self.store.lock()?;
         let raw = store.raw(id)?;
-        Ok(MessageDetailDto { message: store.get(id)?.into(), body: body_text(&raw), recipients: recipients(&raw).into() })
+        Ok(detail(store.get(id)?.into(), &raw))
     }
 
     /// Messages matching `query` in subject, sender, recipient, preview or tags, newest first.
@@ -148,4 +148,15 @@ fn unlisted_workspace(id: &str) -> WorkspaceDto {
 /// Unread messages in one folder, from the store's counts.
 fn unread_in(counts: &[UnreadCount], workspace: &str, folder: Option<&str>) -> u32 {
     counts.iter().find(|count| count.placement.workspace == workspace && count.placement.folder.as_deref() == folder).map_or(0, |count| count.unread)
+}
+
+/// An open message from its summary and its original bytes: text, recipients, HTML and attachments.
+fn detail(message: MessageDto, raw: &[u8]) -> MessageDetailDto {
+    MessageDetailDto {
+        message,
+        body: body_text(raw),
+        recipients: recipients(raw).into(),
+        html: html_view(raw).map(|view| HtmlDto { html: view.html, remote: view.remote }),
+        attachments: attachments(raw).into_iter().map(Into::into).collect(),
+    }
 }

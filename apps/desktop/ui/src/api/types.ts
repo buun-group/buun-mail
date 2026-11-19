@@ -57,6 +57,19 @@ export interface MessageDetail {
   message: Message
   body: string
   recipients: Recipients
+  /** Its HTML, inline images embedded, or null for a plain-text message. */
+  html: { html: string; remote: number } | null
+  attachments: Attachment[]
+}
+
+/** One attachment of an open message. Mirrors `AttachmentDto`. */
+export interface Attachment {
+  index: number
+  name: string
+  mime: string
+  size: number
+  /** A picture shown inside the HTML. */
+  inline: boolean
 }
 
 /** One person on a message. Mirrors `ContactDto`. */
