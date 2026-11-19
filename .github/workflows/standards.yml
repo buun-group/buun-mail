@@ -19,7 +19,8 @@ permissions:
 jobs:
   gates:
     # RUN_STANDARDS_CI=false skips it everywhere; PREVIEW_CI=off skips a pull request into preview only.
-    if: ${{ vars.RUN_STANDARDS_CI != 'false' && (vars.PREVIEW_CI != 'off' || github.base_ref != 'preview') }}
+    # Also skipped until the standards GitHub App is set up for this repository (STANDARDS_APP_CLIENT_ID).
+    if: ${{ vars.RUN_STANDARDS_CI != 'false' && vars.STANDARDS_APP_CLIENT_ID != '' && (vars.PREVIEW_CI != 'off' || github.base_ref != 'preview') }}
     runs-on: ${{ fromJSON(vars.CI_RUNS_ON || '"ubuntu-latest"') }}
     env:
       STANDARDS_CI: "true"

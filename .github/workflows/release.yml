@@ -3,11 +3,16 @@ name: Release
 # Builds the desktop app for every platform and attaches the installers to a draft GitHub release. Runs on a version
 # tag (v0.2.0) or by hand. Nothing is published until the owner turns the draft into a release.
 #
-#   Linux x86_64 and arm64  .deb (Debian, Ubuntu), .rpm (Fedora, openSUSE), .AppImage (any distribution, Arch included)
+#   Linux x86_64  .deb (Debian, Ubuntu), .rpm (Fedora, openSUSE), .AppImage (any distribution, Arch included)
 #   macOS Apple silicon and Intel  .dmg and .app
 #   Windows x86_64  .msi and the NSIS setup .exe
 #
 # Arch users can also build from source with packaging/arch/PKGBUILD.
+#
+# Linux arm64: GitHub's free arm runners serve public repositories only. When this repository is public, or has
+# larger runners, add `{ name: Linux arm64, runner: ubuntu-24.04-arm, args: '' }` to the matrix.
+#
+# Make a release with `pnpm release 0.2.0`, then `git push --follow-tags`. The tag must match the app version.
 #
 # Signing is optional and off until the secrets exist: APPLE_CERTIFICATE, APPLE_CERTIFICATE_PASSWORD, APPLE_SIGNING_IDENTITY,
 # APPLE_ID, APPLE_PASSWORD and APPLE_TEAM_ID for macOS notarisation; TAURI_SIGNING_PRIVATE_KEY and its password for the
@@ -35,9 +40,6 @@ jobs:
           - name: Linux x86_64
             runner: ubuntu-22.04
             args: ''
-          - name: Linux arm64
-            runner: ubuntu-22.04-arm
-            args: ''
           - name: macOS Apple silicon
             runner: macos-14
             args: --target aarch64-apple-darwin
@@ -56,11 +58,21 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: The tag matches the app version
+        if: github.ref_type == 'tag'
+        shell: bash
+        run: |
+          version=$(node -p "require('./apps/desktop/src-tauri/tauri.conf.json').version")
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::The tag $GITHUB_REF_NAME does not match the app version $version. Run pnpm release <version> to make a matching tag."
+            exit 1
+          fi
+
       - name: Linux system libraries
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends libwebkit2gtk-4.1-dev libgtk-3-dev librsvg2-dev libayatana-appindicator3-dev patchelf rpm
+          sudo apt-get install -y --no-install-recommends libwebkit2gtk-4.1-dev libgtk-3-dev librsvg2-dev libayatana-appindicator3-dev libxdo-dev libssl-dev patchelf rpm
 
       - name: Rust toolchain from rust-toolchain.toml
         shell: bash

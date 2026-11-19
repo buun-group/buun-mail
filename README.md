@@ -44,8 +44,17 @@ pin is ignored and an older compiler refuses the build.
 
 Linux needs the WebKitGTK libraries Tauri uses: `libwebkit2gtk-4.1-dev libgtk-3-dev librsvg2-dev`.
 
-Releases: a `v*` tag builds installers for Linux (x86_64 and arm64: `.deb`, `.rpm`, `.AppImage`), macOS (Apple silicon
-and Intel: `.dmg`) and Windows (`.msi`, setup `.exe`) into a draft release. Arch builds from `packaging/arch/PKGBUILD`.
+## Releases
+
+```
+pnpm release 0.2.0      # sets the version everywhere, commits, tags v0.2.0
+git push --follow-tags  # builds the installers
+```
+
+The tag builds installers for Linux x86_64 (`.deb`, `.rpm`, `.AppImage`), macOS Apple silicon and Intel (`.dmg`) and
+Windows (`.msi`, setup `.exe`) into a **draft** GitHub release; publish the draft when it looks right.
+[packaging/README.md](packaging/README.md) says which file to pick. Arch builds from `packaging/arch/PKGBUILD`.
+Builds are unsigned until the Apple and Windows signing secrets are added, so macOS and Windows warn on first open.
 
 ## Layout
 

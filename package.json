@@ -15,7 +15,8 @@
     "test": "pnpm -r test && node tools/with-rustup.mjs cargo test --workspace",
     "check": "node tools/with-rustup.mjs cargo fmt --all --check && pnpm lint && pnpm typecheck && pnpm test",
     "dev:brand": "pnpm --filter @buun-mail/brand preview",
-    "brand:build": "pnpm --filter @buun-mail/brand build"
+    "brand:build": "pnpm --filter @buun-mail/brand build",
+    "release": "node tools/release.mjs"
   },
   "devDependencies": {
     "@tauri-apps/cli": "2.12.4",
