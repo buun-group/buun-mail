@@ -41,11 +41,11 @@ jobs:
             runner: ubuntu-22.04
             args: ''
           - name: macOS Apple silicon
-            runner: macos-14
+            runner: macos-latest
             args: --target aarch64-apple-darwin
             target: aarch64-apple-darwin
           - name: macOS Intel
-            runner: macos-14
+            runner: macos-latest
             args: --target x86_64-apple-darwin
             target: x86_64-apple-darwin
           - name: Windows x86_64
