@@ -67,6 +67,8 @@ export function useMailbox(restore: SavedPlace | null = null, conversations = tr
   const [query, setQuery] = useState('')
   const [scope, setScope] = useState<'list' | 'all'>('list')
   const [searchHits, setSearchHits] = useState<Message[]>([])
+  // What a search of all mail is for now, so a refresh after a change can run it again.
+  const searchFor = useRef<string | null>(null)
   const searchingAll = scope === 'all' && query.trim() !== ''
   // Where the person left off, each read once: the folder when the workspaces first load, the message when its list does.
   const savedPlace = useRef(restore?.place ?? null)
@@ -86,6 +88,7 @@ export function useMailbox(restore: SavedPlace | null = null, conversations = tr
 
   // Searching every folder asks the store once typing pauses.
   useEffect(() => {
+    searchFor.current = searchingAll ? query.trim() : null
     if (!searchingAll) return
     let current = true
     const timer = window.setTimeout(() => {
@@ -152,9 +155,10 @@ export function useMailbox(restore: SavedPlace | null = null, conversations = tr
   }, [showing, loadMessages])
 
   const refresh = useCallback(() => {
+    if (searchFor.current !== null) searchAll(searchFor.current).then(setSearchHits).catch(fail)
     loadWorkspaces()
     if (showing !== null) loadMessages(showing)
-  }, [loadWorkspaces, loadMessages, showing])
+  }, [loadWorkspaces, loadMessages, showing, fail])
 
   // An agent or a rule changed something under the window: reload what is on screen.
   useEffect(() => onMailChanged(refresh), [refresh])

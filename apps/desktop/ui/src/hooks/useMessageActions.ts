@@ -30,8 +30,20 @@ export interface MessageActions {
   emptyTrash: (count: number) => void
   /** Asks where, then saves the message as `format`. */
   exportAs: (message: Message, format: ExportFormat) => void
+  /** The same changes for several messages at once, from the list's selection. */
+  bulk: BulkActions
   confirmation: Confirmation | null
   closeConfirmation: () => void
+}
+
+/** Changes for several messages at once. Each takes the messages as the list holds them. */
+export interface BulkActions {
+  shelve: (messages: Message[], shelf: Shelf) => void
+  setRead: (messages: Message[], read: boolean) => void
+  setStarred: (messages: Message[], starred: boolean) => void
+  move: (messages: Message[], place: Place) => void
+  /** Asks first, then deletes them for good. */
+  deleteForever: (messages: Message[]) => void
 }
 
 const reason = (error: unknown): string => (error instanceof Error ? error.message : String(error))
@@ -156,6 +168,74 @@ export function useMessageActions(mailbox: Mailbox, workspaceName: (id: string) 
       .catch((error: unknown) => toast({ text: t('export.failed'), detail: reason(error), tone: 'problem' }))
   }
 
+  const bulk: BulkActions = {
+    shelve: (messages, shelf) => {
+      const ids = messages.map((message) => message.id)
+      // Undo puts each back where it was, grouped by its old shelf.
+      const before = new Map<Shelf, string[]>()
+      messages.forEach((message) => before.set(message.shelf, [...(before.get(message.shelf) ?? []), message.id]))
+      const words = shelf === 'archived' ? t('actions.archived', { count: ids.length }) : shelf === 'trashed' ? t('actions.trashed', { count: ids.length }) : t('actions.restored', { count: ids.length })
+      shelveMessages(ids, shelf)
+        .then(() => {
+          mailbox.refresh()
+          say(words, shelf === 'archived' ? IconArchive : shelf === 'trashed' ? IconDelete : IconPutBack, () => {
+            Promise.all([...before].map(([was, back]) => shelveMessages(back, was)))
+              .then(mailbox.refresh)
+              .catch(fail)
+          })
+        })
+        .catch(fail)
+    },
+    setRead: (messages, read) => {
+      setMessagesUnread(
+        messages.map((message) => message.id),
+        !read,
+      )
+        .then((changed) => {
+          mailbox.update(changed)
+          mailbox.refresh()
+        })
+        .catch(fail)
+    },
+    setStarred: (messages, starred) => {
+      setMessagesStarred(
+        messages.map((message) => message.id),
+        starred,
+      )
+        .then((changed) => {
+          mailbox.update(changed)
+          if (mailbox.view === 'starred') mailbox.refresh()
+        })
+        .catch(fail)
+    },
+    move: (messages, place) => {
+      Promise.all(messages.map((message) => moveMessage(message.id, place)))
+        .then(() => {
+          mailbox.refresh()
+          say(t('actions.movedMany', { count: messages.length, folder: placeName(place) }), IconFolder, () => {
+            Promise.all(messages.map((message) => moveMessage(message.id, { workspace: message.workspace, folder: message.folder })))
+              .then(mailbox.refresh)
+              .catch(fail)
+          })
+        })
+        .catch(fail)
+    },
+    deleteForever: (messages) =>
+      setConfirmation({
+        title: t('actions.confirmDeleteManyTitle', { count: messages.length }),
+        body: t('actions.confirmEmptyBody', { count: messages.length }),
+        action: t('actions.confirmDelete'),
+        run: () => {
+          deleteMessagesForever(messages.map((message) => message.id))
+            .then((count) => {
+              mailbox.refresh()
+              say(t('actions.deleted', { count }), IconDelete)
+            })
+            .catch(fail)
+        },
+      }),
+  }
+
   const menu = (message: Message): MenuItem[] => {
     const folders = mailbox.workspaces.find((workspace) => workspace.id === message.workspace)?.folders ?? []
     const elsewhere = folders.filter((folder) => folder.name !== message.folder)
@@ -206,5 +286,5 @@ export function useMessageActions(mailbox: Mailbox, workspaceName: (id: string) 
     ]
   }
 
-  return { menu, toggleRead, toggleStar, archive, trash, putBack, move, deleteForever, emptyTrash: confirmEmptyTrash, exportAs, confirmation, closeConfirmation }
+  return { menu, toggleRead, toggleStar, archive, trash, putBack, move, deleteForever, emptyTrash: confirmEmptyTrash, exportAs, bulk, confirmation, closeConfirmation }
 }

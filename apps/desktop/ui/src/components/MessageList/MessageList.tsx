@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import type { KeyboardEvent, MouseEvent, ReactNode } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 
@@ -16,6 +16,7 @@ import { ContextMenu, isMenuKey, menuPoint } from '../ContextMenu/ContextMenu'
 import type { MenuRequest } from '../ContextMenu/ContextMenu'
 import type { MessageActions } from '../../hooks/useMessageActions'
 import { ListHeader } from './ListHeader'
+import { SelectionBar } from './SelectionBar'
 import { QuickActions } from './QuickActions'
 import { TagChips } from '../Tags/Tags'
 
@@ -66,6 +67,59 @@ export function MessageList({ workspace, place, view, messages, selectedId, onSe
   const TitleGlyph = view !== null ? VIEW_GLYPHS[view] : (place?.folder ?? null) === null ? IconInbox : isWorkspaceGlyph(folderIcon) ? WORKSPACE_GLYPHS[folderIcon] : IconFolder
   const rows = useRef<HTMLUListElement | null>(null)
 
+  // Selected messages for bulk actions, cleared when another folder, view or search opens.
+  const [picked, setPicked] = useState<Set<string>>(new Set())
+  const [anchor, setAnchor] = useState<string | null>(null)
+  const listKey = `${place?.workspace ?? ''}/${place?.folder ?? ''}/${view ?? ''}/${scope}`
+  const [pickedFor, setPickedFor] = useState(listKey)
+  if (pickedFor !== listKey) {
+    setPickedFor(listKey)
+    setPicked(new Set())
+    setAnchor(null)
+  }
+  const selected = messages.filter((message) => picked.has(message.id))
+
+  const clearPicked = useCallback(() => setPicked(new Set()), [])
+  /** Toggles one message, or with Shift every message between it and the last one toggled. */
+  const pick = (message: Message, range: boolean): void => {
+    setPicked((current) => {
+      const next = new Set(current)
+      const from = anchor === null ? -1 : messages.findIndex((item) => item.id === anchor)
+      const to = messages.findIndex((item) => item.id === message.id)
+      if (range && from !== -1 && to !== -1) {
+        const [low, high] = from < to ? [from, to] : [to, from]
+        messages.slice(low, high + 1).forEach((item) => next.add(item.id))
+      } else if (next.has(message.id)) next.delete(message.id)
+      else next.add(message.id)
+      return next
+    })
+    setAnchor(message.id)
+  }
+
+  // Ctrl or Cmd A selects the whole list, X toggles the focused row, Escape clears; read fresh when a key lands.
+  const onRowsKey = useRef<(event: globalThis.KeyboardEvent) => void>(() => {})
+  useLayoutEffect(() => {
+    onRowsKey.current = (event) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === 'a') {
+        event.preventDefault()
+        setPicked(new Set(messages.map((message) => message.id)))
+      } else if (event.key === 'Escape' && picked.size > 0) {
+        event.stopPropagation()
+        setPicked(new Set())
+      } else if (event.key === 'x') {
+        const focused = messages.find((message) => document.activeElement?.closest(`[data-id="${CSS.escape(message.id)}"]`) != null)
+        if (focused !== undefined) pick(focused, false)
+      }
+    }
+  })
+  const attachRows = useCallback((element: HTMLUListElement | null) => {
+    rows.current = element
+    if (element === null) return undefined
+    const listener = (event: globalThis.KeyboardEvent): void => onRowsKey.current(event)
+    element.addEventListener('keydown', listener)
+    return () => element.removeEventListener('keydown', listener)
+  }, [])
+
   /** Newest first, then scrolls to the first message from `day` or before it, and marks it briefly. */
   const jump = (day: Date): void => {
     const newestFirst = { key: 'received', descending: true } as const
@@ -91,7 +145,8 @@ export function MessageList({ workspace, place, view, messages, selectedId, onSe
   }
   return (
     <section className="message-list" data-wide={wide} aria-label={t('list.label')}>
-      <header className="message-list__header">
+      <header className="message-list__header" data-selecting={selected.length > 0}>
+        {selected.length > 0 && <SelectionBar selected={selected} total={messages.length} workspace={workspace} bulk={actions.bulk} onSelectAll={() => setPicked(new Set(messages.map((message) => message.id)))} onClear={clearPicked} />}
         <div className="message-list__title">
           <TitleGlyph aria-hidden="true" className="message-list__glyph" />
           <h1>{scope === 'all' && query.trim() !== '' ? t('list.searchResults') : view === null ? (place?.folder ?? t(INBOX_LABEL)) : t(`views.${view}`)}</h1>
@@ -164,15 +219,29 @@ export function MessageList({ workspace, place, view, messages, selectedId, onSe
       ) : (
         <div className="message-list__body">
         <ListHeader sort={sort} onSort={onSort} />
-        <ul ref={rows} className="message-list__rows">
+        <ul ref={attachRows} className="message-list__rows" data-selecting={selected.length > 0}>
           {messages.map((message) => (
-            <li key={message.id} data-id={message.id}>
+            <li key={message.id} data-id={message.id} data-picked={picked.has(message.id)}>
+              <input
+                type="checkbox"
+                className="row-check row-check--row"
+                checked={picked.has(message.id)}
+                aria-label={t('selection.select', { subject: message.subject })}
+                onClick={(event) => {
+                  event.stopPropagation()
+                  pick(message, event.shiftKey)
+                }}
+                onChange={() => undefined}
+              />
               <button
                 type="button"
                 className="message-row"
                 data-unread={message.unread}
                 aria-current={message.id === selectedId ? 'true' : undefined}
-                onClick={() => onSelect(message)}
+                onClick={(event) => {
+                  if (event.shiftKey || event.ctrlKey || event.metaKey) pick(message, event.shiftKey)
+                  else onSelect(message)
+                }}
                 onContextMenu={(event) => openMenu(event, message)}
                 onKeyDown={(event) => {
                   if (isMenuKey(event)) openMenu(event, message)

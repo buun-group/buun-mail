@@ -137,7 +137,13 @@
     "copyFailed": "The clipboard is not available",
     "reply": "Reply",
     "replyAll": "Reply all",
-    "forward": "Forward"
+    "forward": "Forward",
+    "restored_one": "Moved back",
+    "restored_other": "{{count}} moved back",
+    "movedMany_one": "Moved to {{folder}}",
+    "movedMany_other": "{{count}} moved to {{folder}}",
+    "confirmDeleteManyTitle_one": "Delete this message for good?",
+    "confirmDeleteManyTitle_other": "Delete {{count}} messages for good?"
   },
   "copy": {
     "copy": "Copy",
@@ -200,5 +206,23 @@
     "fail": "fail",
     "other": "unclear",
     "someone": "the receiving server"
+  },
+  "selection": {
+    "label": "Selected messages",
+    "count_one": "{{count}} selected",
+    "count_other": "{{count}} selected",
+    "selectAll": "Select all",
+    "clear": "Clear selection",
+    "select": "Select {{subject}}",
+    "archive": "Archive",
+    "trash": "Move to trash",
+    "putBack": "Move back",
+    "deleteForever": "Delete forever",
+    "read": "Mark as read",
+    "unread": "Mark as unread",
+    "star": "Star",
+    "unstar": "Unstar",
+    "moveTo": "Move to",
+    "moveToFolder": "Move to {{folder}}"
   }
 }
