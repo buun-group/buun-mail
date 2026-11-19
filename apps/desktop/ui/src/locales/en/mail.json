@@ -296,7 +296,11 @@
     "namePlaceholder": "random",
     "nameHint": "Leave the name empty for a random one. Choosing it is on dissolve.email Pro and Business.",
     "make": "Make address",
-    "making": "Making..."
+    "making": "Making...",
+    "usage": "{{inboxes}} inboxes, {{hourly}} new this hour",
+    "extendUsed": "Used {{used}} of {{limit}} extensions on the {{plan}} plan",
+    "extendFrom": "Can be extended from {{time}}",
+    "extensionsCount": "{{used}} of {{limit}} extensions"
   },
   "verification": {
     "label": "Found in this message",
@@ -305,5 +309,37 @@
     "copy": "Copy",
     "open": "Open",
     "codeCopied": "Code copied"
+  },
+  "limits": {
+    "title": "Limits",
+    "plan": "{{plan}} plan",
+    "comparePlans": "Compare plans",
+    "inboxes": "Live inboxes",
+    "hourly": "New inboxes this hour",
+    "hourlyHint": "dissolve.email reports how many are used once the limit is reached.",
+    "requests": "API calls this minute",
+    "requestsHint": "Counted by Buun Mail.",
+    "checks": "Message checks a minute",
+    "checksHint": "Buun Mail makes 4 of the 5 dissolve.email allows from one address.",
+    "lifetime": "A new inbox lasts",
+    "lifetimeHint": "Up to {{time}} with extensions.",
+    "extensions": "Extensions per inbox",
+    "names": "Choose the name before the @",
+    "yes": "Yes",
+    "paidOnly": "On Pro and Business",
+    "unlimited": "Unlimited",
+    "usedUnlimited": "{{used}}, unlimited",
+    "notReported": "Not reported",
+    "allowed_one": "{{count}} allowed",
+    "allowed_other": "{{count}} allowed",
+    "of": "{{used}} of {{limit}}",
+    "resets": "Starts again {{time}}",
+    "minutes_one": "{{count}} min",
+    "minutes_other": "{{count}} min",
+    "hours_one": "{{count}} h",
+    "hours_other": "{{count}} h",
+    "hoursMinutes": "{{hours}} h {{minutes}} min",
+    "days_one": "{{count}} day",
+    "days_other": "{{count}} days"
   }
 }

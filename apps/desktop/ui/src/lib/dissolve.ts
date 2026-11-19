@@ -29,3 +29,27 @@ export function formatTimeLeft(left: TimeLeft): string {
   if (left.hours > 0) return i18n.t('mail:dissolve.leftHours', { hours: left.hours, minutes: left.minutes })
   return i18n.t('mail:dissolve.leftMinutes', { minutes: left.minutes })
 }
+
+/** A meter in words, how full it is, and whether it is used up. */
+export interface MeterReading {
+  value: string
+  /** Used over limit, 0 to 1, when both are known and the limit is finite. */
+  share: number | null
+  full: boolean
+}
+
+/** "2 of 5", "5 allowed", "Unlimited", or "Not reported" for a count against a limit. */
+export function readMeter(meter: { used: number | null; limit: number | null }): MeterReading {
+  const { used, limit } = meter
+  if (limit !== null && limit < 0) return { value: used === null ? i18n.t('mail:limits.unlimited') : i18n.t('mail:limits.usedUnlimited', { used }), share: null, full: false }
+  if (limit === null) return { value: used === null ? i18n.t('mail:limits.notReported') : String(used), share: null, full: false }
+  if (used === null) return { value: i18n.t('mail:limits.allowed', { count: limit }), share: null, full: false }
+  return { value: i18n.t('mail:limits.of', { used, limit }), share: limit === 0 ? 1 : Math.min(1, used / limit), full: used >= limit }
+}
+
+/** Minutes in words: "10 min", "1 h 30 min", "7 d". */
+export function formatMinutes(minutes: number): string {
+  if (minutes >= 1_440 && minutes % 1_440 === 0) return i18n.t('mail:limits.days', { count: minutes / 1_440 })
+  if (minutes >= 60) return minutes % 60 === 0 ? i18n.t('mail:limits.hours', { count: minutes / 60 }) : i18n.t('mail:limits.hoursMinutes', { hours: Math.floor(minutes / 60), minutes: minutes % 60 })
+  return i18n.t('mail:limits.minutes', { count: minutes })
+}

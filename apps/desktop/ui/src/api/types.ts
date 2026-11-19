@@ -288,6 +288,36 @@ export interface DissolveInbox {
   ended: boolean
   /** Messages of it stored here. */
   stored: number
+  /** Its extensions, as dissolve.email last reported them. */
+  extensions: DissolveExtensions | null
+}
+
+/** An inbox's extensions. A null limit is unlimited or not reported. */
+export interface DissolveExtensions {
+  used: number | null
+  limit: number | null
+  canExtend: boolean | null
+  availableAt: string | null
+}
+
+/** A count against a limit. A negative limit is unlimited; null is not reported. Mirrors `Meter`. */
+export interface Meter {
+  used: number | null
+  limit: number | null
+  resetAt: string | null
+}
+
+/** The plan's limits and what is used of them. Mirrors `DissolveLimitsDto`. */
+export interface DissolveLimits {
+  plan: string | null
+  inboxes: Meter
+  inboxMinutes: number | null
+  lifetimeMinutes: number | null
+  extensionsPerInbox: number | null
+  customNames: boolean | null
+  hourlyCreations: Meter
+  requests: Meter
+  messageChecks: Meter
 }
 
 /** The dissolve.email connection, never a token. Mirrors `DissolveStatusDto`. */
@@ -300,4 +330,5 @@ export interface DissolveStatus {
   inboxes: DissolveInbox[]
   lastChecked: string | null
   problem: string | null
+  limits: DissolveLimits
 }

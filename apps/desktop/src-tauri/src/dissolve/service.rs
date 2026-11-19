@@ -1,9 +1,10 @@
 //! Connecting a dissolve.email account, collecting its inboxes' mail every minute, and making, extending and
 //! burning inboxes. Each inbox is a folder of the dissolve.email workspace, named by its address.
 
+use std::collections::VecDeque;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use buun_mail_message::{Contact, Outgoing, build, rfc3339, unix_of};
 use buun_mail_store::Placement;
@@ -11,9 +12,9 @@ use serde::Serialize;
 use tauri::AppHandle;
 
 use super::WORKSPACE;
-use super::api::{Api, ApiError, RemoteInbox, RemoteMessage};
+use super::api::{Api, ApiError, Me, Meter, RemoteInbox, RemoteMessage};
 use super::oauth::{self, Metadata, OAuthError, SIGN_IN_WAIT};
-use super::settings::{self, Account, DissolveSettings, KnownInbox};
+use super::settings::{self, Account, DissolveSettings, Extensions, KnownInbox};
 use crate::dto::MessageDto;
 use crate::error::AppError;
 use crate::events;
@@ -28,6 +29,39 @@ pub const POLLS_PER_CHECK: usize = 4;
 
 /// Refresh the access token when it has less than this left, in seconds.
 const REFRESH_AHEAD: i64 = 120;
+
+/// The message polls a minute dissolve.email allows from one address.
+pub const SERVER_POLLS_PER_MINUTE: i64 = 5;
+
+/// How often the plan and its limits are read again, in seconds.
+const ME_EVERY: i64 = 300;
+
+/// The window API calls are counted over.
+const CALL_WINDOW: Duration = Duration::from_secs(60);
+
+/// The plan's limits and what is used of them, as far as dissolve.email reports or this app has seen.
+#[derive(Debug, Clone, Default, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct DissolveLimitsDto {
+    /// The plan.
+    pub plan: Option<String>,
+    /// Live inboxes against the plan's cap.
+    pub inboxes: Meter,
+    /// How long a new inbox lasts.
+    pub inbox_minutes: Option<i64>,
+    /// The longest an inbox can live, extensions included.
+    pub lifetime_minutes: Option<i64>,
+    /// Extensions per inbox; negative for unlimited.
+    pub extensions_per_inbox: Option<i64>,
+    /// Whether the name before the @ can be chosen.
+    pub custom_names: Option<bool>,
+    /// New inboxes this hour: the plan's limit, and the count when dissolve.email reported it.
+    pub hourly_creations: Meter,
+    /// API calls this minute: counted by this app unless dissolve.email reports its own count.
+    pub requests: Meter,
+    /// Message polls a minute: what this app makes of what dissolve.email allows.
+    pub message_checks: Meter,
+}
 
 /// One inbox as the app shows it.
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
@@ -45,6 +79,8 @@ pub struct DissolveInboxDto {
     pub ended: bool,
     /// Messages of it stored here.
     pub stored: usize,
+    /// Its extensions, as last reported.
+    pub extensions: Option<Extensions>,
 }
 
 /// The connection as Settings and the workspace header show it. Never a token.
@@ -67,6 +103,8 @@ pub struct DissolveStatusDto {
     pub last_checked: Option<String>,
     /// What went wrong last, if anything.
     pub problem: Option<String>,
+    /// The plan's limits and what is used of them.
+    pub limits: DissolveLimitsDto,
 }
 
 #[derive(Default)]
@@ -74,6 +112,12 @@ struct Progress {
     last_checked: Option<String>,
     problem: Option<String>,
     turn: usize,
+    /// The account as `/v1/me` last answered, and when.
+    me: Option<(Me, i64)>,
+    /// New inboxes this hour, as a refusal last reported them.
+    hourly: Option<Meter>,
+    /// When each API call of the last minute was made.
+    calls: VecDeque<Instant>,
 }
 
 type Opener = Box<dyn Fn(&str) -> Result<(), String> + Send + Sync>;
@@ -153,6 +197,7 @@ impl DissolveService {
                 expires_at: known.expires_at.clone(),
                 ended: known.ended,
                 stored: known.messages.len(),
+                extensions: known.extensions.clone(),
             })
             .collect();
         inboxes.sort_by(|a, b| a.ended.cmp(&b.ended).then_with(|| b.expires_at.cmp(&a.expires_at)));
@@ -165,6 +210,7 @@ impl DissolveService {
             inboxes,
             last_checked: progress.last_checked.clone(),
             problem: progress.problem.clone(),
+            limits: limits_of(&saved, &progress),
         })
     }
 
@@ -195,8 +241,16 @@ impl DissolveService {
         let code = loopback.wait(&state, &metadata.issuer, SIGN_IN_WAIT).map_err(|error| error.to_string())?;
         let tokens = oauth::exchange(&metadata, &saved.client_id, &code, &loopback.redirect, &pair.verifier, unix_now()).map_err(|error| error.to_string())?;
         let me = Api::new(saved.server(), &tokens.access).me().map_err(|error| error.to_string())?;
-        saved.account =
-            Some(Account { email: me.email, plan: me.plan, access_token: tokens.access, refresh_token: tokens.refresh, expires_at: tokens.expires_at });
+        saved.account = Some(Account {
+            email: me.email.clone(),
+            plan: me.plan.clone(),
+            access_token: tokens.access,
+            refresh_token: tokens.refresh,
+            expires_at: tokens.expires_at,
+        });
+        if let Ok(mut progress) = self.0.progress.lock() {
+            progress.me = Some((me, unix_now()));
+        }
         self.save(&saved).map_err(|error| error.to_string())?;
         *self.0.metadata.lock().map_err(|error| error.to_string())? = Some(metadata);
         let _ = self.check();
@@ -246,13 +300,28 @@ impl DissolveService {
     ///
     /// Why it failed, such as a plan limit, in dissolve.email's words.
     pub fn create_inbox(&self, domain: Option<&str>, name: Option<&str>) -> Result<DissolveInboxDto, String> {
-        let made = self.call(|api| api.create_inbox(domain, name)).map_err(|error| error.to_string())?;
+        let made = match self.call(|api| api.create_inbox(domain, name)) {
+            Ok(made) => made,
+            Err(ApiError::Limited { message, meter }) => {
+                if let Ok(mut progress) = self.0.progress.lock() {
+                    progress.hourly = Some(meter);
+                }
+                return Err(message);
+            }
+            Err(other) => return Err(other.to_string()),
+        };
+        if let Ok(mut progress) = self.0.progress.lock()
+            && let Some(hourly) = progress.hourly.as_mut()
+        {
+            hourly.used = hourly.used.map(|used| used + 1);
+        }
         let mut saved = self.0.settings.lock().map_err(|error| error.to_string())?.clone();
         remember(&mut saved, &made);
         self.save(&saved).map_err(|error| error.to_string())?;
         self.show_workspace().map_err(|error| error.to_string())?;
         self.announce(&[]);
-        Ok(DissolveInboxDto { id: made.id, address: made.address, name: made.custom_name, expires_at: made.expires_at, ended: false, stored: 0 })
+        let extensions = saved.inboxes.get(&made.id).and_then(|known| known.extensions.clone());
+        Ok(DissolveInboxDto { id: made.id, address: made.address, name: made.custom_name, expires_at: made.expires_at, ended: false, stored: 0, extensions })
     }
 
     /// The domains a new inbox can be made on, the default first.
@@ -270,10 +339,30 @@ impl DissolveService {
     ///
     /// dissolve.email's refusal, such as too early or the plan's last extension, in its words.
     pub fn extend_inbox(&self, id: &str) -> Result<DissolveStatusDto, String> {
-        let extended = self.call(|api| api.extend(id)).map_err(|error| error.to_string())?;
+        let answer = self.call(|api| api.extend(id));
         let mut saved = self.0.settings.lock().map_err(|error| error.to_string())?.clone();
-        if let Some(known) = saved.inboxes.get_mut(id) {
-            known.expires_at = extended.expires_at;
+        match answer {
+            Ok(extended) => {
+                if let Some(known) = saved.inboxes.get_mut(id) {
+                    known.expires_at.clone_from(&extended.expires_at);
+                    if let Some(found) = extensions_of(&extended) {
+                        known.extensions = Some(found);
+                    }
+                }
+            }
+            Err(ApiError::Limited { message, meter }) => {
+                if let Some(known) = saved.inboxes.get_mut(id) {
+                    let mut found = known.extensions.clone().unwrap_or_default();
+                    found.used = meter.used.or(found.used);
+                    found.limit = meter.limit.or(found.limit);
+                    found.available_at = meter.reset_at;
+                    found.can_extend = Some(false);
+                    known.extensions = Some(found);
+                }
+                self.save(&saved).map_err(|error| error.to_string())?;
+                return Err(message);
+            }
+            Err(other) => return Err(other.to_string()),
         }
         self.save(&saved).map_err(|error| error.to_string())?;
         self.status().map_err(|error| error.to_string())
@@ -316,6 +405,7 @@ impl DissolveService {
     }
 
     fn collect(&self) -> Result<usize, String> {
+        self.refresh_me_when_stale()?;
         let remote = self.call(Api::inboxes).map_err(|error| error.to_string())?;
         let mut saved = self.0.settings.lock().map_err(|error| error.to_string())?.clone();
         for inbox in &remote {
@@ -387,10 +477,45 @@ impl DissolveService {
         let saved = self.0.settings.lock().map_err(|_| ApiError::NotConnected)?.clone();
         let Some(account) = &saved.account else { return Err(ApiError::NotConnected) };
         let token = if account.expires_at - unix_now() < REFRESH_AHEAD { self.refresh()? } else { account.access_token.clone() };
+        self.count_call();
         match run(&Api::new(saved.server(), &token)) {
-            Err(ApiError::Unauthorized) => run(&Api::new(saved.server(), &self.refresh()?)),
+            Err(ApiError::Unauthorized) => {
+                let fresh = self.refresh()?;
+                self.count_call();
+                run(&Api::new(saved.server(), &fresh))
+            }
             other => other,
         }
+    }
+
+    /// Notes one API call, for the per-minute count.
+    fn count_call(&self) {
+        if let Ok(mut progress) = self.0.progress.lock() {
+            let now = Instant::now();
+            while progress.calls.front().is_some_and(|at| now.duration_since(*at) >= CALL_WINDOW) {
+                progress.calls.pop_front();
+            }
+            progress.calls.push_back(now);
+        }
+    }
+
+    /// Reads the plan and its limits again when the last read is older than [`ME_EVERY`]. A failed read is left for
+    /// the next check.
+    fn refresh_me_when_stale(&self) -> Result<(), String> {
+        let stale = self.0.progress.lock().map_or(true, |progress| progress.me.as_ref().is_none_or(|(_, at)| unix_now() - at >= ME_EVERY));
+        if !stale {
+            return Ok(());
+        }
+        let Ok(me) = self.call(Api::me) else { return Ok(()) };
+        let mut saved = self.0.settings.lock().map_err(|error| error.to_string())?.clone();
+        if let Some(account) = saved.account.as_mut() {
+            account.plan.clone_from(&me.plan);
+        }
+        self.save(&saved).map_err(|error| error.to_string())?;
+        if let Ok(mut progress) = self.0.progress.lock() {
+            progress.me = Some((me, unix_now()));
+        }
+        Ok(())
     }
 
     /// New tokens from the refresh token, saved at once. Returns the new access token.
@@ -459,6 +584,51 @@ fn remember(saved: &mut DissolveSettings, inbox: &RemoteInbox) {
     known.custom_name.clone_from(&inbox.custom_name);
     known.expires_at.clone_from(&inbox.expires_at);
     known.ended = false;
+    if let Some(found) = extensions_of(inbox) {
+        known.extensions = Some(found);
+    }
+}
+
+/// An inbox's extensions, when the answer reported any.
+fn extensions_of(inbox: &RemoteInbox) -> Option<Extensions> {
+    let reported = inbox.extension_count.is_some() || inbox.max_extensions.is_some() || inbox.can_extend.is_some();
+    reported.then(|| Extensions {
+        used: inbox.extension_count,
+        limit: inbox.max_extensions,
+        can_extend: inbox.can_extend,
+        available_at: inbox.extend_available_at.clone(),
+    })
+}
+
+/// True when a reset time has passed, so a count read before it no longer holds.
+fn passed(reset_at: Option<&str>) -> bool {
+    reset_at.and_then(unix_of).is_some_and(|at| at <= unix_now())
+}
+
+/// The plan's limits and what is used of them, from what dissolve.email reported and what this app counted.
+fn limits_of(saved: &DissolveSettings, progress: &Progress) -> DissolveLimitsDto {
+    let me = progress.me.as_ref().map(|(me, _)| me);
+    let limits = me.map(|me| me.limits.clone()).unwrap_or_default();
+    let live = saved.inboxes.values().filter(|known| !known.ended).count();
+    let hourly = me
+        .and_then(|me| me.usage.hourly_creations.clone())
+        .or_else(|| progress.hourly.clone().filter(|seen| !passed(seen.reset_at.as_deref())))
+        .unwrap_or(Meter { used: None, limit: limits.hourly_creations, reset_at: None });
+    let now = Instant::now();
+    let counted = progress.calls.iter().filter(|at| now.duration_since(**at) < CALL_WINDOW).count();
+    let requests =
+        me.and_then(|me| me.usage.requests.clone()).unwrap_or(Meter { used: i64::try_from(counted).ok(), limit: limits.requests_per_minute, reset_at: None });
+    DissolveLimitsDto {
+        plan: saved.account.as_ref().map(|account| account.plan.clone()),
+        inboxes: Meter { used: i64::try_from(live).ok(), limit: limits.max_inboxes, reset_at: None },
+        inbox_minutes: limits.inbox_duration_minutes,
+        lifetime_minutes: limits.max_total_lifetime_minutes,
+        extensions_per_inbox: limits.max_extensions,
+        custom_names: limits.custom_inbox_names,
+        hourly_creations: hourly,
+        requests,
+        message_checks: Meter { used: i64::try_from(POLLS_PER_CHECK).ok(), limit: Some(SERVER_POLLS_PER_MINUTE), reset_at: None },
+    }
 }
 
 /// Only `https`, or plain `http` to this computer, so a token never crosses the network in the clear.

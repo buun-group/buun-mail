@@ -122,3 +122,30 @@ describe('verification codes', () => {
     expect(screen.getByText('login.app.example')).toBeTruthy()
   })
 })
+
+describe('dissolve.email limits', () => {
+  it('reads counts against limits in plain words', async () => {
+    const { readMeter, formatMinutes } = await import('../lib/dissolve')
+    expect(readMeter({ used: 2, limit: 5 })).toEqual({ value: '2 of 5', share: 0.4, full: false })
+    expect(readMeter({ used: 5, limit: 5 }).full).toBe(true)
+    expect(readMeter({ used: null, limit: 5 }).value).toBe('5 allowed')
+    expect(readMeter({ used: null, limit: -1 }).value).toBe('Unlimited')
+    expect(readMeter({ used: null, limit: null }).value).toBe('Not reported')
+    expect([formatMinutes(10), formatMinutes(90), formatMinutes(2_880)]).toEqual(['10 min', '1 h 30 min', '2 days'])
+  })
+
+  it('shows the free plan limits once connected', async () => {
+    render(<App />)
+    await screen.findByText('Quote for the booking site')
+    fireEvent.keyDown(window, { key: ',', ctrlKey: true })
+    fireEvent.click(screen.getByRole('button', { name: 'Integrations' }))
+    fireEvent.click(screen.getByText('dissolve.email', { selector: '.integration__head .settings__label' }).closest('button') as HTMLElement)
+    // The preview remembers an earlier test's sign-in, so connect only when it still asks.
+    const connect = await screen.findByRole('button', { name: /^(Connect|Check now)$/ })
+    if (connect.textContent === 'Connect') fireEvent.click(connect)
+    expect(await screen.findByRole('heading', { name: 'Free plan' })).toBeTruthy()
+    expect(screen.getByText('New inboxes this hour')).toBeTruthy()
+    expect(screen.getByText('1 of 3')).toBeTruthy()
+    expect(screen.getByRole('button', { name: /Compare plans/ })).toBeTruthy()
+  })
+})

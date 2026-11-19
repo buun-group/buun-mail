@@ -132,6 +132,12 @@ export {
   PiClockClockwiseLight as IconExtend,
   PiKeyLight as IconCode,
   PiLinkSimpleLight as IconLink,
+  PiGaugeLight as IconGauge,
+  PiPlusCircleLight as IconNewInbox,
+  PiArrowsClockwiseLight as IconRequests,
+  PiTrayLight as IconInboxes,
+  PiHourglassMediumLight as IconLifetime,
+  PiTextAaLight as IconName,
 } from 'react-icons/pi'
 
 /**

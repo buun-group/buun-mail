@@ -59,6 +59,8 @@ pub struct KnownInbox {
     pub expires_at: String,
     /// True once it ended on dissolve.email while its mail was kept here.
     pub ended: bool,
+    /// Its extensions, as dissolve.email last reported them.
+    pub extensions: Option<Extensions>,
     /// Remote message id to the id stored here.
     pub messages: BTreeMap<String, String>,
 }
@@ -84,4 +86,18 @@ pub fn load(config_folder: &Path) -> DissolveSettings {
 /// [`AppError::File`] when the file cannot be written.
 pub fn save(config_folder: &Path, settings: &DissolveSettings) -> Result<(), AppError> {
     write_private(&config_folder.join(FILE), &serde_json::to_string_pretty(settings).unwrap_or_default())
+}
+
+/// An inbox's extensions, as dissolve.email last reported them.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct Extensions {
+    /// Extensions used.
+    pub used: Option<i64>,
+    /// Extensions allowed; `None` for unlimited or not reported.
+    pub limit: Option<i64>,
+    /// Whether it can be extended again.
+    pub can_extend: Option<bool>,
+    /// When it can next be extended, RFC 3339.
+    pub available_at: Option<String>,
 }

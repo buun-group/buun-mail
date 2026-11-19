@@ -98,19 +98,22 @@ const SENDERS: Sender[] = [{ id: 'preview-sender', name: 'Resend', kind: 'resend
 const IMAP: ImapAccount[] = []
 
 const HOUR = 3_600_000
-const DISSOLVE: DissolveStatus = { connected: false, server: 'https://api.dissolve.email', email: null, plan: null, keepAfterExpiry: false, inboxes: [], lastChecked: null, problem: null }
-const dissolveCopy = (): DissolveStatus => ({ ...DISSOLVE, inboxes: DISSOLVE.inboxes.map((inbox) => ({ ...inbox })) })
+const NO_METER = { used: null, limit: null, resetAt: null }
+const NO_LIMITS = { plan: null, inboxes: NO_METER, inboxMinutes: null, lifetimeMinutes: null, extensionsPerInbox: null, customNames: null, hourlyCreations: NO_METER, requests: NO_METER, messageChecks: { used: 4, limit: 5, resetAt: null } }
+const FREE_LIMITS = { plan: 'free', inboxes: { used: 1, limit: 3, resetAt: null }, inboxMinutes: 10, lifetimeMinutes: 20, extensionsPerInbox: 1, customNames: false, hourlyCreations: { used: 2, limit: 5, resetAt: new Date(Date.now() + 38 * 60_000).toISOString() }, requests: { used: 6, limit: 30, resetAt: null }, messageChecks: { used: 4, limit: 5, resetAt: null } }
+const DISSOLVE: DissolveStatus = { connected: false, server: 'https://api.dissolve.email', email: null, plan: null, keepAfterExpiry: false, inboxes: [], lastChecked: null, problem: null, limits: NO_LIMITS }
+const dissolveCopy = (): DissolveStatus => ({ ...DISSOLVE, limits: { ...DISSOLVE.limits }, inboxes: DISSOLVE.inboxes.map((inbox) => ({ ...inbox })) })
 
 /** dissolve.email in the browser preview: a pretend account with one inbox, changed in memory. */
 const dissolve = {
   status: dissolveCopy,
   connect: (): DissolveStatus => {
-    Object.assign(DISSOLVE, { connected: true, email: 'you@example.com', plan: 'pro', lastChecked: new Date().toISOString() })
-    if (DISSOLVE.inboxes.length === 0) DISSOLVE.inboxes.push({ id: 'inb_preview', address: 'signup-7k2@dissolve.email', name: 'Sign-ups', expiresAt: new Date(Date.now() + 5 * HOUR).toISOString(), ended: false, stored: 0 })
+    Object.assign(DISSOLVE, { connected: true, email: 'you@example.com', plan: 'free', lastChecked: new Date().toISOString(), limits: FREE_LIMITS })
+    if (DISSOLVE.inboxes.length === 0) DISSOLVE.inboxes.push({ id: 'inb_preview', address: 'signup-7k2@dissolve.email', name: 'Sign-ups', expiresAt: new Date(Date.now() + 5 * HOUR).toISOString(), ended: false, stored: 0, extensions: { used: 1, limit: 1, canExtend: false, availableAt: null } })
     return dissolveCopy()
   },
   disconnect: (deleteMail: boolean): DissolveStatus => {
-    Object.assign(DISSOLVE, { connected: false, email: null, plan: null })
+    Object.assign(DISSOLVE, { connected: false, email: null, plan: null, limits: NO_LIMITS })
     if (deleteMail) DISSOLVE.inboxes = []
     return dissolveCopy()
   },
@@ -119,7 +122,7 @@ const dissolve = {
     return dissolveCopy()
   },
   create: (name?: string, domain?: string): DissolveInbox => {
-    const inbox: DissolveInbox = { id: `inb_${DISSOLVE.inboxes.length + 1}`, address: `${name ?? `new-${DISSOLVE.inboxes.length + 1}`}@${domain ?? 'dissolve.email'}`, name: name ?? null, expiresAt: new Date(Date.now() + 10 * 60_000).toISOString(), ended: false, stored: 0 }
+    const inbox: DissolveInbox = { id: `inb_${DISSOLVE.inboxes.length + 1}`, address: `${name ?? `new-${DISSOLVE.inboxes.length + 1}`}@${domain ?? 'dissolve.email'}`, name: name ?? null, expiresAt: new Date(Date.now() + 10 * 60_000).toISOString(), ended: false, stored: 0, extensions: null }
     DISSOLVE.inboxes.unshift(inbox)
     return { ...inbox }
   },

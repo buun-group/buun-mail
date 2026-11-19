@@ -6,7 +6,9 @@ import { burnDissolveInbox, dissolveStatus, extendDissolveInbox } from '../../ap
 import type { DissolveInbox, DissolveStatus, Place } from '../../api/types'
 import { IconAdd, IconBurn, IconCopy, IconExtend, IconTimer } from '../../icons'
 import { copyWithToast } from '../../lib/copy'
-import { DISSOLVE_WORKSPACE, formatTimeLeft, timeLeft } from '../../lib/dissolve'
+import { DISSOLVE_WORKSPACE, formatTimeLeft, readMeter, timeLeft } from '../../lib/dissolve'
+import { formatListed } from '../../lib/time'
+import { TipButton } from '../Tooltip/TipButton'
 import { toast } from '../../lib/feedback'
 import { Confirm } from '../Confirm/Confirm'
 import type { Confirmation } from '../Confirm/Confirm'
@@ -55,7 +57,18 @@ export function DissolveBar({ place, onOpen }: { place: Place; onOpen: (place: P
   if (inbox === undefined) {
     return (
       <div className="dissolve-bar">
-        <p className="dissolve-bar__info">{status.connected ? t('dissolve.account', { email: status.email ?? '', count: status.inboxes.filter((item) => !item.ended).length }) : t('dissolve.notConnected')}</p>
+        <p className="dissolve-bar__info">
+          {status.connected ? (
+            <>
+              <span>{status.email ?? ''}</span>
+              <span className="dissolve-bar__usage" data-full={readMeter(status.limits.inboxes).full || readMeter(status.limits.hourlyCreations).full}>
+                {t('dissolve.usage', { inboxes: readMeter(status.limits.inboxes).value, hourly: readMeter(status.limits.hourlyCreations).value })}
+              </span>
+            </>
+          ) : (
+            t('dissolve.notConnected')
+          )}
+        </p>
         {status.connected && (
           <button type="button" className="dissolve-bar__button" aria-expanded={making !== null} onClick={(event) => setMaking(event.currentTarget)}>
             <IconAdd aria-hidden="true" />
@@ -68,6 +81,15 @@ export function DissolveBar({ place, onOpen }: { place: Place; onOpen: (place: P
   }
 
   const left = timeLeft(inbox.expiresAt, now)
+  const extensions = inbox.extensions
+  const plan = status.limits.plan ?? ''
+  // Why Extend is off, when dissolve.email has said: none left, or not yet.
+  const extendBlocked =
+    extensions?.canExtend === false
+      ? extensions.availableAt !== null && Date.parse(extensions.availableAt) > now
+        ? t('dissolve.extendFrom', { time: formatListed(extensions.availableAt) })
+        : t('dissolve.extendUsed', { used: extensions.used ?? 0, limit: extensions.limit ?? 0, plan })
+      : null
   const extend = (): void => {
     setBusy(true)
     extendDissolveInbox(inbox.id)
@@ -104,11 +126,12 @@ export function DissolveBar({ place, onOpen }: { place: Place; onOpen: (place: P
         <IconTimer aria-hidden="true" />
         {inbox.ended ? t('dissolve.endedKept') : formatTimeLeft(left)}
       </span>
+      {extensions?.used != null && extensions.limit !== null && <span className="dissolve-bar__count">{t('dissolve.extensionsCount', { used: extensions.used, limit: extensions.limit })}</span>}
       {!inbox.ended && status.connected && (
-        <button type="button" className="dissolve-bar__button" disabled={busy} onClick={extend}>
+        <TipButton tip={extendBlocked} className="dissolve-bar__button" aria-disabled={extendBlocked !== null || busy || undefined} onClick={extendBlocked === null && !busy ? extend : undefined}>
           <IconExtend aria-hidden="true" />
           {t('dissolve.extend')}
-        </button>
+        </TipButton>
       )}
       <button type="button" className="dissolve-bar__button dissolve-bar__button--danger" disabled={busy} onClick={burn}>
         <IconBurn aria-hidden="true" />

@@ -27,6 +27,8 @@ struct Fake {
     polls: usize,
     /// Inboxes deleted.
     deleted: Vec<String>,
+    /// The free plan's hourly creations are used up.
+    hourly_full: bool,
 }
 
 fn source(id: &str, to: &str) -> String {
@@ -49,6 +51,21 @@ fn metadata(issuer: &str) -> Value {
 /// Two domains, the default listed second.
 fn domains() -> Value {
     json!({ "domains": [{ "id": "d-0", "domain": "other.test", "isDefault": false }, { "id": "d-1", "domain": "dissolve.test", "isDefault": true }], "defaultDomain": "dissolve.test" })
+}
+
+/// A free account and its plan's limits.
+fn free_plan() -> Value {
+    json!({ "id": "usr_1", "email": "me@example.com", "plan": "free", "limits": { "maxInboxes": 3, "inboxDurationMinutes": 10, "customInboxNames": false, "requestsPerMinute": 30, "hourlyCreations": 5, "maxExtensions": 1 } })
+}
+
+/// The refusal once the hour's new inboxes are used up.
+fn hourly_refusal() -> Value {
+    json!({ "error": "HOURLY_LIMIT_EXCEEDED", "message": "You've reached your limit of 5 new inboxes an hour on the free plan.", "limit": 5, "used": 5, "resetAt": "2099-01-01T00:00:00.000Z" })
+}
+
+/// The refusal once an inbox's extensions are used up.
+fn extension_refusal() -> Value {
+    json!({ "error": "EXTENSION_LIMIT_REACHED", "message": "The free plan allows 1 extension.", "limit": 1, "current": 1 })
 }
 
 /// Starts the fake server; returns its address and its state.
@@ -95,7 +112,9 @@ fn fake_server() -> (String, Arc<Mutex<Fake>>) {
                 }
                 ("POST", ["oauth", "revoke"]) => json_response(200, &json!({})),
                 _ if !authorized => json_response(401, &json!({ "message": "Unauthorized" })),
-                ("GET", ["v1", "me"]) => json_response(200, &json!({ "id": "usr_1", "email": "me@example.com", "plan": "pro" })),
+                ("GET", ["v1", "me"]) => json_response(200, &free_plan()),
+                ("POST", ["v1", "inboxes"]) if fake.hourly_full => json_response(429, &hourly_refusal()),
+                ("POST", ["v1", "inboxes", "inb_a", "extend"]) if fake.hourly_full => json_response(403, &extension_refusal()),
                 ("GET", ["v1", "inboxes"]) => json_response(
                     200,
                     &Value::Array(
@@ -207,7 +226,7 @@ fn connects_through_the_browser_and_files_each_inbox_in_its_folder() {
     let setup = setup();
     let service = connected(&setup);
     let status = service.status().unwrap_or_else(|error| unreachable!("{error}"));
-    assert_eq!((status.email.as_deref(), status.plan.as_deref()), (Some("me@example.com"), Some("pro")));
+    assert_eq!((status.email.as_deref(), status.plan.as_deref()), (Some("me@example.com"), Some("free")));
     assert_eq!(status.inboxes.first().map(|inbox| (inbox.address.as_str(), inbox.stored)), Some(("signup@dissolve.test", 2)));
 
     let mut subjects = folder_of(&setup, "signup@dissolve.test");
@@ -301,4 +320,29 @@ fn refuses_a_decline_a_forged_answer_and_plain_text_servers() {
     assert!(forged.connect(Some(&setup.base)).is_err_and(|error| error.contains("did not match")));
     assert!(declined.connect(Some("http://dissolve.example")).is_err_and(|error| error.contains("https")));
     assert!(declined.status().is_ok_and(|status| !status.connected));
+}
+
+#[test]
+fn shows_the_plan_limits_and_records_the_ones_it_hits() {
+    let setup = setup();
+    let service = connected(&setup);
+    let limits = service.status().unwrap_or_else(|error| unreachable!("{error}")).limits;
+    assert_eq!(limits.plan.as_deref(), Some("free"));
+    assert_eq!((limits.inboxes.used, limits.inboxes.limit), (Some(1), Some(3)));
+    assert_eq!((limits.hourly_creations.used, limits.hourly_creations.limit), (None, Some(5)));
+    assert_eq!((limits.inbox_minutes, limits.extensions_per_inbox, limits.custom_names), (Some(10), Some(1), Some(false)));
+    assert!(limits.requests.used.is_some_and(|used| used > 0) && limits.requests.limit == Some(30));
+    assert_eq!((limits.message_checks.used, limits.message_checks.limit), (Some(4), Some(5)));
+
+    if let Ok(mut fake) = setup.fake.lock() {
+        fake.hourly_full = true;
+    }
+    // The hourly limit reads as dissolve.email said it, not as slow down, and its count shows.
+    assert_eq!(service.create_inbox(None, None).err().as_deref(), Some("You've reached your limit of 5 new inboxes an hour on the free plan."));
+    let hourly = service.status().map(|status| status.limits.hourly_creations).unwrap_or_default();
+    assert_eq!((hourly.used, hourly.limit, hourly.reset_at.as_deref()), (Some(5), Some(5), Some("2099-01-01T00:00:00.000Z")));
+
+    assert_eq!(service.extend_inbox("inb_a").err().as_deref(), Some("The free plan allows 1 extension."));
+    let extensions = service.status().ok().and_then(|status| status.inboxes.into_iter().find(|inbox| inbox.id == "inb_a")).and_then(|inbox| inbox.extensions);
+    assert_eq!(extensions.map(|found| (found.used, found.limit, found.can_extend)), Some((Some(1), Some(1), Some(false))));
 }

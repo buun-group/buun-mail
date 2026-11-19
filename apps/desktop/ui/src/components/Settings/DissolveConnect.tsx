@@ -9,6 +9,7 @@ import { toast } from '../../lib/feedback'
 import { formatFull } from '../../lib/time'
 import { Confirm } from '../Confirm/Confirm'
 import type { Confirmation } from '../Confirm/Confirm'
+import { Limits } from '../Dissolve/Limits'
 import { reason } from './SenderCard'
 import { Switch } from './Switch'
 
@@ -100,6 +101,7 @@ export function DissolveConnect({ onChanged, onConnected }: { onChanged: () => v
             {status.problem}
           </p>
         )}
+        <Limits limits={status.limits} />
         <div className="settings__row">
           <div>
             <p id="dissolve-keep-label" className="settings__label">

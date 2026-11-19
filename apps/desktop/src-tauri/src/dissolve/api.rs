@@ -2,7 +2,7 @@
 
 use std::time::Duration;
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value, json};
 use thiserror::Error;
 use ureq::Agent;
@@ -30,9 +30,59 @@ pub enum ApiError {
     /// No account is connected.
     #[error("dissolve.email is not connected")]
     NotConnected,
+    /// A plan limit was reached, in the server's words, with the count it reported.
+    #[error("{message}")]
+    Limited {
+        /// What the server said.
+        message: String,
+        /// The count, limit and reset it reported.
+        meter: Meter,
+    },
     /// The server refused, in its own words, such as a plan limit.
     #[error("{0}")]
     Refused(String),
+}
+
+/// A count against a limit. A negative limit means unlimited; `None` means not reported.
+#[derive(Debug, Clone, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase", default)]
+pub struct Meter {
+    /// How many are used.
+    pub used: Option<i64>,
+    /// How many the plan allows.
+    pub limit: Option<i64>,
+    /// When the count starts again, RFC 3339.
+    pub reset_at: Option<String>,
+}
+
+/// What the plan allows, as `/v1/me` reports it. Fields the server does not send yet stay `None`.
+#[derive(Debug, Clone, Default, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase", default)]
+pub struct Limits {
+    /// Live inboxes at once.
+    pub max_inboxes: Option<i64>,
+    /// How long a new inbox lasts.
+    pub inbox_duration_minutes: Option<i64>,
+    /// Whether the name before the @ can be chosen.
+    pub custom_inbox_names: Option<bool>,
+    /// API calls a minute for this sign-in.
+    pub requests_per_minute: Option<i64>,
+    /// New inboxes an hour; negative for unlimited.
+    pub hourly_creations: Option<i64>,
+    /// Extensions per inbox; negative for unlimited.
+    pub max_extensions: Option<i64>,
+    /// The longest an inbox can live, extensions included.
+    pub max_total_lifetime_minutes: Option<i64>,
+}
+
+/// What has been used, when `/v1/me` reports it.
+#[derive(Debug, Clone, Default, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase", default)]
+pub struct Usage {
+    /// New inboxes this hour.
+    pub hourly_creations: Option<Meter>,
+    /// API calls this minute.
+    pub requests: Option<Meter>,
 }
 
 /// The signed-in account.
@@ -45,6 +95,12 @@ pub struct Me {
     pub email: Option<String>,
     /// `free`, `pro`, `business` and so on.
     pub plan: String,
+    /// What the plan allows.
+    #[serde(default)]
+    pub limits: Limits,
+    /// What has been used.
+    #[serde(default)]
+    pub usage: Usage,
 }
 
 /// One inbox.
@@ -60,6 +116,18 @@ pub struct RemoteInbox {
     pub custom_name: Option<String>,
     /// When it ends, RFC 3339.
     pub expires_at: String,
+    /// Extensions used, when reported.
+    #[serde(default)]
+    pub extension_count: Option<i64>,
+    /// Extensions allowed, `None` for unlimited or not reported.
+    #[serde(default)]
+    pub max_extensions: Option<i64>,
+    /// Whether it can be extended again, when reported.
+    #[serde(default)]
+    pub can_extend: Option<bool>,
+    /// When it can next be extended, when reported.
+    #[serde(default)]
+    pub extend_available_at: Option<String>,
 }
 
 /// One message as listed.
@@ -103,10 +171,16 @@ struct Domains {
     domains: Vec<RemoteDomain>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Default)]
+#[serde(rename_all = "camelCase", default)]
 struct Refusal {
     message: Option<String>,
     error: Option<String>,
+    limit: Option<i64>,
+    used: Option<i64>,
+    current: Option<i64>,
+    reset_at: Option<String>,
+    available_at: Option<String>,
 }
 
 /// A client for one server and access token.
@@ -234,6 +308,18 @@ impl Api {
     }
 }
 
+/// What a refusal means: a plan limit with its count, a plain refusal, or slow down.
+fn refusal_of(status: u16, refusal: Refusal) -> ApiError {
+    let reported = refusal.limit.is_some() || refusal.available_at.is_some() || refusal.reset_at.is_some();
+    let words = refusal.message.clone().or_else(|| refusal.error.clone()).unwrap_or_else(|| format!("dissolve.email answered HTTP {status}"));
+    if reported && refusal.error.is_some() {
+        let meter = Meter { used: refusal.used.or(refusal.current), limit: refusal.limit, reset_at: refusal.reset_at.or(refusal.available_at) };
+        return ApiError::Limited { message: words, meter };
+    }
+    // Any other 429 is the per-minute rate: wait and try again.
+    if status == 429 { ApiError::Slow } else { ApiError::Refused(words) }
+}
+
 /// An id safe in a path: anything but letters, digits, `-` and `_` is dropped, so an id can never reach another route.
 fn segment(id: &str) -> String {
     id.chars().filter(|character| character.is_ascii_alphanumeric() || matches!(character, '-' | '_')).collect()
@@ -252,15 +338,6 @@ fn checked(response: Result<ureq::http::Response<ureq::Body>, ureq::Error>) -> R
         200..=299 => Ok(response),
         401 => Err(ApiError::Unauthorized),
         404 | 410 => Err(ApiError::Gone),
-        _ => {
-            let refusal = response.body_mut().read_json::<Refusal>().ok();
-            // Too early to extend is a refusal worth reading; any other 429 means slow down.
-            if status == 429 && refusal.as_ref().and_then(|refusal| refusal.error.as_deref()) != Some("EXTEND_TOO_EARLY") {
-                return Err(ApiError::Slow);
-            }
-            Err(ApiError::Refused(
-                refusal.and_then(|refusal| refusal.message.or(refusal.error)).unwrap_or_else(|| format!("dissolve.email answered HTTP {status}")),
-            ))
-        }
+        _ => Err(refusal_of(status, response.body_mut().read_json::<Refusal>().unwrap_or_default())),
     }
 }
