@@ -29,6 +29,7 @@ import { copyText } from '../../lib/clipboard'
 import { ContextMenu } from '../ContextMenu/ContextMenu'
 import type { MenuItem, MenuRequest } from '../ContextMenu/ContextMenu'
 import { BuunFooter } from '../BuunFooter/BuunFooter'
+import { TipButton } from '../Tooltip/TipButton'
 import { WorkspaceIcon } from '../WorkspaceIcon/WorkspaceIcon'
 
 import './Sidebar.css'
@@ -131,22 +132,21 @@ export function Sidebar({ workspaces, place, theme, themePreference, onThemePref
             <span className="sidebar__text">Buun Mail</span>
           </span>
           <span className="sidebar__tools">
-            <button
-              type="button"
+            <TipButton
               className="sidebar__icon sidebar__tool"
               onClick={() => onThemePreference(upcoming)}
               aria-label={`Theme: ${THEME_NAMES[themePreference]}. Switch to ${THEME_NAMES[upcoming]}`}
-              data-tip={THEME_NAMES[themePreference]}
+              tip={`${THEME_NAMES[themePreference]} theme`}
             >
               <ThemeGlyph aria-hidden="true" />
-            </button>
-            <button type="button" className="sidebar__icon sidebar__tool" onClick={onSettings} aria-label="Settings" data-tip="Settings">
+            </TipButton>
+            <TipButton className="sidebar__icon sidebar__tool" onClick={onSettings} aria-label="Settings" tip="Settings">
               <IconSettings aria-hidden="true" />
-            </button>
-            <button
-              type="button"
+            </TipButton>
+            <TipButton
               className="sidebar__icon"
-              data-tip={collapsed ? 'Keep open' : 'Collapse'}
+              tip={collapsed ? 'Keep the sidebar open' : 'Collapse the sidebar'}
+              side={collapsed ? 'right' : 'below'}
               aria-pressed={collapsed}
               aria-label={collapsed ? 'Keep the sidebar open' : 'Collapse the sidebar'}
               onClick={() => {
@@ -155,7 +155,7 @@ export function Sidebar({ workspaces, place, theme, themePreference, onThemePref
               }}
             >
               <IconSidebar aria-hidden="true" />
-            </button>
+            </TipButton>
           </span>
           <button type="button" className="sidebar__compose" disabled aria-label="Compose">
             <IconCompose aria-hidden="true" />
@@ -167,8 +167,9 @@ export function Sidebar({ workspaces, place, theme, themePreference, onThemePref
           {workspaces.map((workspace) => (
             <section key={workspace.id} className="sidebar__workspace" aria-labelledby={`ws-${workspace.id}`}>
               <h2 id={`ws-${workspace.id}`} className="sidebar__heading">
-                <button
-                  type="button"
+                <TipButton
+                  tip={rail ? workspace.name : null}
+                  side="right"
                   className="sidebar__workspace-name"
                   aria-expanded={!folded.has(workspace.id)}
                   aria-label={rail ? workspace.name : undefined}
@@ -181,7 +182,7 @@ export function Sidebar({ workspaces, place, theme, themePreference, onThemePref
                   {workspace.id === UNSORTED_WORKSPACE ? <IconUnsorted aria-hidden="true" className="sidebar__unsorted" /> : <WorkspaceIcon name={workspace.name} icon={workspace.icon} theme={theme} look={looks[workspace.id]} />}
                   <span className="sidebar__text sidebar__workspace-label">{workspace.name}</span>
                   <IconCaretDown aria-hidden="true" className="sidebar__fold sidebar__text" />
-                </button>
+                </TipButton>
               </h2>
               <ul hidden={folded.has(workspace.id)}>
                 {workspace.folders.map((folder) => {
@@ -191,8 +192,9 @@ export function Sidebar({ workspaces, place, theme, themePreference, onThemePref
                   const label = folder.name ?? INBOX_LABEL
                   return (
                     <li key={label}>
-                      <button
-                        type="button"
+                      <TipButton
+                        tip={rail ? `${workspace.name}, ${label}` : null}
+                        side="right"
                         className="sidebar__folder"
                         aria-current={current ? 'page' : undefined}
                         aria-label={rail ? `${workspace.name}, ${label}${folder.unread > 0 ? `, ${folder.unread} unread` : ''}` : undefined}
@@ -210,7 +212,7 @@ export function Sidebar({ workspaces, place, theme, themePreference, onThemePref
                             <span className="visually-hidden"> unread</span>
                           </span>
                         )}
-                      </button>
+                      </TipButton>
                     </li>
                   )
                 })}

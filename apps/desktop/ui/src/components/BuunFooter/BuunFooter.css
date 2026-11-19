@@ -8,7 +8,6 @@
 }
 
 .buun-footer__group {
-  position: relative;
   display: grid;
   place-items: center;
   width: 1.875rem;
@@ -35,7 +34,6 @@
 }
 
 .buun-footer__mark {
-  position: relative;
   display: grid;
   place-items: center;
   width: 1.625rem;
@@ -61,34 +59,4 @@
 .buun-footer__mark:focus-visible img {
   filter: none;
   opacity: 1;
-}
-
-/* The name, shown above the mark on hover or focus: our own tip, never the browser's title. */
-.buun-footer__mark::after,
-.buun-footer__group::after {
-  content: attr(data-name);
-  position: absolute;
-  bottom: calc(100% + 6px);
-  right: 0;
-  padding: 2px var(--space-2);
-  border-radius: var(--radius-sm);
-  background: var(--action-primary);
-  color: var(--action-primary-text);
-  font-size: var(--text-xs);
-  white-space: nowrap;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity var(--duration-fast);
-}
-
-.buun-footer__mark:hover::after,
-.buun-footer__mark:focus-visible::after,
-.buun-footer__group:hover::after,
-.buun-footer__group:focus-visible::after {
-  opacity: 1;
-}
-
-.buun-footer__group::after {
-  right: auto;
-  left: 0;
 }
