@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 
 import { addGatewayDomain, gatewayAvailableDomains, gatewayDomains, removeGatewayDomain } from '../../api/client'
 import type { AvailableDomain, GatewayDomain } from '../../api/types'
+import { Select } from '../Select/Select'
 
 const reason = (error: unknown): string => (error instanceof Error ? error.message : String(error))
 
@@ -118,22 +119,17 @@ export function GatewayDomains({ gatewayId, onChanged }: { gatewayId: string; on
           <>
             <div className="connect__field">
               <label htmlFor={`gateway-domain-${gatewayId}`}>{t('domains.choose')}</label>
-              <select
+              <Select
                 id={`gateway-domain-${gatewayId}`}
-                className="settings__select"
+                className="select--wide"
                 value={picked}
-                onChange={(event) => {
-                  setPicked(event.target.value)
-                  setWorkspaceName(nameFor(event.target.value))
+                placeholder={t('domains.pick')}
+                options={available.map((zone) => ({ value: zone.domain, label: zone.domain, hint: zone.catchAllNow }))}
+                onChange={(domain) => {
+                  setPicked(domain)
+                  setWorkspaceName(nameFor(domain))
                 }}
-              >
-                <option value="">{t('domains.pick')}</option>
-                {available.map((zone) => (
-                  <option key={zone.domain} value={zone.domain}>
-                    {zone.domain}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
             {choice !== undefined && (
               <>

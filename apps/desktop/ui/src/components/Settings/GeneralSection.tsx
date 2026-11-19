@@ -8,6 +8,7 @@ import { Segmented } from './Segmented'
 import { Switch } from './Switch'
 import { LANGUAGES } from '../../i18n/languages'
 import type { LanguagePreference } from '../../i18n/languages'
+import { Select } from '../Select/Select'
 
 /** Look and feel, saved on this computer. */
 export function GeneralSection({ preferences }: { preferences: Preferences }): ReactNode {
@@ -23,14 +24,12 @@ export function GeneralSection({ preferences }: { preferences: Preferences }): R
           </label>
           <p className="settings__hint">{t('language.hint')}</p>
         </div>
-        <select id="language" className="settings__select" value={preferences.language} onChange={(event) => preferences.setLanguage(event.target.value as LanguagePreference)}>
-          <option value="system">{t('language.system')}</option>
-          {LANGUAGES.map((language) => (
-            <option key={language.code} value={language.code}>
-              {language.name}
-            </option>
-          ))}
-        </select>
+        <Select
+          id="language"
+          value={preferences.language}
+          options={[{ value: 'system', label: t('language.system') }, ...LANGUAGES.map((language) => ({ value: language.code, label: language.name }))]}
+          onChange={(language) => preferences.setLanguage(language as LanguagePreference)}
+        />
       </div>
       <div className="settings__row">
         <div>

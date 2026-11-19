@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import type { Rule, RuleAction, Workspace } from '../../api/types'
+import { Select } from '../Select/Select'
 
 interface RuleEditorProps {
   /** The rule to edit, or null for a new one. */
@@ -62,14 +63,7 @@ export function RuleEditor({ rule, workspaces, onSave, onCancel }: RuleEditorPro
   const workspacePicker = (id: string, label: string, value: string, set: (value: string) => void, anyLabel: string): ReactNode => (
     <div className="connect__field">
       <label htmlFor={id}>{label}</label>
-      <select id={id} value={value} onChange={(event) => set(event.target.value)}>
-        <option value="">{anyLabel}</option>
-        {workspaces.map((item) => (
-          <option key={item.id} value={item.id}>
-            {item.name}
-          </option>
-        ))}
-      </select>
+      <Select id={id} value={value} onChange={set} options={[{ value: '', label: anyLabel }, ...workspaces.map((item) => ({ value: item.id, label: item.name }))]} />
     </div>
   )
 

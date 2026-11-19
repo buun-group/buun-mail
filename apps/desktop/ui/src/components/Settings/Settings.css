@@ -739,16 +739,6 @@ label.settings__label {
   color: var(--text-muted);
 }
 
-.settings__select {
-  height: 2.25rem;
-  min-width: 10rem;
-  padding: 0 var(--space-2);
-  border: 0;
-  border-radius: var(--radius-md);
-  background: var(--surface-card);
-  box-shadow: var(--shadow-well);
-}
-
 .gateway-domains {
   display: grid;
   gap: var(--space-2);

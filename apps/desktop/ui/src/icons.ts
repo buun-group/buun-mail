@@ -84,6 +84,7 @@ export {
   PiCopyLight as IconCopy,
   PiPencilSimpleLight as IconRename,
   PiCaretDownLight as IconCaretDown,
+  PiCheckLight as IconCheck,
   PiEnvelopeOpenLight as IconMarkRead,
 } from 'react-icons/pi'
 
