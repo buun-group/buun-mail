@@ -1,5 +1,6 @@
-import { useEffect, useLayoutEffect, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 
 import { Mark } from '@buun-mail/brand/react'
@@ -11,8 +12,11 @@ import type { Feedback, FeedbackTone } from '../../lib/feedback'
 
 import './Toasts.css'
 
-/** The top layer, where the engine has it (older WebKitGTK and jsdom do not); without it the stack is a fixed layer. */
-const TOP_LAYER = typeof HTMLElement !== 'undefined' && typeof HTMLElement.prototype.showPopover === 'function'
+/** The newest open modal dialog, which sits above the page, or the page itself when none is open. */
+function topmost(): HTMLElement {
+  const open = [...document.querySelectorAll<HTMLDialogElement>('dialog[open]')]
+  return open.at(-1) ?? document.body
+}
 
 const TONE_GLYPHS = { done: IconDone, info: IconInfo, problem: IconProblem } as const satisfies Record<FeedbackTone, unknown>
 
@@ -25,37 +29,23 @@ interface ToastsProps {
 
 /**
  * The bottom right corner: new mail while the window is in front, and what just happened (archived, copied, a gateway
- * checked). Each leaves on its own with a short animation. The stack sits in the top layer, so it shows over settings.
+ * checked). Each leaves on its own with a short animation. While a dialog such as Settings is open the stack renders
+ * inside it, so it shows above the dialog and can be clicked, in every engine.
  */
 export function Toasts({ toasts, workspaceName, onOpen, onDismiss }: ToastsProps): ReactNode {
   const { t } = useTranslation('notifications')
   const feedback = useFeedback()
-  const stack = useRef<HTMLElement | null>(null)
-  const count = toasts.length + feedback.length
+  const [host, setHost] = useState<HTMLElement>(topmost)
 
-  // In the top layer the newest entry wins, so the stack is shown again whenever it changes or a dialog opens.
-  const front = useRef(() => {})
-  useLayoutEffect(() => {
-    front.current = () => {
-      const element = stack.current
-      if (element === null || !TOP_LAYER) return
-      if (element.matches(':popover-open')) element.hidePopover()
-      if (count > 0) element.showPopover()
-    }
-    front.current()
-  }, [count])
-
+  // Follows dialogs opening and closing, so the stack always renders in the one on top.
   useEffect(() => {
-    if (!TOP_LAYER) return
-    const watcher = new MutationObserver((changes) => {
-      if (changes.some((change) => change.target instanceof HTMLDialogElement && change.target.open)) front.current()
-    })
+    const watcher = new MutationObserver(() => setHost(topmost()))
     watcher.observe(document.body, { attributes: true, attributeFilter: ['open'], subtree: true })
     return () => watcher.disconnect()
   }, [])
 
-  return (
-    <section ref={stack} className="toasts" popover={TOP_LAYER ? 'manual' : undefined} aria-live="polite" aria-label={t('toasts.label')}>
+  return createPortal(
+    <section className="toasts" aria-live="polite" aria-label={t('toasts.label')}>
       {toasts.map((message) => (
         <div key={message.id} className="toast">
           <button
@@ -83,7 +73,8 @@ export function Toasts({ toasts, workspaceName, onOpen, onDismiss }: ToastsProps
       {feedback.map((item) => (
         <FeedbackToast key={item.id} item={item} undoLabel={t('toasts.undo')} dismissLabel={t('toasts.dismiss')} />
       ))}
-    </section>
+    </section>,
+    host,
   )
 }
 

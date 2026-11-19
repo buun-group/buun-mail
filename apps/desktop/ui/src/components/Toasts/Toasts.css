@@ -1,6 +1,6 @@
 .toasts {
-  /* Every side is set on its own: some engines give a popover top and left of 0, which would stretch the stack and
-     every toast in it to the window's height. Rows are only as tall as their toast and gather at the bottom. */
+  /* Every side is set on its own, and rows are only as tall as their toast and gather at the bottom, so nothing can
+     stretch a toast to the window's height, inside a dialog or out. */
   position: fixed;
   top: auto;
   right: var(--space-4);
@@ -86,11 +86,6 @@
 
 .toasts:empty {
   display: none;
-}
-
-/* A popover is hidden until shown; this stack is shown whenever it holds a toast. */
-.toasts[popover]:not(:popover-open):not(:empty) {
-  display: grid;
 }
 
 .toast--feedback {
