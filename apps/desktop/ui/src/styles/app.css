@@ -1,6 +1,7 @@
 .app {
   display: grid;
   grid-template-columns: var(--sidebar-width) var(--list-width) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
   height: 100%;
   overflow: hidden;
   isolation: isolate;
@@ -22,8 +23,9 @@
   color: var(--text-primary);
 }
 
-/* The panes sit over the under-grain. */
-.app > :not(.grain) {
+/* The three panes sit over the under-grain. Only the panes: the splash, the dialog and the grain are fixed layers and
+   must not join the grid. */
+.app > :is(.sidebar-slot, .message-list, .reader) {
   position: relative;
   z-index: 1;
 }
