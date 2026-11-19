@@ -3,15 +3,17 @@ import type { IconType } from 'react-icons'
 import { useTranslation } from 'react-i18next'
 import { isTauri as isDesktop } from '@tauri-apps/api/core'
 
-import { deleteMessagesForever, emptyTrash, exportMessages, moveMessage, setMessagesStarred, setMessagesUnread, shelveMessages } from '../api/client'
+import { deleteMessagesForever, emptyTrash, exportMessages, moveMessage, setMessagesStarred, setMessagesUnread, shelveMessages, snoozeMessages } from '../api/client'
 import type { Message, Place, Shelf } from '../api/types'
 import type { Confirmation } from '../components/Confirm/Confirm'
 import type { MenuItem } from '../components/ContextMenu/ContextMenu'
 import { INBOX_LABEL } from '../constants/ui'
 import type { ComposeMode } from '../lib/compose'
 import type { ExportFormat } from '../constants/ui'
-import { IconArchive, IconCopy, IconExport, IconForward, IconReply, IconReplyAll, IconDelete, IconFolder, IconInbox, IconMarkRead, IconPutBack, IconStar, IconStarred } from '../icons'
+import { IconArchive, IconCopy, IconExport, IconSnooze, IconForward, IconReply, IconReplyAll, IconDelete, IconFolder, IconInbox, IconMarkRead, IconPutBack, IconStar, IconStarred } from '../icons'
 import { copyWithToast } from '../lib/copy'
+import { snoozeTime } from '../lib/snooze'
+import { formatFull } from '../lib/time'
 import { toast } from '../lib/feedback'
 import type { Mailbox } from './useMailbox'
 
@@ -28,6 +30,8 @@ export interface MessageActions {
   deleteForever: (message: Message) => void
   /** Asks first, then empties the trash. */
   emptyTrash: (count: number) => void
+  /** Snoozes messages until `until`, or wakes them now with null, with Undo. */
+  snooze: (messages: Message[], until: Date | null) => void
   /** Asks where, then saves the message as `format`. */
   exportAs: (message: Message, format: ExportFormat) => void
   /** The same changes for several messages at once, from the list's selection. */
@@ -168,6 +172,24 @@ export function useMessageActions(mailbox: Mailbox, workspaceName: (id: string) 
       .catch((error: unknown) => toast({ text: t('export.failed'), detail: reason(error), tone: 'problem' }))
   }
 
+  const snooze = (messages: Message[], until: Date | null): void => {
+    const first = messages[0]
+    if (first === undefined) return
+    const ids = messages.map((message) => message.id)
+    if (until !== null && mailbox.view !== 'snoozed' && messages.some((message) => message.id === mailbox.selected?.message.id)) mailbox.stepPast(first.id)
+    snoozeMessages(ids, until)
+      .then(() => {
+        mailbox.refresh()
+        const words = until === null ? t('snooze.woken', { count: ids.length }) : t('snooze.snoozed', { count: ids.length, when: formatFull(until.toISOString()) })
+        say(words, IconSnooze, () => {
+          Promise.all(messages.map((message) => snoozeMessages([message.id], message.snoozedUntil === null ? null : new Date(message.snoozedUntil))))
+            .then(mailbox.refresh)
+            .catch(fail)
+        })
+      })
+      .catch(fail)
+  }
+
   const bulk: BulkActions = {
     shelve: (messages, shelf) => {
       const ids = messages.map((message) => message.id)
@@ -252,6 +274,12 @@ export function useMessageActions(mailbox: Mailbox, workspaceName: (id: string) 
       { id: 'read', label: message.unread ? t('actions.markRead') : t('actions.markUnread'), glyph: message.unread ? IconMarkRead : IconInbox, onSelect: () => toggleRead(message) },
       { id: 'star', label: message.starred ? t('actions.unstar') : t('actions.star'), glyph: message.starred ? IconStarred : IconStar, onSelect: () => toggleStar(message) },
       ...reply,
+      ...(message.snoozedUntil === null
+        ? [
+            { id: 'snooze-tomorrow', label: t('snooze.menuTomorrow'), glyph: IconSnooze, onSelect: () => snooze([message], snoozeTime('tomorrow')), separated: true },
+            { id: 'snooze-week', label: t('snooze.menuNextWeek'), glyph: IconSnooze, onSelect: () => snooze([message], snoozeTime('nextWeek')) },
+          ]
+        : [{ id: 'wake', label: t('snooze.wake'), glyph: IconSnooze, onSelect: () => snooze([message], null), separated: true }]),
     ]
     const copy: MenuItem[] = [
       { id: 'copy-sender', label: t('actions.copySender'), glyph: IconCopy, onSelect: () => void copyWithToast(message.from), separated: true },
@@ -286,5 +314,5 @@ export function useMessageActions(mailbox: Mailbox, workspaceName: (id: string) 
     ]
   }
 
-  return { menu, toggleRead, toggleStar, archive, trash, putBack, move, deleteForever, emptyTrash: confirmEmptyTrash, exportAs, bulk, confirmation, closeConfirmation }
+  return { menu, toggleRead, toggleStar, archive, trash, putBack, move, deleteForever, emptyTrash: confirmEmptyTrash, exportAs, snooze, bulk, confirmation, closeConfirmation }
 }

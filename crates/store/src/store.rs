@@ -17,7 +17,7 @@ const INDEX_FILE: &str = "index.sqlite";
 const RAW_DIR: &str = "raw";
 
 /// Every column of a message row, in the order [`record_from_row`] reads them. Tags come last, joined with [`TAG_SEPARATOR`].
-const COLUMNS: &str = "id, workspace, folder, matched, folder_matched, from_name, from_address, to_address, subject, preview, sent_at, message_id, unread, starred, shelf, thread_id, \
+const COLUMNS: &str = "id, workspace, folder, matched, folder_matched, from_name, from_address, to_address, subject, preview, sent_at, message_id, unread, starred, shelf, thread_id, snoozed_until, \
     (SELECT COUNT(*) FROM messages AS thread WHERE thread.thread_id = messages.thread_id AND thread.shelf != 'trashed'), \
     (SELECT group_concat(tag, char(31)) FROM (SELECT tag FROM tags WHERE tags.message_id = messages.id ORDER BY tag))";
 
@@ -109,9 +109,9 @@ impl Store {
     ///
     /// [`StoreError`] when the index cannot be read.
     pub fn list(&self, placement: &Placement) -> Result<Vec<MessageRecord>, StoreError> {
-        let mut statement = self
-            .index
-            .prepare_cached(&format!("SELECT {COLUMNS} FROM messages WHERE workspace = ?1 AND folder IS ?2 AND shelf = 'active' ORDER BY sent_at DESC"))?;
+        let mut statement = self.index.prepare_cached(&format!(
+            "SELECT {COLUMNS} FROM messages WHERE workspace = ?1 AND folder IS ?2 AND shelf = 'active' AND snoozed_until IS NULL ORDER BY sent_at DESC"
+        ))?;
         let rows = statement.query_map(params![placement.workspace, placement.folder], record_from_row)?;
         Ok(rows.collect::<rusqlite::Result<_>>()?)
     }
@@ -143,8 +143,9 @@ impl Store {
     ///
     /// [`StoreError`] when the index cannot be read.
     pub fn unread_counts(&self) -> Result<Vec<UnreadCount>, StoreError> {
-        let mut statement =
-            self.index.prepare_cached("SELECT workspace, folder, COUNT(*) FROM messages WHERE unread = 1 AND shelf = 'active' GROUP BY workspace, folder")?;
+        let mut statement = self.index.prepare_cached(
+            "SELECT workspace, folder, COUNT(*) FROM messages WHERE unread = 1 AND shelf = 'active' AND snoozed_until IS NULL GROUP BY workspace, folder",
+        )?;
         let rows =
             statement.query_map([], |row| Ok(UnreadCount { placement: Placement { workspace: row.get(0)?, folder: row.get(1)? }, unread: row.get(2)? }))?;
         Ok(rows.collect::<rusqlite::Result<_>>()?)
@@ -263,9 +264,10 @@ impl Store {
     /// [`StoreError`] when the index cannot be read.
     pub fn view(&self, view: View) -> Result<Vec<MessageRecord>, StoreError> {
         let filter = match view {
-            View::Starred => "starred = 1 AND shelf != 'trashed' ORDER BY sent_at DESC",
+            View::Starred => "starred = 1 AND shelf != 'trashed' AND snoozed_until IS NULL ORDER BY sent_at DESC",
             View::Archived => "shelf = 'archived' ORDER BY shelved_at DESC, sent_at DESC",
             View::Trashed => "shelf = 'trashed' ORDER BY shelved_at DESC, sent_at DESC",
+            View::Snoozed => "snoozed_until IS NOT NULL AND shelf != 'trashed' ORDER BY snoozed_until",
         };
         let mut statement = self.index.prepare_cached(&format!("SELECT {COLUMNS} FROM messages WHERE {filter}"))?;
         let rows = statement.query_map([], record_from_row)?;
@@ -298,6 +300,31 @@ impl Store {
     /// [`StoreError`] when the index cannot be written.
     pub fn set_shelf(&self, id: &str, to: Shelf, at: i64) -> Result<bool, StoreError> {
         Ok(self.index.execute("UPDATE messages SET shelf = ?2, shelved_at = ?3 WHERE id = ?1 AND shelf != ?2", params![id, to.as_str(), at])? == 1)
+    }
+
+    /// Snoozes one message until `until` (Unix seconds), or wakes it now with `None`. Returns false for an unknown id.
+    ///
+    /// # Errors
+    ///
+    /// [`StoreError`] when the index cannot be written.
+    pub fn set_snooze(&self, id: &str, until: Option<i64>) -> Result<bool, StoreError> {
+        Ok(self.index.execute("UPDATE messages SET snoozed_until = ?2 WHERE id = ?1", params![id, until])? == 1)
+    }
+
+    /// Wakes every message whose snooze has ended by `now`: it is back in its folder and unread. Returns their ids.
+    ///
+    /// # Errors
+    ///
+    /// [`StoreError`] when the index cannot be written.
+    pub fn wake_due(&self, now: i64) -> Result<Vec<String>, StoreError> {
+        let ids: Vec<String> = {
+            let mut statement = self.index.prepare_cached("SELECT id FROM messages WHERE snoozed_until IS NOT NULL AND snoozed_until <= ?1")?;
+            statement.query_map([now], |row| row.get(0))?.collect::<rusqlite::Result<_>>()?
+        };
+        for id in &ids {
+            self.index.execute("UPDATE messages SET snoozed_until = NULL, unread = 1 WHERE id = ?1", [id])?;
+        }
+        Ok(ids)
     }
 
     /// Deletes one message for good: its row, its tags and its bytes. Returns false when it did not exist.
@@ -529,7 +556,8 @@ fn record_from_row(row: &Row<'_>) -> rusqlite::Result<MessageRecord> {
         starred: row.get(13)?,
         shelf: Shelf::from_stored(&row.get::<_, String>(14)?),
         thread_id: row.get(15)?,
-        thread_size: row.get::<_, Option<u32>>(16)?.unwrap_or(1).max(1),
-        tags: row.get::<_, Option<String>>(17)?.map(|joined| joined.split(TAG_SEPARATOR).map(str::to_owned).collect()).unwrap_or_default(),
+        snoozed_until: row.get(16)?,
+        thread_size: row.get::<_, Option<u32>>(17)?.unwrap_or(1).max(1),
+        tags: row.get::<_, Option<String>>(18)?.map(|joined| joined.split(TAG_SEPARATOR).map(str::to_owned).collect()).unwrap_or_default(),
     })
 }

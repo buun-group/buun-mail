@@ -85,6 +85,7 @@ pub fn ingest(incoming: Incoming<'_>, router: &Router, rules: &[CheckedRule], st
         tags: outcome.tags.clone(),
         thread_id: None,
         thread_size: 1,
+        snoozed_until: None,
     };
     if store.insert(&record, incoming.raw)? == Inserted::Duplicate {
         return Ok(None);

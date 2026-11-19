@@ -301,3 +301,9 @@ pub fn thread_messages(mailbox: State<'_, Arc<Mailbox>>, thread_id: String) -> R
 pub fn search_all(mailbox: State<'_, Arc<Mailbox>>, query: String) -> Result<Vec<MessageDto>, AppError> {
     mailbox.search_all(&query)
 }
+
+/// Snoozes messages until `until` (Unix seconds), or wakes them now with none.
+#[tauri::command]
+pub fn snooze_messages(mailbox: State<'_, Arc<Mailbox>>, ids: Vec<String>, until: Option<i64>) -> Result<usize, AppError> {
+    mailbox.snooze(&ids, until, &Actor::You)
+}

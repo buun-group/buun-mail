@@ -261,3 +261,9 @@ export async function threadMessages(threadId: string): Promise<Message[]> {
 export async function searchAll(query: string): Promise<Message[]> {
   return isTauri() ? invoke<Message[]>(COMMANDS.searchAll, { query }) : preview.searchAll(query)
 }
+
+/** Snoozes messages until `until`, or wakes them now with null. Resolves to how many changed. */
+export async function snoozeMessages(ids: string[], until: Date | null): Promise<number> {
+  const seconds = until === null ? null : Math.floor(until.getTime() / 1000)
+  return isTauri() ? invoke<number>(COMMANDS.snoozeMessages, { ids, until: seconds }) : preview.change(ids, { snoozedUntil: until === null ? null : until.toISOString() }).length
+}

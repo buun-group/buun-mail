@@ -13,7 +13,8 @@
       "starred": "Nothing starred. Star a message to keep it here.",
       "archive": "Nothing archived. Archive a message to clear it from its folder and keep it here.",
       "trash": "The trash is empty. Mail here goes for good after 30 days.",
-      "drafts": ""
+      "drafts": "",
+      "snoozed": "Nothing snoozed. Snooze a message to hide it until a time you choose; it comes back unread."
     },
     "starredMark": "Starred",
     "emptyTrash": "Empty trash",
@@ -100,7 +101,8 @@
     "starred": "Starred",
     "archive": "Archive",
     "trash": "Trash",
-    "drafts": "Drafts"
+    "drafts": "Drafts",
+    "snoozed": "Snoozed"
   },
   "actions": {
     "menuLabel": "Actions for {{subject}}",
@@ -224,5 +226,23 @@
     "unstar": "Unstar",
     "moveTo": "Move to",
     "moveToFolder": "Move to {{folder}}"
+  },
+  "snooze": {
+    "button": "Snooze",
+    "label": "Snooze until",
+    "laterToday": "Later today",
+    "tomorrow": "Tomorrow",
+    "weekend": "This weekend",
+    "nextWeek": "Next week",
+    "pick": "A date and time",
+    "go": "Snooze",
+    "wake": "Unsnooze",
+    "snoozed_one": "Snoozed until {{when}}",
+    "snoozed_other": "{{count}} snoozed until {{when}}",
+    "woken_one": "Back in its folder",
+    "woken_other": "{{count}} back in their folders",
+    "until": "Until {{when}}",
+    "menuTomorrow": "Snooze until tomorrow",
+    "menuNextWeek": "Snooze until next week"
   }
 }

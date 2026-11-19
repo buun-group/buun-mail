@@ -71,6 +71,8 @@ pub struct MessageDto {
     pub thread_id: Option<String>,
     /// How many messages outside the trash share its conversation, itself included.
     pub thread_size: u32,
+    /// When it comes back from a snooze, RFC 3339; `None` when not snoozed.
+    pub snoozed_until: Option<String>,
     /// Tags, sorted.
     pub tags: Vec<String>,
 }
@@ -117,6 +119,8 @@ pub enum ViewDto {
     Archive,
     /// The trash.
     Trash,
+    /// Snoozed messages.
+    Snoozed,
 }
 
 impl From<ViewDto> for View {
@@ -125,6 +129,7 @@ impl From<ViewDto> for View {
             ViewDto::Starred => Self::Starred,
             ViewDto::Archive => Self::Archived,
             ViewDto::Trash => Self::Trashed,
+            ViewDto::Snoozed => Self::Snoozed,
         }
     }
 }
@@ -148,6 +153,7 @@ impl From<MessageRecord> for MessageDto {
             shelf: record.shelf.into(),
             thread_id: record.thread_id,
             thread_size: record.thread_size,
+            snoozed_until: record.snoozed_until.map(rfc3339),
             tags: record.tags,
         }
     }

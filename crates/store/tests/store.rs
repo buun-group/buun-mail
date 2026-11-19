@@ -25,6 +25,7 @@ fn record(id: &str, workspace: &str, folder: Option<&str>, sent_at: i64) -> Mess
         tags: Vec::new(),
         thread_id: None,
         thread_size: 1,
+        snoozed_until: None,
     }
 }
 
@@ -232,5 +233,21 @@ fn searches_subject_people_and_text_by_word_starts() -> Result<(), StoreError> {
     assert_eq!(store.search_text("friday", 10)?.len(), 0);
     store.delete("s1")?;
     assert_eq!(store.search_text("invoice", 10)?.len(), 0);
+    Ok(())
+}
+
+#[test]
+fn snoozes_out_of_the_folder_and_wakes_unread() -> Result<(), StoreError> {
+    let (_folder, store) = store()?;
+    store.insert(&record("z1", "acme", None, 10), b"z")?;
+    store.mark_read("z1")?;
+    assert!(store.set_snooze("z1", Some(1_000))?);
+    let inbox = placement("acme", None);
+    assert_eq!(store.list(&inbox)?.len(), 0);
+    assert_eq!(store.view(View::Snoozed)?.first().and_then(|record| record.snoozed_until), Some(1_000));
+    assert_eq!(store.wake_due(999)?.len(), 0);
+    assert_eq!(store.wake_due(1_000)?, vec!["z1".to_owned()]);
+    let back = store.list(&inbox)?;
+    assert_eq!(back.first().map(|record| (record.unread, record.snoozed_until)), Some((true, None)));
     Ok(())
 }

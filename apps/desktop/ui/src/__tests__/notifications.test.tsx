@@ -16,7 +16,7 @@ vi.mock('../api/events', () => ({
 const { App } = await import('../App')
 
 function mail(id: string, workspace: string): Message {
-  return { id, workspace, folder: null, fromName: `Sender ${id}`, from: 'a@b.com', to: 'x@y.com', matched: null, folderMatched: null, subject: `Subject ${id}`, preview: '', receivedAt: '2026-11-19T07:42:00Z', unread: true, starred: false, shelf: 'active', tags: [], threadId: null, threadSize: 1 }
+  return { id, workspace, folder: null, fromName: `Sender ${id}`, from: 'a@b.com', to: 'x@y.com', matched: null, folderMatched: null, subject: `Subject ${id}`, preview: '', receivedAt: '2026-11-19T07:42:00Z', unread: true, starred: false, shelf: 'active', tags: [], threadId: null, threadSize: 1, snoozedUntil: null }
 }
 
 beforeAll(() => {

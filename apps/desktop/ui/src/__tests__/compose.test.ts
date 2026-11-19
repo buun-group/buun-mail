@@ -5,7 +5,7 @@ import { forwardSubject, fromChoices, parseContact, quote, replyAllCc, replySubj
 
 const message: Message = {
   id: 'm1', workspace: 'flung', folder: null, fromName: 'A client', from: 'c@client.example', to: 'buun-mail@flung.dev', matched: '*@flung.dev', folderMatched: null,
-  subject: 'Quote', preview: '', receivedAt: '2026-11-19T07:42:00Z', unread: false, starred: false, shelf: 'active', tags: [], threadId: null, threadSize: 1,
+  subject: 'Quote', preview: '', receivedAt: '2026-11-19T07:42:00Z', unread: false, starred: false, shelf: 'active', tags: [], threadId: null, threadSize: 1, snoozedUntil: null,
 }
 const workspaces: Workspace[] = [
   { id: 'flung', name: 'Flung', icon: null, addresses: ['*@flung.dev', 'hello@flung.dev'], folders: [], unread: 0 },

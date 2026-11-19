@@ -5,7 +5,8 @@ import { useTranslation } from 'react-i18next'
 import type { Message, Workspace } from '../../api/types'
 import { INBOX_LABEL } from '../../constants/ui'
 import type { BulkActions } from '../../hooks/useMessageActions'
-import { IconArchive, IconClose, IconDelete, IconFolder, IconInbox, IconMarkRead, IconMove, IconPutBack, IconStar, IconStarred, IconUnread } from '../../icons'
+import { IconArchive, IconClose, IconDelete, IconFolder, IconInbox, IconMarkRead, IconMove, IconPutBack, IconSnooze, IconStar, IconStarred, IconUnread } from '../../icons'
+import { SnoozePicker } from '../Snooze/SnoozePicker'
 import { ContextMenu } from '../ContextMenu/ContextMenu'
 import type { MenuRequest } from '../ContextMenu/ContextMenu'
 import { TipButton } from '../Tooltip/TipButton'
@@ -15,6 +16,8 @@ interface SelectionBarProps {
   total: number
   workspace: Workspace | undefined
   bulk: BulkActions
+  /** Snoozes the selection until a time, or wakes it with null. */
+  onSnooze: (messages: Message[], until: Date | null) => void
   onSelectAll: () => void
   onClear: () => void
 }
@@ -23,10 +26,13 @@ interface SelectionBarProps {
  * In place of the list's title while messages are selected: how many, Select all, and what can be done to all of them
  * at once. In the trash it offers Move back and Delete forever; elsewhere Archive and Move to trash.
  */
-export function SelectionBar({ selected, total, workspace, bulk, onSelectAll, onClear }: SelectionBarProps): ReactNode {
+export function SelectionBar({ selected, total, workspace, bulk, onSnooze, onSelectAll, onClear }: SelectionBarProps): ReactNode {
   const { t } = useTranslation(['mail', 'common'])
   const [menu, setMenu] = useState<MenuRequest | null>(null)
   const closeMenu = useCallback(() => setMenu(null), [])
+  const [snoozeFrom, setSnoozeFrom] = useState<HTMLElement | null>(null)
+  const closeSnooze = useCallback(() => setSnoozeFrom(null), [])
+  const allSnoozed = selected.every((message) => message.snoozedUntil !== null)
   const done = (run: () => void) => () => {
     run()
     onClear()
@@ -55,6 +61,17 @@ export function SelectionBar({ selected, total, workspace, bulk, onSelectAll, on
             <Glyph aria-hidden="true" />
           </TipButton>
         ))}
+        {allSnoozed ? (
+          <TipButton tip={t('snooze.wake')} className="selection-bar__tool" aria-label={t('snooze.wake')} onClick={done(() => onSnooze(selected, null))}>
+            <IconSnooze aria-hidden="true" />
+          </TipButton>
+        ) : (
+          !inTrash && (
+            <TipButton tip={t('snooze.button')} className="selection-bar__tool" aria-label={t('snooze.button')} aria-haspopup="dialog" onClick={(event) => setSnoozeFrom(event.currentTarget)}>
+              <IconSnooze aria-hidden="true" />
+            </TipButton>
+          )
+        )}
         {workspace !== undefined && !inTrash && (
           <TipButton
             tip={t('selection.moveTo')}
@@ -87,6 +104,17 @@ export function SelectionBar({ selected, total, workspace, bulk, onSelectAll, on
         </TipButton>
       </div>
       {menu !== null && <ContextMenu request={menu} onClose={closeMenu} />}
+      {snoozeFrom !== null && (
+        <SnoozePicker
+          anchor={snoozeFrom}
+          onClose={closeSnooze}
+          onPick={(until) => {
+            setSnoozeFrom(null)
+            onSnooze(selected, until)
+            onClear()
+          }}
+        />
+      )}
     </div>
   )
 }

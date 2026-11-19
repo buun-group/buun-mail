@@ -42,13 +42,15 @@ export interface Message {
   threadId: string | null
   /** How many messages outside the trash share its conversation, itself included. */
   threadSize: number
+  /** When it comes back from a snooze, ISO time; null when not snoozed. */
+  snoozedUntil: string | null
 }
 
 /** Where a message sits: in its folder, archived, or in the trash. It keeps its workspace and folder throughout. */
 export type Shelf = 'active' | 'archived' | 'trashed'
 
 /** A list across every workspace. Drafts live on this computer only, so the Rust side never sees that view. */
-export type MailView = 'starred' | 'archive' | 'trash' | 'drafts'
+export type MailView = 'starred' | 'snoozed' | 'archive' | 'trash' | 'drafts'
 
 /** Where the list is pointed: one folder of one workspace. */
 export interface Place {

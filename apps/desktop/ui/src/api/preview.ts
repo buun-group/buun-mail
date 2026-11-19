@@ -14,27 +14,27 @@ const MESSAGES: Message[] = [
   {
     id: 'p5', workspace: 'buun', folder: 'Sent', fromName: 'Buun Group', from: 'hello@buungroup.com', to: 'projects@client.example',
     matched: null, folderMatched: null, subject: 'Re: Quote for the booking site',
-    preview: 'Thanks, the quote is on its way today.', receivedAt: '2026-11-18T22:40:00Z', unread: false, starred: false, shelf: 'active', tags: [], threadId: 'quote@client.example', threadSize: 2,
+    preview: 'Thanks, the quote is on its way today.', receivedAt: '2026-11-18T22:40:00Z', unread: false, starred: false, shelf: 'active', tags: [], threadId: 'quote@client.example', threadSize: 2, snoozedUntil: null,
   },
   {
     id: 'p1', workspace: 'buun', folder: 'Billing', fromName: 'Stripe', from: 'invoices@stripe.com', to: 'billing@buungroup.com',
     matched: '*@buungroup.com', folderMatched: '*@stripe.com', subject: 'Your invoice for November is ready',
-    preview: 'Invoice INV-2026-11 is now available. Amount due on 1 December.', receivedAt: '2026-11-19T07:42:00Z', unread: true, starred: false, shelf: 'active', tags: ['invoice'], threadId: null, threadSize: 1,
+    preview: 'Invoice INV-2026-11 is now available. Amount due on 1 December.', receivedAt: '2026-11-19T07:42:00Z', unread: true, starred: false, shelf: 'active', tags: ['invoice'], threadId: null, threadSize: 1, snoozedUntil: null,
   },
   {
     id: 'p2', workspace: 'buun', folder: null, fromName: 'A client', from: 'projects@client.example', to: 'hello@buungroup.com',
     matched: '*@buungroup.com', folderMatched: null, subject: 'Quote for the booking site',
-    preview: 'Could you send the quote through by Friday so we can sign off?', receivedAt: '2026-11-18T23:05:00Z', unread: true, starred: true, shelf: 'active', tags: [], threadId: 'quote@client.example', threadSize: 2,
+    preview: 'Could you send the quote through by Friday so we can sign off?', receivedAt: '2026-11-18T23:05:00Z', unread: true, starred: true, shelf: 'active', tags: [], threadId: 'quote@client.example', threadSize: 2, snoozedUntil: null,
   },
   {
     id: 'p3', workspace: 'plotwork', folder: null, fromName: 'A Plotwork team', from: 'lead@team.example', to: 'support@plotwork.dev',
     matched: '*@plotwork.dev', folderMatched: null, subject: 'Sequence diagrams in the board',
-    preview: 'Is there a way to pin a sequence diagram to a tab?', receivedAt: '2026-11-18T21:14:00Z', unread: true, starred: false, shelf: 'active', tags: [], threadId: null, threadSize: 1,
+    preview: 'Is there a way to pin a sequence diagram to a tab?', receivedAt: '2026-11-18T21:14:00Z', unread: true, starred: false, shelf: 'active', tags: [], threadId: null, threadSize: 1, snoozedUntil: null,
   },
   {
     id: 'p4', workspace: 'personal', folder: null, fromName: 'A friend', from: 'friend@mail.example', to: 'me@personal.example',
     matched: '*@personal.example', folderMatched: null, subject: 'Saturday',
-    preview: 'Still on for Saturday? We could do the coastal walk.', receivedAt: '2026-11-18T19:55:00Z', unread: false, starred: false, shelf: 'archived', tags: [], threadId: null, threadSize: 1,
+    preview: 'Still on for Saturday? We could do the coastal walk.', receivedAt: '2026-11-18T19:55:00Z', unread: false, starred: false, shelf: 'archived', tags: [], threadId: null, threadSize: 1, snoozedUntil: null,
   },
 ]
 
@@ -43,11 +43,11 @@ export function previewWorkspaces(): Workspace[] {
 }
 
 export function previewMessages(place: Place): Message[] {
-  return MESSAGES.filter((message) => message.workspace === place.workspace && message.folder === place.folder && message.shelf === 'active').map((message) => ({ ...message }))
+  return MESSAGES.filter((message) => message.workspace === place.workspace && message.folder === place.folder && message.shelf === 'active' && message.snoozedUntil === null).map((message) => ({ ...message }))
 }
 
 export function previewView(view: MailView): Message[] {
-  const keep = { starred: (message: Message) => message.starred && message.shelf !== 'trashed', archive: (message: Message) => message.shelf === 'archived', trash: (message: Message) => message.shelf === 'trashed', drafts: () => false }[view]
+  const keep = { starred: (message: Message) => message.starred && message.shelf !== 'trashed', archive: (message: Message) => message.shelf === 'archived', trash: (message: Message) => message.shelf === 'trashed', snoozed: (message: Message) => message.snoozedUntil !== null, drafts: () => false }[view]
   return MESSAGES.filter(keep).map((message) => ({ ...message }))
 }
 
@@ -108,7 +108,7 @@ export const preview = {
   send: (draft: Draft): Message => {
     const sent: Message = {
       id: `sent-${Date.now()}`, workspace: 'buun', folder: 'Sent', fromName: draft.from.name ?? draft.from.address, from: draft.from.address, to: draft.to[0]?.address ?? '',
-      matched: null, folderMatched: null, subject: draft.subject, preview: draft.text.slice(0, 120), receivedAt: new Date().toISOString(), unread: false, starred: false, shelf: 'active', tags: [], threadId: null, threadSize: 1,
+      matched: null, folderMatched: null, subject: draft.subject, preview: draft.text.slice(0, 120), receivedAt: new Date().toISOString(), unread: false, starred: false, shelf: 'active', tags: [], threadId: null, threadSize: 1, snoozedUntil: null,
     }
     MESSAGES.push(sent)
     return { ...sent }
@@ -123,7 +123,7 @@ export const preview = {
     MESSAGES.forEach((message) => seen.set(message.from, { name: message.fromName, address: message.from }))
     return [...seen.values()].filter((contact) => `${contact.name ?? ''} ${contact.address}`.toLowerCase().includes(query.toLowerCase())).slice(0, 8)
   },
-  change: (ids: string[], fields: Partial<Pick<Message, 'unread' | 'starred' | 'shelf'>>): Message[] => ids.map((id) => ({ ...Object.assign(found(id), fields) })),
+  change: (ids: string[], fields: Partial<Pick<Message, 'unread' | 'starred' | 'shelf' | 'snoozedUntil'>>): Message[] => ids.map((id) => ({ ...Object.assign(found(id), fields) })),
   move: (id: string, place: Place): Message => ({ ...Object.assign(found(id), { workspace: place.workspace, folder: place.folder }) }),
   remove: (ids: string[]): number => {
     const before = MESSAGES.length

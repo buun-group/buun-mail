@@ -20,6 +20,7 @@ import {
   IconMarkRead,
   IconRename,
   IconReset,
+  IconSnooze,
   IconStar,
   IconUnsorted,
   isWorkspaceGlyph,
@@ -60,6 +61,7 @@ interface SidebarProps {
 const VIEWS = [
   { id: 'drafts', glyph: IconRename },
   { id: 'starred', glyph: IconStar },
+  { id: 'snoozed', glyph: IconSnooze },
   { id: 'archive', glyph: IconArchive },
   { id: 'trash', glyph: IconDelete },
 ] as const satisfies readonly { id: MailView; glyph: unknown }[]

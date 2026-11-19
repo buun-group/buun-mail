@@ -133,6 +133,32 @@ impl Mailbox {
         Ok(changed)
     }
 
+    /// Snoozes messages until `until` (Unix seconds), or wakes them now with `None`. Returns how many changed.
+    ///
+    /// # Errors
+    ///
+    /// [`AppError`] when the store cannot be written.
+    pub fn snooze(&self, ids: &[String], until: Option<i64>, actor: &Actor) -> Result<usize, AppError> {
+        let store = self.store.lock()?;
+        let changed = count(ids, |id| store.set_snooze(id, until))?;
+        if changed > 0 {
+            let words = until.map_or_else(|| format!("{changed} woken"), |at| format!("{changed} snoozed until {}", buun_mail_message::rfc3339(at)));
+            log(&store, actor, if until.is_some() { "snooze" } else { "wake" }, words)?;
+        }
+        Ok(changed)
+    }
+
+    /// Wakes every message whose snooze has ended, and returns them to announce as new.
+    ///
+    /// # Errors
+    ///
+    /// [`AppError`] when the store cannot be written.
+    pub fn wake_due(&self) -> Result<Vec<MessageDto>, AppError> {
+        let store = self.store.lock()?;
+        let woken = store.wake_due(unix_now())?;
+        woken.iter().map(|id| Ok(store.get(id)?.into())).collect()
+    }
+
     /// Deletes messages for good, bytes and all. Returns how many were deleted.
     ///
     /// # Errors

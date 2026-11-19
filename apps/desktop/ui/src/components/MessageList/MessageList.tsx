@@ -9,7 +9,7 @@ import type { WorkspaceLooks } from '../../hooks/useWorkspaceLooks'
 import { endOfDay, sortMessages } from '../../lib/sort'
 import { WorkspaceIcon } from '../WorkspaceIcon/WorkspaceIcon'
 import { ListTools } from './ListTools'
-import { IconArchive, IconCaret, IconConversation, IconDelete, IconRename, IconFolder, IconInbox, IconSearch, IconStar, IconStarred, IconUnread, isWorkspaceGlyph, WORKSPACE_GLYPHS } from '../../icons'
+import { IconArchive, IconCaret, IconConversation, IconDelete, IconRename, IconSnooze, IconFolder, IconInbox, IconSearch, IconStar, IconStarred, IconUnread, isWorkspaceGlyph, WORKSPACE_GLYPHS } from '../../icons'
 import { Avatar } from '../Avatar/Avatar'
 import { formatListed } from '../../lib/time'
 import { ContextMenu, isMenuKey, menuPoint } from '../ContextMenu/ContextMenu'
@@ -52,7 +52,7 @@ interface MessageListProps {
   wide: boolean
 }
 
-const VIEW_GLYPHS = { starred: IconStar, archive: IconArchive, trash: IconDelete, drafts: IconRename } as const satisfies Record<MailView, unknown>
+const VIEW_GLYPHS = { starred: IconStar, snoozed: IconSnooze, archive: IconArchive, trash: IconDelete, drafts: IconRename } as const satisfies Record<MailView, unknown>
 
 /**
  * The open folder's messages, or a view across workspaces, newest first, as flat rows split by hairlines. Unread is
@@ -146,7 +146,7 @@ export function MessageList({ workspace, place, view, messages, selectedId, onSe
   return (
     <section className="message-list" data-wide={wide} aria-label={t('list.label')}>
       <header className="message-list__header" data-selecting={selected.length > 0}>
-        {selected.length > 0 && <SelectionBar selected={selected} total={messages.length} workspace={workspace} bulk={actions.bulk} onSelectAll={() => setPicked(new Set(messages.map((message) => message.id)))} onClear={clearPicked} />}
+        {selected.length > 0 && <SelectionBar selected={selected} total={messages.length} workspace={workspace} bulk={actions.bulk} onSnooze={actions.snooze} onSelectAll={() => setPicked(new Set(messages.map((message) => message.id)))} onClear={clearPicked} />}
         <div className="message-list__title">
           <TitleGlyph aria-hidden="true" className="message-list__glyph" />
           <h1>{scope === 'all' && query.trim() !== '' ? t('list.searchResults') : view === null ? (place?.folder ?? t(INBOX_LABEL)) : t(`views.${view}`)}</h1>
@@ -261,7 +261,7 @@ export function MessageList({ workspace, place, view, messages, selectedId, onSe
                   {(view !== null || (scope === 'all' && query.trim() !== '')) && <span className="message-row__where">{workspaceName(message.workspace)}</span>}
                 </span>
                 <time className="message-row__time" dateTime={message.receivedAt}>
-                  {formatListed(message.receivedAt)}
+                  {message.snoozedUntil !== null ? t('snooze.until', { when: formatListed(message.snoozedUntil) }) : formatListed(message.receivedAt)}
                 </time>
                 <span className="message-row__subject">
                   <span className="message-row__subject-text">{message.subject}</span>

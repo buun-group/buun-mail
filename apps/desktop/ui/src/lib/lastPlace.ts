@@ -8,7 +8,7 @@ export interface SavedPlace {
   selectedId: string | null
 }
 
-const VIEWS: readonly MailView[] = ['starred', 'archive', 'trash', 'drafts']
+const VIEWS: readonly MailView[] = ['starred', 'snoozed', 'archive', 'trash', 'drafts']
 
 /** The place saved when the app last closed, or null when there is none or it cannot be read. */
 export function readLastPlace(): SavedPlace | null {

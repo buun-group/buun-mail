@@ -97,6 +97,8 @@ export {
   PiCaretUpLight as IconCaretUp,
   PiCheckLight as IconCheck,
   PiStarLight as IconStar,
+  PiAlarmLight as IconSnooze,
+  PiCalendarBlankLight as IconCalendar,
   PiChatsLight as IconConversation,
   PiShareFatLight as IconForward,
   PiPaperclipLight as IconAttachment,

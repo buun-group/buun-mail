@@ -10,7 +10,7 @@ import { MessageHtml } from './MessageHtml'
 import { Avatar } from '../Avatar/Avatar'
 import type { Theme } from '../../constants/ui'
 import type { MessageActions } from '../../hooks/useMessageActions'
-import { EXPORT_GLYPHS, IconArchive, IconBack, IconCopy, IconExport, IconForward, IconReplyAll, IconDelete, IconExternal, IconInbox, IconMarkRead, IconPutBack, IconReply, IconRoute, IconStar, IconStarred, IconText } from '../../icons'
+import { EXPORT_GLYPHS, IconArchive, IconBack, IconCopy, IconExport, IconForward, IconReplyAll, IconSnooze, IconDelete, IconExternal, IconInbox, IconMarkRead, IconPutBack, IconReply, IconRoute, IconStar, IconStarred, IconText } from '../../icons'
 import { openExternal } from '../../api/client'
 import { copyWithToast } from '../../lib/copy'
 import type { ComposeMode } from '../../lib/compose'
@@ -22,6 +22,7 @@ import type { CopyKind } from '../../lib/tokens'
 import { ContextMenu } from '../ContextMenu/ContextMenu'
 import type { MenuItem, MenuRequest } from '../ContextMenu/ContextMenu'
 import { Copyable } from '../Copy/Copyable'
+import { SnoozePicker } from '../Snooze/SnoozePicker'
 import { SelectionCopy } from '../Copy/SelectionCopy'
 import { MoreFromBuun } from '../MoreFromBuun/MoreFromBuun'
 import { TagEditor } from '../Tags/Tags'
@@ -138,6 +139,8 @@ export function Reader({ message, body, recipients, detail, workspace, theme, on
   const article = useRef<HTMLElement | null>(null)
   const bodyText = useRef<HTMLDivElement | null>(null)
   const [menu, setMenu] = useState<MenuRequest | null>(null)
+  const [snoozeFrom, setSnoozeFrom] = useState<HTMLElement | null>(null)
+  const closeSnooze = useCallback(() => setSnoozeFrom(null), [])
   // Plain text instead of the sender's layout, for this message only.
   const [asText, setAsText] = useState(false)
   const [textFor, setTextFor] = useState<string | null>(null)
@@ -232,6 +235,15 @@ export function Reader({ message, body, recipients, detail, workspace, theme, on
             <IconDelete aria-hidden="true" />
           </TipButton>
         )}
+        {message.snoozedUntil === null ? (
+          <TipButton tip={t('snooze.button')} className="reader__tool" aria-label={t('snooze.button')} aria-haspopup="dialog" aria-expanded={snoozeFrom !== null} onClick={(event) => setSnoozeFrom(snoozeFrom === null ? event.currentTarget : null)}>
+            <IconSnooze aria-hidden="true" />
+          </TipButton>
+        ) : (
+          <TipButton tip={t('snooze.wake')} className="reader__tool" data-on="true" aria-label={t('snooze.wake')} onClick={() => actions.snooze([message], null)}>
+            <IconSnooze aria-hidden="true" />
+          </TipButton>
+        )}
         <span className="reader__divider" aria-hidden="true" />
         <TipButton tip={`${message.unread ? t('actions.markRead') : t('reader.markUnread')} (U)`} className="reader__tool" aria-label={message.unread ? t('actions.markRead') : t('reader.markUnread')} onClick={() => actions.toggleRead(message)}>
           {message.unread ? <IconMarkRead aria-hidden="true" /> : <IconInbox aria-hidden="true" />}
@@ -320,6 +332,16 @@ export function Reader({ message, body, recipients, detail, workspace, theme, on
           </>
         )}
       </article>
+      {snoozeFrom !== null && (
+        <SnoozePicker
+          anchor={snoozeFrom}
+          onClose={closeSnooze}
+          onPick={(until) => {
+            setSnoozeFrom(null)
+            actions.snooze([message], until)
+          }}
+        />
+      )}
       <SelectionCopy within={article} />
       {menu !== null && <ContextMenu request={menu} onClose={closeMenu} />}
     </section>

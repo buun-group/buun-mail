@@ -180,6 +180,7 @@ mod tests {
             tags: vec!["invoice".to_owned()],
             thread_id: None,
             thread_size: 1,
+            snoozed_until: None,
         };
         (record, raw)
     }

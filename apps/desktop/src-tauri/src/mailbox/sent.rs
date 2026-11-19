@@ -58,6 +58,7 @@ impl Mailbox {
             tags: Vec::new(),
             thread_id: None,
             thread_size: 1,
+            snoozed_until: None,
         };
         let store = self.store.lock()?;
         if store.insert(&record, raw)? == Inserted::New {

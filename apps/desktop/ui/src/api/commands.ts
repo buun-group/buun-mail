@@ -21,6 +21,7 @@ export const COMMANDS = {
   suggestContacts: 'suggest_contacts',
   threadMessages: 'thread_messages',
   searchAll: 'search_all',
+  snoozeMessages: 'snooze_messages',
   openMessage: 'open_message',
   markAllRead: 'mark_all_read',
   importFiles: 'import_files',

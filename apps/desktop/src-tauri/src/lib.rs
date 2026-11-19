@@ -61,6 +61,20 @@ pub fn run() {
             });
             app.manage(agent::AgentState::open(paths.config.clone(), Arc::clone(&mailbox), Some(app.handle().clone()))?);
             app.manage(sync::SyncService::start(paths.config.clone(), Arc::clone(&mailbox), Some(app.handle().clone())));
+            // Snoozed mail comes back when its time is up: checked every minute, announced like new mail.
+            let waking = Arc::clone(&mailbox);
+            let notify = app.handle().clone();
+            std::thread::spawn(move || {
+                loop {
+                    if let Ok(woken) = waking.wake_due()
+                        && !woken.is_empty()
+                    {
+                        events::mail_arrived(&notify, &woken);
+                        events::mail_changed(&notify);
+                    }
+                    std::thread::sleep(std::time::Duration::from_secs(60));
+                }
+            });
             app.manage(send::SendService::open(paths.config.clone(), Arc::clone(&mailbox)));
             app.manage(mailbox);
             Ok(())
@@ -87,6 +101,7 @@ pub fn run() {
             commands::suggest_contacts,
             commands::thread_messages,
             commands::search_all,
+            commands::snooze_messages,
             commands::open_message,
             commands::mark_all_read,
             commands::tag_message,

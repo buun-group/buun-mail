@@ -47,6 +47,8 @@ pub struct MessageRecord {
     pub thread_id: Option<String>,
     /// How many messages outside the trash share its conversation, itself included. 1 for a message on its own.
     pub thread_size: u32,
+    /// When a snoozed message comes back, Unix seconds; `None` when it is not snoozed.
+    pub snoozed_until: Option<i64>,
 }
 
 /// Where a message sits apart from its folder: in it, archived out of it, or in the trash. It keeps its workspace and
@@ -93,6 +95,8 @@ pub enum View {
     Archived,
     /// The trash, most recently deleted first.
     Trashed,
+    /// Snoozed messages, soonest back first.
+    Snoozed,
 }
 
 /// How many unread messages one folder holds.
