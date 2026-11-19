@@ -83,7 +83,7 @@ export function Settings({ open, onClose, preferences, workspaces, looks, onLook
           {section === 'notifications' && <NotificationsSection notifications={notifications} workspaces={workspaces} />}
           {section === 'workspaces' && <WorkspacesSection workspaces={workspaces} looks={looks} onLook={onLook} editing={editing} onEditing={onEditing} theme={preferences.theme} />}
           {section === 'rules' && <RulesSection workspaces={workspaces} onChanged={onImported} />}
-          {section === 'integrations' && <IntegrationsSection onImported={onImported} />}
+          {section === 'integrations' && <IntegrationsSection onImported={onImported} theme={preferences.theme} />}
           {section === 'agents' && <AgentsSection />}
         </div>
       </div>

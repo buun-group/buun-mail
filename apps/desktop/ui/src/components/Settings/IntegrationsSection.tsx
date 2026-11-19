@@ -7,6 +7,8 @@ import { importFiles, listGateways } from '../../api/client'
 import type { ImportReport } from '../../api/types'
 import { DIRECTIONS, INTEGRATIONS, NOT_WIRED_NOTE } from '../../constants/integrations'
 import type { Direction, Integration } from '../../constants/integrations'
+import { BUUN_GROUP } from '../../constants/products'
+import type { Theme } from '../../constants/ui'
 import { IconCaret, IconReceive, IconSend, INTEGRATION_GLYPHS } from '../../icons'
 import { Gateways } from './Gateways'
 
@@ -16,7 +18,7 @@ const DIRECTION_WORDS = {
 } as const satisfies Record<Direction, { title: string; glyph: typeof IconSend }>
 
 /** Where mail comes from and how it goes out, in two lists. Each row opens its own connect form; one is open at a time. */
-export function IntegrationsSection({ onImported }: { onImported: () => void }): ReactNode {
+export function IntegrationsSection({ onImported, theme }: { onImported: () => void; theme: Theme }): ReactNode {
   const { t } = useTranslation('integrations')
   const [open, setOpen] = useState<string | null>(null)
   const [gatewayCount, setGatewayCount] = useState(0)
@@ -39,7 +41,7 @@ export function IntegrationsSection({ onImported }: { onImported: () => void }):
             <ul className="settings__list">
               {INTEGRATIONS.filter((integration) => integration.directions.includes(direction)).map((integration) => {
                 const key = `${direction}-${integration.id}`
-                return <IntegrationRow key={key} rowKey={key} integration={integration} open={open === key} onToggle={() => setOpen(open === key ? null : key)} onImported={onImported} gatewayCount={gatewayCount} onGatewayCount={setGatewayCount} />
+                return <IntegrationRow key={key} rowKey={key} integration={integration} open={open === key} onToggle={() => setOpen(open === key ? null : key)} onImported={onImported} gatewayCount={gatewayCount} onGatewayCount={setGatewayCount} theme={theme} />
               })}
             </ul>
           </section>
@@ -57,9 +59,10 @@ interface RowProps {
   onImported: () => void
   gatewayCount: number
   onGatewayCount: (count: number) => void
+  theme: Theme
 }
 
-function IntegrationRow({ rowKey, integration, open, onToggle, onImported, gatewayCount, onGatewayCount }: RowProps): ReactNode {
+function IntegrationRow({ rowKey, integration, open, onToggle, onImported, gatewayCount, onGatewayCount, theme }: RowProps): ReactNode {
   const { t } = useTranslation('integrations')
   const Glyph = INTEGRATION_GLYPHS[integration.id]
   const panel = `integration-${rowKey}`
@@ -67,7 +70,7 @@ function IntegrationRow({ rowKey, integration, open, onToggle, onImported, gatew
     <li className="integration" data-open={open}>
       <button type="button" className="integration__head" aria-expanded={open} aria-controls={panel} onClick={onToggle}>
         <span className={`integration__glyph logo--${integration.id}`} aria-hidden="true">
-          <Glyph />
+          {integration.id === 'gateway' ? <img src={BUUN_GROUP.logo[theme]} alt="" /> : <Glyph />}
         </span>
         <span className="integration__words">
           <span className="settings__label">{t(integration.name)}</span>
