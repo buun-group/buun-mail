@@ -9,6 +9,7 @@ import type { ParseKeys } from 'i18next'
 
 export const INTEGRATION_IDS = [
   'gateway',
+  'dissolve',
   'cloudflare',
   'gmail',
   'outlook',
@@ -45,7 +46,7 @@ export interface IntegrationField {
 
 import type { MailPreset } from './mailServers'
 
-export type IntegrationMethod = { kind: 'form'; fields: readonly IntegrationField[] } | { kind: 'oauth'; provider: string } | { kind: 'file'; accept: string } | { kind: 'gateway' } | { kind: 'resend' } | { kind: 'smtp' } | { kind: 'mailbox'; preset: MailPreset }
+export type IntegrationMethod = { kind: 'form'; fields: readonly IntegrationField[] } | { kind: 'oauth'; provider: string } | { kind: 'file'; accept: string } | { kind: 'gateway' } | { kind: 'resend' } | { kind: 'smtp' } | { kind: 'mailbox'; preset: MailPreset } | { kind: 'dissolve' }
 
 export interface Integration {
   id: IntegrationId
@@ -60,6 +61,7 @@ const API_KEY: IntegrationField = { id: 'key', label: 'fields.apiKey', type: 'pa
 
 export const INTEGRATIONS: readonly Integration[] = [
   { id: 'gateway', name: 'providers.gateway.name', summary: 'providers.gateway.summary', directions: ['receive'], method: { kind: 'gateway' } },
+  { id: 'dissolve', name: 'providers.dissolve.name', summary: 'providers.dissolve.summary', directions: ['receive'], method: { kind: 'dissolve' } },
   {
     id: 'cloudflare',
     name: 'providers.cloudflare.name',

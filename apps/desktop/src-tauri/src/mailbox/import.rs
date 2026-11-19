@@ -36,7 +36,7 @@ impl Mailbox {
             let messages = messages_in(&bytes);
             let many = messages.len() > 1;
             for (index, raw) in messages.iter().enumerate() {
-                match ingest(Incoming { raw, envelope_to: None, received_at: now }, &router, &rules, &store) {
+                match ingest(Incoming { raw, envelope_to: None, received_at: now, placed: None }, &router, &rules, &store) {
                     Ok(Some(new)) => {
                         report.added += 1;
                         if !new.quiet {

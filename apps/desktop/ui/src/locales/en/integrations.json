@@ -86,6 +86,10 @@
     "gateway": {
       "name": "Buun Mail Gateway",
       "summary": "Your domains through the Buun Group mail gateway. Mail waits there until this app collects it, with its exact recipient."
+    },
+    "dissolve": {
+      "name": "dissolve.email",
+      "summary": "Your disposable inboxes as a workspace, a folder each, after signing in to dissolve.email."
     }
   },
   "fields": {
@@ -246,5 +250,30 @@
     "firstTake": "Its newest 200 messages are coming in; new mail follows every two minutes.",
     "checked": "Mailboxes checked",
     "checkFailed": "The mailboxes could not be checked"
+  },
+  "dissolve": {
+    "intro": "Connect opens your browser to approve Buun Mail on dissolve.email. Your inboxes then show as a workspace, one folder each, with new mail every minute. Buun Mail only reads your inboxes and their mail, and can make, extend and burn inboxes; never your vault.",
+    "server": "Server",
+    "serverHint": "Leave as it is unless you run your own dissolve.email server.",
+    "connect": "Connect",
+    "waiting": "Approve Buun Mail in the browser window that opened, then come back here.",
+    "waitingButton": "Waiting for the browser...",
+    "connected": "dissolve.email connected",
+    "disconnected": "dissolve.email disconnected",
+    "mailKept": "Its mail stays here until you delete it.",
+    "mailDeleted": "Its mail here was deleted.",
+    "account": "Your account",
+    "inboxes_one": "{{count}} live inbox.",
+    "inboxes_other": "{{count}} live inboxes.",
+    "keepTitle": "Keep mail after an inbox ends",
+    "keepHint": "Off: when an inbox ends on dissolve.email, its mail here goes too, as dissolve.email promises. On: it stays here until you delete it.",
+    "checked": "dissolve.email checked",
+    "checkFailed": "dissolve.email could not be checked",
+    "disconnect": "Disconnect",
+    "disconnectDelete": "Disconnect and delete its mail",
+    "deleteTitle": "Disconnect and delete every message from dissolve.email?",
+    "deleteBody": "Buun Mail signs out of dissolve.email and deletes every message it collected from it on this computer. Your inboxes on dissolve.email are not touched.",
+    "deleteAction": "Disconnect and delete",
+    "cancel": "Cancel"
   }
 }

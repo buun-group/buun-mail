@@ -51,6 +51,7 @@ import {
   PiCalendarDotsLight,
   PiCalendarLight,
   PiClockCounterClockwiseLight,
+  PiAtLight,
   PiHourglassLight,
   PiRectangleLight,
   PiSquareSplitHorizontalLight,
@@ -125,6 +126,10 @@ export {
   PiArrowUUpLeftLight as IconPutBack,
   PiArrowsLeftRightLight as IconMove,
   PiEnvelopeOpenLight as IconMarkRead,
+  PiAtLight as IconAt,
+  PiTimerLight as IconTimer,
+  PiFireLight as IconBurn,
+  PiClockClockwiseLight as IconExtend,
 } from 'react-icons/pi'
 
 /**
@@ -156,6 +161,7 @@ export const WORKSPACE_GLYPHS = {
   bell: PiBellLight,
   star: PiStarLight,
   chat: PiChatCircleLight,
+  at: PiAtLight,
 } as const satisfies Record<string, IconType>
 
 export type WorkspaceGlyph = keyof typeof WORKSPACE_GLYPHS
@@ -182,6 +188,7 @@ export const INTEGRATION_GLYPHS: Record<IntegrationId, IconType> = {
   brevo: SiBrevo,
   sparkpost: SiSparkpost,
   smtp: PiPaperPlaneTiltLight,
+  dissolve: PiAtLight,
 }
 
 export const THEME_GLYPHS: Record<ThemePreference, IconType> = { system: PiDesktopLight, light: PiSunLight, dark: PiMoonLight }

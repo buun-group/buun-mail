@@ -8,7 +8,7 @@
 # The `id` is stored with every message: pick it once and never rename it.
 #
 # `icon` is optional on a workspace or a folder: briefcase, buildings, storefront, code, house, heart, rocket, palette,
-# globe, leaf, camera, bag, wrench, game, cap, plane, receipt, bank, chart, cloud, github, bell, star, chat, or a Buun
+# globe, leaf, camera, bag, wrench, game, cap, plane, receipt, bank, chart, cloud, github, bell, star, chat, at, or a Buun
 # Group mark: buun, plotwork, flung, gunspec, dissolve, cryptflare. Without one, a workspace shows its initial.
 # Settings can also give a workspace an image.
 

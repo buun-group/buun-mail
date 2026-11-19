@@ -31,6 +31,9 @@ pub struct Incoming<'a> {
     pub envelope_to: Option<&'a str>,
     /// When it arrived, Unix seconds; stands in for a missing `Date:`.
     pub received_at: i64,
+    /// Where the source says it belongs, such as a disposable inbox's own folder; routing is then skipped. Rules
+    /// still run and may move it.
+    pub placed: Option<&'a Placement>,
 }
 
 /// A message that was new: what was stored, and whether a rule asked for it to stay quiet.
@@ -56,7 +59,14 @@ pub fn ingest(incoming: Incoming<'_>, router: &Router, rules: &[CheckedRule], st
         to: Address::parse(&to).map_err(|_| IngestError::Address(to.clone()))?,
     };
     let route = router.route(&envelope);
-    let placed_by_routing = Placement { workspace: route.workspace.as_str().to_owned(), folder: route.folder.map(|folder| folder.as_str().to_owned()) };
+    let (placed_by_routing, matched, folder_matched) = match incoming.placed {
+        Some(placed) => (placed.clone(), None, None),
+        None => (
+            Placement { workspace: route.workspace.as_str().to_owned(), folder: route.folder.map(|folder| folder.as_str().to_owned()) },
+            route.matched.map(ToString::to_string),
+            route.folder_matched.map(ToString::to_string),
+        ),
+    };
     let outcome = evaluate(
         rules,
         &Facts {
@@ -70,8 +80,8 @@ pub fn ingest(incoming: Incoming<'_>, router: &Router, rules: &[CheckedRule], st
     let record = MessageRecord {
         id: parsed.id,
         placement: outcome.moved_to.clone().map_or(placed_by_routing, |(workspace, folder)| Placement { workspace, folder }),
-        matched: route.matched.map(ToString::to_string),
-        folder_matched: route.folder_matched.map(ToString::to_string),
+        matched,
+        folder_matched,
         from_name: parsed.from_name,
         from: parsed.from,
         to,

@@ -2,6 +2,8 @@ import { Splash } from '@buun-mail/brand/react'
 import { useCallback, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
+import { DissolveBar } from './components/Dissolve/DissolveBar'
+import { DISSOLVE_WORKSPACE } from './lib/dissolve'
 
 import { Confirm } from './components/Confirm/Confirm'
 import { Grain } from './components/Grain/Grain'
@@ -193,6 +195,7 @@ export function App(): ReactNode {
         scope={mailbox.scope}
         onScope={mailbox.setScope}
         wide={preferences.readingPane === 'off'}
+        banner={workspace?.id === DISSOLVE_WORKSPACE && mailbox.view === null && mailbox.place !== null ? <DissolveBar key={mailbox.place.folder ?? ''} place={mailbox.place} onOpen={mailbox.open} /> : undefined}
       />
       )}
       <Reader

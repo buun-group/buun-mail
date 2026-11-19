@@ -12,6 +12,7 @@ import type { Theme } from '../../constants/ui'
 import { IconCaret, IconReceive, IconSend, INTEGRATION_GLYPHS } from '../../icons'
 import { Gateways } from './Gateways'
 import { ResendConnect } from './ResendConnect'
+import { DissolveConnect } from './DissolveConnect'
 import { ImapConnect } from './ImapConnect'
 import { SmtpConnect } from './SmtpConnect'
 
@@ -93,12 +94,12 @@ function IntegrationRow({ rowKey, direction, integration, open, onToggle, onImpo
           <span className="settings__label">{t(integration.name)}</span>
           <span className="settings__hint">{t(integration.summary)}</span>
         </span>
-        <span className="integration__state">{integration.method.kind === 'file' ? t('state.ready') : integration.method.kind === 'gateway' ? (gatewayCount > 0 ? t('state.gateways', { count: gatewayCount }) : t('state.connectHere')) : integration.method.kind === 'mailbox' ? t('state.connectHere') : integration.method.kind === 'resend' || integration.method.kind === 'smtp' ? (senderCountOf(senders, integration.method.kind) > 0 ? t('state.senders', { count: senderCountOf(senders, integration.method.kind) }) : t('state.connectHere')) : t('state.notConnected')}</span>
+        <span className="integration__state">{integration.method.kind === 'file' ? t('state.ready') : integration.method.kind === 'gateway' ? (gatewayCount > 0 ? t('state.gateways', { count: gatewayCount }) : t('state.connectHere')) : integration.method.kind === 'mailbox' || integration.method.kind === 'dissolve' ? t('state.connectHere') : integration.method.kind === 'resend' || integration.method.kind === 'smtp' ? (senderCountOf(senders, integration.method.kind) > 0 ? t('state.senders', { count: senderCountOf(senders, integration.method.kind) }) : t('state.connectHere')) : t('state.notConnected')}</span>
         <IconCaret aria-hidden="true" className="integration__caret" />
       </button>
       {open && (
         <div id={panel} className="integration__panel">
-          {integration.method.kind === 'file' ? <FileImport onImported={onImported} /> : integration.method.kind === 'gateway' ? <Gateways onChanged={onImported} onCount={onGatewayCount} /> : integration.method.kind === 'resend' ? <ResendConnect onChanged={onSendersChanged} onCount={onSenders} /> : integration.method.kind === 'smtp' ? <SmtpConnect onChanged={onSendersChanged} onCount={onSenders} /> : integration.method.kind === 'mailbox' ? direction === 'receive' ? <ImapConnect preset={integration.method.preset} onChanged={onImported} /> : <SmtpConnect preset={integration.method.preset} onChanged={onSendersChanged} onCount={onSenders} /> : <ConnectForm integration={integration} idPrefix={rowKey} />}
+          {integration.method.kind === 'file' ? <FileImport onImported={onImported} /> : integration.method.kind === 'gateway' ? <Gateways onChanged={onImported} onCount={onGatewayCount} /> : integration.method.kind === 'resend' ? <ResendConnect onChanged={onSendersChanged} onCount={onSenders} /> : integration.method.kind === 'smtp' ? <SmtpConnect onChanged={onSendersChanged} onCount={onSenders} /> : integration.method.kind === 'dissolve' ? <DissolveConnect onChanged={onImported} /> : integration.method.kind === 'mailbox' ? direction === 'receive' ? <ImapConnect preset={integration.method.preset} onChanged={onImported} /> : <SmtpConnect preset={integration.method.preset} onChanged={onSendersChanged} onCount={onSenders} /> : <ConnectForm integration={integration} idPrefix={rowKey} />}
         </div>
       )}
     </li>

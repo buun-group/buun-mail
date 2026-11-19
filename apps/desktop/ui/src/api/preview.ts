@@ -1,4 +1,4 @@
-import type { Activity, AgentStatus, Contact, Draft, ImapAccount, KnownContact, SmtpServer, MailView, Message, MessageDetail, Place, Rule, Sendable, Sender, TagCount, Workspace } from './types'
+import type { Activity, AgentStatus, Contact, DissolveInbox, DissolveStatus, Draft, ImapAccount, KnownContact, SmtpServer, MailView, Message, MessageDetail, Place, Rule, Sendable, Sender, TagCount, Workspace } from './types'
 
 /**
  * A small stand-in mailbox for `pnpm dev:ui`, where there is no Rust side, so the layout can be tuned in a plain
@@ -89,7 +89,45 @@ const SENDERS: Sender[] = [{ id: 'preview-sender', name: 'Resend', kind: 'resend
 
 const IMAP: ImapAccount[] = []
 
+const HOUR = 3_600_000
+const DISSOLVE: DissolveStatus = { connected: false, server: 'https://api.dissolve.email', email: null, plan: null, keepAfterExpiry: false, inboxes: [], lastChecked: null, problem: null }
+const dissolveCopy = (): DissolveStatus => ({ ...DISSOLVE, inboxes: DISSOLVE.inboxes.map((inbox) => ({ ...inbox })) })
+
+/** dissolve.email in the browser preview: a pretend account with one inbox, changed in memory. */
+const dissolve = {
+  status: dissolveCopy,
+  connect: (): DissolveStatus => {
+    Object.assign(DISSOLVE, { connected: true, email: 'you@example.com', plan: 'pro', lastChecked: new Date().toISOString() })
+    if (DISSOLVE.inboxes.length === 0) DISSOLVE.inboxes.push({ id: 'inb_preview', address: 'signup-7k2@dissolve.email', name: 'Sign-ups', expiresAt: new Date(Date.now() + 5 * HOUR).toISOString(), ended: false, stored: 0 })
+    return dissolveCopy()
+  },
+  disconnect: (deleteMail: boolean): DissolveStatus => {
+    Object.assign(DISSOLVE, { connected: false, email: null, plan: null })
+    if (deleteMail) DISSOLVE.inboxes = []
+    return dissolveCopy()
+  },
+  keep: (keep: boolean): DissolveStatus => {
+    DISSOLVE.keepAfterExpiry = keep
+    return dissolveCopy()
+  },
+  create: (name?: string): DissolveInbox => {
+    const inbox: DissolveInbox = { id: `inb_${DISSOLVE.inboxes.length + 1}`, address: `new-${DISSOLVE.inboxes.length + 1}@dissolve.email`, name: name ?? null, expiresAt: new Date(Date.now() + 10 * 60_000).toISOString(), ended: false, stored: 0 }
+    DISSOLVE.inboxes.unshift(inbox)
+    return { ...inbox }
+  },
+  extend: (id: string): DissolveStatus => {
+    const inbox = DISSOLVE.inboxes.find((item) => item.id === id)
+    if (inbox !== undefined) inbox.expiresAt = new Date(Date.parse(inbox.expiresAt) + 24 * HOUR).toISOString()
+    return dissolveCopy()
+  },
+  burn: (id: string): DissolveStatus => {
+    DISSOLVE.inboxes = DISSOLVE.inboxes.filter((item) => item.id !== id)
+    return dissolveCopy()
+  },
+}
+
 export const preview = {
+  dissolve,
   imapAccounts: (): ImapAccount[] => IMAP.map((account) => ({ ...account })),
   addImap: (account: { name: string; host: string; port: number; username: string; folder: string }): ImapAccount[] => {
     if (account.host.trim() === '') throw new Error('the mail server could not be reached: no server name')

@@ -5,7 +5,7 @@ import { openUrl } from '@tauri-apps/plugin-opener'
 import type { ExportFormat } from '../constants/ui'
 import { COMMANDS, IMPORT_EXTENSIONS } from './commands'
 import { preview, previewDetail, previewMessages, previewView, previewWorkspaces } from './preview'
-import type { Activity, AgentStatus, AvailableDomain, CheckReport, Contact, Draft, FileToSend, ImapAccount, KnownContact, SmtpSecurity, SmtpServer, Sendable, Sender, GatewayDomain, GatewayStatus, ImportReport, MailView, Message, MessageDetail, Place, Rule, Shelf, TagCount, Workspace } from './types'
+import type { Activity, AgentStatus, AvailableDomain, CheckReport, Contact, DissolveInbox, DissolveStatus, Draft, FileToSend, ImapAccount, KnownContact, SmtpSecurity, SmtpServer, Sendable, Sender, GatewayDomain, GatewayStatus, ImportReport, MailView, Message, MessageDetail, Place, Rule, Shelf, TagCount, Workspace } from './types'
 
 /**
  * The one door to the Rust side. In the desktop app every call is a Tauri command; in a plain browser (`pnpm dev:ui`)
@@ -316,4 +316,44 @@ export async function removeImapAccount(id: string): Promise<ImapAccount[]> {
 /** Checks every IMAP mailbox now. Resolves to how many messages arrived. */
 export async function checkImapAccounts(): Promise<number> {
   return isTauri() ? invoke<number>(COMMANDS.checkImapAccounts) : 0
+}
+
+/** The dissolve.email connection and its inboxes. */
+export async function dissolveStatus(): Promise<DissolveStatus> {
+  return isTauri() ? invoke<DissolveStatus>(COMMANDS.dissolveStatus) : preview.dissolve.status()
+}
+
+/** Signs in to dissolve.email in the browser; resolves once the browser comes back (up to five minutes). */
+export async function connectDissolve(server?: string): Promise<DissolveStatus> {
+  return isTauri() ? invoke<DissolveStatus>(COMMANDS.connectDissolve, { server: server ?? null }) : preview.dissolve.connect()
+}
+
+/** Signs out of dissolve.email; with `deleteMail`, its mail here goes too. */
+export async function disconnectDissolve(deleteMail: boolean): Promise<DissolveStatus> {
+  return isTauri() ? invoke<DissolveStatus>(COMMANDS.disconnectDissolve, { deleteMail }) : preview.dissolve.disconnect(deleteMail)
+}
+
+/** Checks dissolve.email now. Resolves to how many messages arrived. */
+export async function checkDissolve(): Promise<number> {
+  return isTauri() ? invoke<number>(COMMANDS.checkDissolve) : 0
+}
+
+/** Keeps an inbox's mail after it ends on dissolve.email, or not. */
+export async function setDissolveKeep(keep: boolean): Promise<DissolveStatus> {
+  return isTauri() ? invoke<DissolveStatus>(COMMANDS.setDissolveKeep, { keep }) : preview.dissolve.keep(keep)
+}
+
+/** Makes a dissolve.email inbox, on a domain or the account's default, with an optional name. */
+export async function createDissolveInbox(options: { domain?: string; name?: string } = {}): Promise<DissolveInbox> {
+  return isTauri() ? invoke<DissolveInbox>(COMMANDS.createDissolveInbox, { domain: options.domain ?? null, name: options.name ?? null }) : preview.dissolve.create(options.name)
+}
+
+/** Gives a dissolve.email inbox more time. Rejects with dissolve.email's reason, such as too early. */
+export async function extendDissolveInbox(id: string): Promise<DissolveStatus> {
+  return isTauri() ? invoke<DissolveStatus>(COMMANDS.extendDissolveInbox, { id }) : preview.dissolve.extend(id)
+}
+
+/** Burns a dissolve.email inbox: ended there, its mail deleted here. */
+export async function burnDissolveInbox(id: string): Promise<DissolveStatus> {
+  return isTauri() ? invoke<DissolveStatus>(COMMANDS.burnDissolveInbox, { id }) : preview.dissolve.burn(id)
 }

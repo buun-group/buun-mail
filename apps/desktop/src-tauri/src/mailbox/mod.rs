@@ -9,10 +9,12 @@
 //! - `remote`: taking in one message from a source that knows its recipient, such as the mail gateway
 //! - `sent`: the copy kept in Sent, the ids a reply threads under, recipients to suggest
 //! - `routing`: reloading the routing file, and adding a workspace for a newly connected domain
+//! - `provided`: workspaces an integration brings, such as dissolve.email's, beside the routing file's
 
 mod change;
 mod export;
 mod import;
+mod provided;
 mod read;
 mod remote;
 mod routing;
@@ -30,6 +32,7 @@ use buun_mail_rules::{CheckedRule, Rule};
 use buun_mail_store::{Activity, Store};
 
 pub use export::{AttachmentDataDto, ExportFormat};
+pub use provided::ProvidedWorkspace;
 
 use crate::error::AppError;
 use crate::paths::AppPaths;
@@ -65,6 +68,7 @@ pub struct Mailbox {
     rules: RwLock<Vec<CheckedRule>>,
     store: Mutex<Store>,
     routing_path: PathBuf,
+    provided: RwLock<Vec<ProvidedWorkspace>>,
 }
 
 impl Mailbox {
@@ -85,7 +89,7 @@ impl Mailbox {
     /// [`AppError`] when the store cannot be read.
     pub fn new(router: Router, store: Store, routing_path: PathBuf) -> Result<Self, AppError> {
         let rules = load_rules(&store)?;
-        Ok(Self { router: RwLock::new(router), rules: RwLock::new(rules), store: Mutex::new(store), routing_path })
+        Ok(Self { router: RwLock::new(router), rules: RwLock::new(rules), store: Mutex::new(store), routing_path, provided: RwLock::default() })
     }
 
     /// Where the routing file lives, for the settings screen.

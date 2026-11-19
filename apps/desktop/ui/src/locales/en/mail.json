@@ -269,5 +269,28 @@
     "showMail": "Show mail with {{who}}",
     "copy": "Copy {{address}}",
     "writeNeedsSending": "Connect a sending integration to write to {{who}}."
+  },
+  "dissolve": {
+    "account_one": "{{email}}, {{count}} live inbox",
+    "account_other": "{{email}}, {{count}} live inboxes",
+    "notConnected": "Not connected to dissolve.email. Mail collected earlier stays here; connect again in Settings, Integrations.",
+    "newAddress": "New address",
+    "madeCopied": "New address made and copied",
+    "createFailed": "No address was made",
+    "copyAddress": "Copy {{address}}",
+    "leftDays": "{{days}} d {{hours}} h left",
+    "leftHours": "{{hours}} h {{minutes}} min left",
+    "leftMinutes": "{{minutes}} min left",
+    "ended": "Ended",
+    "endedKept": "Ended on dissolve.email, kept here",
+    "extend": "Extend",
+    "extended": "Inbox extended",
+    "extendFailed": "The inbox was not extended",
+    "burn": "Burn",
+    "deleteHere": "Delete here",
+    "burnTitle": "Burn {{address}}?",
+    "burnBody": "The inbox ends on dissolve.email now, and every message of it on this computer is deleted. Mail sent to it afterwards is refused. This cannot be undone.",
+    "burned": "Inbox burned",
+    "burnFailed": "The inbox was not burned"
   }
 }

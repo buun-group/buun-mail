@@ -11,6 +11,7 @@ use buun_mail_store::Placement;
 use tauri::{AppHandle, State};
 
 use crate::agent::{AgentState, AgentStatusDto};
+use crate::dissolve::{DissolveInboxDto, DissolveService, DissolveStatusDto};
 use crate::dto::{ActivityDto, ContactDto, ImportReportDto, KnownContactDto, MessageDetailDto, MessageDto, ShelfDto, TagCountDto, ViewDto, WorkspaceDto};
 use crate::error::AppError;
 use crate::events;
@@ -396,4 +397,58 @@ pub fn remove_imap_account(imap: State<'_, ImapService>, id: String) -> Result<V
 pub async fn check_imap_accounts(imap: State<'_, ImapService>) -> Result<usize, String> {
     let service = imap.inner().clone();
     tauri::async_runtime::spawn_blocking(move || service.check_all()).await.map_err(|error| error.to_string())
+}
+
+/// The dissolve.email connection and its inboxes, never a token.
+#[tauri::command]
+pub fn dissolve_status(dissolve: State<'_, DissolveService>) -> Result<DissolveStatusDto, AppError> {
+    dissolve.status()
+}
+
+/// Signs in to dissolve.email in the browser, away from the window's thread, waiting up to five minutes.
+#[tauri::command]
+pub async fn connect_dissolve(dissolve: State<'_, DissolveService>, server: Option<String>) -> Result<DissolveStatusDto, String> {
+    let service = dissolve.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || service.connect(server.as_deref())).await.map_err(|error| error.to_string())?
+}
+
+/// Signs out of dissolve.email; with `delete_mail`, its mail here goes too.
+#[tauri::command]
+pub async fn disconnect_dissolve(dissolve: State<'_, DissolveService>, delete_mail: bool) -> Result<DissolveStatusDto, String> {
+    let service = dissolve.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || service.disconnect(delete_mail).map_err(|error| error.to_string())).await.map_err(|error| error.to_string())?
+}
+
+/// Checks dissolve.email now. Returns how many messages arrived.
+#[tauri::command]
+pub async fn check_dissolve(dissolve: State<'_, DissolveService>) -> Result<usize, String> {
+    let service = dissolve.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || service.check()).await.map_err(|error| error.to_string())?
+}
+
+/// Keeps an inbox's mail after it ends on dissolve.email, or not.
+#[tauri::command]
+pub fn set_dissolve_keep(dissolve: State<'_, DissolveService>, keep: bool) -> Result<DissolveStatusDto, AppError> {
+    dissolve.set_keep_after_expiry(keep)
+}
+
+/// Makes a dissolve.email inbox.
+#[tauri::command]
+pub async fn create_dissolve_inbox(dissolve: State<'_, DissolveService>, domain: Option<String>, name: Option<String>) -> Result<DissolveInboxDto, String> {
+    let service = dissolve.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || service.create_inbox(domain.as_deref(), name.as_deref())).await.map_err(|error| error.to_string())?
+}
+
+/// Gives a dissolve.email inbox more time.
+#[tauri::command]
+pub async fn extend_dissolve_inbox(dissolve: State<'_, DissolveService>, id: String) -> Result<DissolveStatusDto, String> {
+    let service = dissolve.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || service.extend_inbox(&id)).await.map_err(|error| error.to_string())?
+}
+
+/// Burns a dissolve.email inbox: ended there, its mail deleted here.
+#[tauri::command]
+pub async fn burn_dissolve_inbox(dissolve: State<'_, DissolveService>, id: String) -> Result<DissolveStatusDto, String> {
+    let service = dissolve.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || service.burn_inbox(&id)).await.map_err(|error| error.to_string())?
 }

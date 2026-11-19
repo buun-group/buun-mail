@@ -275,3 +275,29 @@ export interface ImapAccount {
   received: number
   problem: string | null
 }
+
+/** A dissolve.email inbox. Mirrors `DissolveInboxDto`. */
+export interface DissolveInbox {
+  id: string
+  /** Its address, which is also its folder's name. */
+  address: string
+  name: string | null
+  /** When it ends, RFC 3339. */
+  expiresAt: string
+  /** True once it ended on dissolve.email and its mail was kept here. */
+  ended: boolean
+  /** Messages of it stored here. */
+  stored: number
+}
+
+/** The dissolve.email connection, never a token. Mirrors `DissolveStatusDto`. */
+export interface DissolveStatus {
+  connected: boolean
+  server: string
+  email: string | null
+  plan: string | null
+  keepAfterExpiry: boolean
+  inboxes: DissolveInbox[]
+  lastChecked: string | null
+  problem: string | null
+}

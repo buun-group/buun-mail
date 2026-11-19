@@ -50,6 +50,11 @@ impl Mailbox {
                 }
             })
             .collect();
+        for provided in self.provided.read()?.iter() {
+            if workspaces.iter().all(|workspace| workspace.id != provided.id) {
+                workspaces.push(provided.dto(&unread));
+            }
+        }
 
         // Mail the routing file no longer accounts for: folders and workspaces it dropped, and Unsorted.
         for placement in &stored {

@@ -6,6 +6,7 @@
 //! - `sync`: collecting mail from the Buun Mail Gateway
 //! - `send`: sending through a connected service such as Resend
 //! - `imap`: collecting from IMAP mailboxes
+//! - `dissolve`: dissolve.email's disposable inboxes as a workspace, after signing in with OAuth
 //! - `ingest`: parse, route and store one message; every mail source goes through it
 //! - `mailbox`: what the UI and agents read and change, on top of the store
 //! - `commands`: the thin Tauri commands
@@ -15,6 +16,7 @@
 
 mod agent;
 mod commands;
+mod dissolve;
 mod dto;
 mod error;
 mod events;
@@ -63,22 +65,10 @@ pub fn run() {
             });
             app.manage(agent::AgentState::open(paths.config.clone(), Arc::clone(&mailbox), Some(app.handle().clone()))?);
             app.manage(sync::SyncService::start(paths.config.clone(), Arc::clone(&mailbox), Some(app.handle().clone())));
-            // Snoozed mail comes back when its time is up: checked every minute, announced like new mail.
-            let waking = Arc::clone(&mailbox);
-            let notify = app.handle().clone();
-            std::thread::spawn(move || {
-                loop {
-                    if let Ok(woken) = waking.wake_due()
-                        && !woken.is_empty()
-                    {
-                        events::mail_arrived(&notify, &woken);
-                        events::mail_changed(&notify);
-                    }
-                    std::thread::sleep(std::time::Duration::from_secs(60));
-                }
-            });
+            wake_snoozed(Arc::clone(&mailbox), app.handle().clone());
             app.manage(send::SendService::open(paths.config.clone(), Arc::clone(&mailbox)));
             app.manage(imap::ImapService::start(paths.config.clone(), Arc::clone(&mailbox), Some(app.handle().clone())));
+            app.manage(dissolve::DissolveService::start(paths.config.clone(), Arc::clone(&mailbox), Some(app.handle().clone())));
             app.manage(mailbox);
             Ok(())
         })
@@ -114,6 +104,14 @@ pub fn run() {
             commands::add_imap_account,
             commands::remove_imap_account,
             commands::check_imap_accounts,
+            commands::dissolve_status,
+            commands::connect_dissolve,
+            commands::disconnect_dissolve,
+            commands::check_dissolve,
+            commands::set_dissolve_keep,
+            commands::create_dissolve_inbox,
+            commands::extend_dissolve_inbox,
+            commands::burn_dissolve_inbox,
             commands::open_message,
             commands::mark_all_read,
             commands::tag_message,
@@ -140,4 +138,19 @@ pub fn run() {
         ])
         .run(tauri::generate_context!())
         .expect("the Buun Mail window could not start");
+}
+
+/// Snoozed mail comes back when its time is up: checked every minute, announced like new mail.
+fn wake_snoozed(mailbox: Arc<Mailbox>, app: tauri::AppHandle) {
+    std::thread::spawn(move || {
+        loop {
+            if let Ok(woken) = mailbox.wake_due()
+                && !woken.is_empty()
+            {
+                events::mail_arrived(&app, &woken);
+                events::mail_changed(&app);
+            }
+            std::thread::sleep(std::time::Duration::from_secs(60));
+        }
+    });
 }

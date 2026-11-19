@@ -50,6 +50,8 @@ interface MessageListProps {
   onScope: (scope: 'list' | 'all') => void
   /** The list fills the window (reading pane off): each message on one line. */
   wide: boolean
+  /** A bar under the header for the open workspace, such as dissolve.email's inbox actions. */
+  banner?: ReactNode
 }
 
 const VIEW_GLYPHS = { starred: IconStar, snoozed: IconSnooze, archive: IconArchive, trash: IconDelete, drafts: IconRename, contacts: IconContacts } as const satisfies Record<MailView, unknown>
@@ -58,7 +60,7 @@ const VIEW_GLYPHS = { starred: IconStar, snoozed: IconSnooze, archive: IconArchi
  * The open folder's messages, or a view across workspaces, newest first, as flat rows split by hairlines. Unread is
  * heavier type and an envelope glyph. Right click, the menu key or Shift F10 on a row opens what can be done to it.
  */
-export function MessageList({ workspace, place, view, messages, selectedId, onSelect, actions, workspaceName, theme, sort, onSort, filter, onFilter, total, looks, query, onQuery, scope, onScope, wide }: MessageListProps): ReactNode {
+export function MessageList({ workspace, place, view, messages, selectedId, onSelect, actions, workspaceName, theme, sort, onSort, filter, onFilter, total, looks, query, onQuery, scope, onScope, wide, banner }: MessageListProps): ReactNode {
   const { t } = useTranslation(['mail', 'common'])
   const [menu, setMenu] = useState<MenuRequest | null>(null)
   const closeMenu = useCallback(() => setMenu(null), [])
@@ -198,6 +200,7 @@ export function MessageList({ workspace, place, view, messages, selectedId, onSe
           </div>
         )}
       </header>
+      {banner}
       {messages.length === 0 && total > 0 && query.trim() !== '' ? (
         <div className="message-list__empty">
           <p>{t('list.searchMiss', { query: query.trim() })}</p>

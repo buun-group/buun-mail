@@ -30,4 +30,4 @@ pub use error::MessageError;
 pub use id::content_id;
 pub use mbox::{is_mbox, mbox_entry, split_mbox};
 pub use parse::{Contact, Parsed, Recipients, body_text, parse, recipients};
-pub use time::rfc3339;
+pub use time::{rfc3339, unix_of};

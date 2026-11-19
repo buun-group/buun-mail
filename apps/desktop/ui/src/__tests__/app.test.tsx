@@ -38,7 +38,8 @@ describe('the app in a browser', () => {
     await screen.findByText('Quote for the booking site')
     fireEvent.keyDown(window, { key: ',', ctrlKey: true })
     fireEvent.click(screen.getByRole('button', { name: 'Integrations' }))
-    for (const integration of INTEGRATIONS) expect(screen.getAllByText(i18n.t(integration.name, { ns: 'integrations' }))).toHaveLength(integration.directions.length)
+    // Scoped to the rows: a product such as dissolve.email is also named elsewhere in the window.
+    for (const integration of INTEGRATIONS) expect(screen.getAllByText(i18n.t(integration.name, { ns: 'integrations' }), { selector: '.integration__head .settings__label' })).toHaveLength(integration.directions.length)
   })
 
   it('opens a connect form that says it is not wired up yet', async () => {
@@ -80,5 +81,27 @@ describe('collecting a mailbox over IMAP', () => {
     fireEvent.change(screen.getByLabelText('Password or app password'), { target: { value: 'app-password' } })
     fireEvent.click(screen.getByRole('button', { name: 'Connect' }))
     expect(await screen.findByText('me@gmail.com @ imap.gmail.com:993')).toBeTruthy()
+  })
+})
+
+describe('dissolve.email', () => {
+  it('connects through the browser and offers to keep mail after an inbox ends', async () => {
+    render(<App />)
+    await screen.findByText('Quote for the booking site')
+    fireEvent.keyDown(window, { key: ',', ctrlKey: true })
+    fireEvent.click(screen.getByRole('button', { name: 'Integrations' }))
+    fireEvent.click(screen.getByText('dissolve.email', { selector: '.integration__head .settings__label' }).closest('button') as HTMLElement)
+    fireEvent.click(await screen.findByRole('button', { name: 'Connect' }))
+    expect(await screen.findByRole('heading', { name: 'you@example.com' })).toBeTruthy()
+    expect(screen.getByRole('switch', { name: 'Keep mail after an inbox ends' })).toBeTruthy()
+  })
+
+  it('reads time left in plain words', async () => {
+    const { formatTimeLeft, timeLeft } = await import('../lib/dissolve')
+    const now = Date.parse('2026-11-20T10:00:00Z')
+    expect(formatTimeLeft(timeLeft('2026-11-22T14:30:00Z', now))).toBe('2 d 4 h left')
+    expect(formatTimeLeft(timeLeft('2026-11-20T13:12:00Z', now))).toBe('3 h 12 min left')
+    expect(timeLeft('2026-11-20T10:20:00Z', now).soon).toBe(true)
+    expect(formatTimeLeft(timeLeft('2026-11-20T09:00:00Z', now))).toBe('Ended')
   })
 })
