@@ -12,6 +12,23 @@ import type { Feedback, FeedbackTone } from '../../lib/feedback'
 
 import './Toasts.css'
 
+/**
+ * True where the engine has popovers. The stack then renders inside the topmost open dialog, so the dialog does not make
+ * it inert and it can be clicked, and is also a manual popover in the top layer, lifted above the dialog, so the
+ * dialog cannot clip it (WebKit gives an open dialog `overflow: auto`, which hides a fixed element inside it).
+ */
+const POPOVERS = typeof HTMLElement !== 'undefined' && 'showPopover' in HTMLElement.prototype
+
+/**
+ * Opens the stack in the top layer, above the dialog it renders in. A callback ref, so it runs each time the stack
+ * mounts, which it does again in each new host as dialogs open and close.
+ */
+function lift(element: HTMLElement | null): void {
+  if (!POPOVERS || element === null || !element.isConnected) return
+  if (element.matches(':popover-open')) element.hidePopover()
+  element.showPopover()
+}
+
 /** The newest open modal dialog, which sits above the page, or the page itself when none is open. */
 function topmost(): HTMLElement {
   const open = [...document.querySelectorAll<HTMLDialogElement>('dialog[open]')]
@@ -37,15 +54,16 @@ export function Toasts({ toasts, workspaceName, onOpen, onDismiss }: ToastsProps
   const feedback = useFeedback()
   const [host, setHost] = useState<HTMLElement>(topmost)
 
-  // Follows dialogs opening and closing, so the stack always renders in the one on top.
+  // Follows dialogs opening and closing, so the stack renders inside the one on top.
   useEffect(() => {
     const watcher = new MutationObserver(() => setHost(topmost()))
     watcher.observe(document.body, { attributes: true, attributeFilter: ['open'], subtree: true })
     return () => watcher.disconnect()
   }, [])
 
+
   return createPortal(
-    <section className="toasts" aria-live="polite" aria-label={t('toasts.label')}>
+    <section ref={lift} className="toasts" aria-live="polite" aria-label={t('toasts.label')} popover={POPOVERS ? 'manual' : undefined}>
       {toasts.map((message) => (
         <div key={message.id} className="toast">
           <button

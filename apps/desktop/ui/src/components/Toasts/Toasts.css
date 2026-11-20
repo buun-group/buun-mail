@@ -1,4 +1,5 @@
 .toasts {
+  /* A popover in the top layer where the engine has them (Toasts.tsx); these rules undo the browser's popover box. */
   /* Every side is set on its own, and rows are only as tall as their toast and gather at the bottom, so nothing can
      stretch a toast to the window's height, inside a dialog or out. */
   position: fixed;
@@ -172,4 +173,9 @@
     opacity: 0;
     transform: translateY(10px) scale(0.98);
   }
+}
+
+/* As a popover, the stack shows only while open; it is always open, empty or not. */
+.toasts:popover-open {
+  display: grid;
 }
