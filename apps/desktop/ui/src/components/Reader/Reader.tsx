@@ -32,6 +32,7 @@ import { MoreFromBuun } from '../MoreFromBuun/MoreFromBuun'
 import { TagEditor } from '../Tags/Tags'
 import { TipButton } from '../Tooltip/TipButton'
 import { registerReaderSlot } from '../../lib/readerSlot'
+import { EmptyState } from '../Empty/EmptyState'
 
 import './Reader.css'
 
@@ -235,7 +236,7 @@ export function Reader({ grain, message, body, recipients, detail, workspace, th
     return (
       <section className="reader reader--empty" aria-label={t('reader.label')} ref={registerReaderSlot}>
         <div className="reader__empty">
-          <p className="reader__nothing">{t('reader.nothingOpen')}</p>
+          <EmptyState words={t('reader.nothingOpen')} hint={t('reader.nothingOpenHint')} />
           <MoreFromBuun theme={theme} />
         </div>
       </section>

@@ -7,9 +7,12 @@ import { INBOX_LABEL } from '../../constants/ui'
 import type { ListFilter, ListSort, Theme } from '../../constants/ui'
 import type { WorkspaceLooks } from '../../hooks/useWorkspaceLooks'
 import { endOfDay, sortMessages } from '../../lib/sort'
+import { copyWithToast } from '../../lib/copy'
+import { EmptyState } from '../Empty/EmptyState'
+import { TipSpan } from '../Tooltip/TipButton'
 import { WorkspaceIcon } from '../WorkspaceIcon/WorkspaceIcon'
 import { ListTools } from './ListTools'
-import { IconArchive, IconCaret, IconContacts, IconConversation, IconDelete, IconRename, IconSnooze, IconFolder, IconInbox, IconSearch, IconStar, IconStarred, IconUnread, isWorkspaceGlyph, WORKSPACE_GLYPHS, IconUnsorted, IconCalendar } from '../../icons'
+import { IconArchive, IconCaret, IconContacts, IconConversation, IconDelete, IconRename, IconSnooze, IconFolder, IconInbox, IconSearch, IconStar, IconStarred, IconUnread, isWorkspaceGlyph, WORKSPACE_GLYPHS, IconUnsorted, IconCalendar, IconCopy } from '../../icons'
 import { Avatar } from '../Avatar/Avatar'
 import { formatListed } from '../../lib/time'
 import { ContextMenu, isMenuKey, menuPoint } from '../ContextMenu/ContextMenu'
@@ -154,14 +157,19 @@ export function MessageList({ workspace, place, view, messages, selectedId, onSe
     event.preventDefault()
     setMenu({ ...menuPoint(event), label: t('actions.menuLabel', { subject: message.subject }), items: actions.menu(message) })
   }
+  const searchingAll = scope === 'all' && query.trim() !== ''
+  // The one address mail to this folder goes to, when there is exactly one: an empty folder offers to copy it.
+  const mailTo = place?.folder?.includes('@') === true ? place.folder : workspace?.addresses.length === 1 ? (workspace.addresses[0] ?? null) : null
+  const title = searchingAll ? t('list.searchResults') : view === null ? (place?.folder ?? t(INBOX_LABEL)) : t(`views.${view}`)
+  const showsWorkspace = view === null && workspace !== undefined && !searchingAll
   return (
     <section className="message-list" data-wide={wide} data-banner={banner !== undefined} data-details={details} aria-label={t('list.label')}>
       <header className="message-list__header" data-selecting={selected.length > 0}>
         {selected.length > 0 && <SelectionBar selected={selected} total={messages.length} workspace={workspace} bulk={actions.bulk} onSnooze={actions.snooze} onSelectAll={() => setPicked(new Set(messages.map((message) => message.id)))} onClear={clearPicked} />}
-        <div className="message-list__title">
+        <TipSpan className="message-list__title" tip={showsWorkspace ? `${title} ${t('list.inWorkspace', { workspace: workspace.name })}` : title}>
           <TitleGlyph aria-hidden="true" className="message-list__glyph" />
-          <h1>{scope === 'all' && query.trim() !== '' ? t('list.searchResults') : view === null ? (place?.folder ?? t(INBOX_LABEL)) : t(`views.${view}`)}</h1>
-          {view === null && workspace !== undefined && !(scope === 'all' && query.trim() !== '') && (
+          <h1>{title}</h1>
+          {showsWorkspace && (
             <>
               <IconCaret aria-hidden="true" className="message-list__crumb" />
               <span className="message-list__workspace" aria-label={t('list.inWorkspace', { workspace: workspace.name })}>
@@ -170,7 +178,7 @@ export function MessageList({ workspace, place, view, messages, selectedId, onSe
               </span>
             </>
           )}
-        </div>
+        </TipSpan>
         {view === 'trash' && messages.length > 0 ? (
           <button type="button" className="message-list__empty-trash" onClick={() => actions.emptyTrash(messages.length)}>
             {t('list.emptyTrash')}
@@ -227,9 +235,11 @@ export function MessageList({ workspace, place, view, messages, selectedId, onSe
       ) : keptMessages.length === 0 && emptyState !== undefined ? (
         emptyState
       ) : keptMessages.length === 0 ? (
-        <p className="message-list__empty">
-          {view === null ? <Trans t={t} i18nKey="list.empty" components={{ addresses: <code>{workspace?.addresses.join(', ') ?? t('list.thisWorkspace')}</code> }} /> : t(`list.emptyView.${view}`)}
-        </p>
+        <EmptyState
+          compact
+          words={view === null ? <Trans t={t} i18nKey="list.empty" components={{ addresses: <code>{workspace?.addresses.join(', ') ?? t('list.thisWorkspace')}</code> }} /> : t(`list.emptyView.${view}`)}
+          {...(view === null && mailTo !== null ? { action: { label: t('list.copyAddress'), glyph: IconCopy, run: (from: HTMLElement) => void copyWithToast(mailTo, t('list.addressCopied'), from) } } : {})}
+        />
       ) : (
         <div className="message-list__body">
         <ListHeader sort={sort} onSort={onSort} details={details} />

@@ -4,6 +4,7 @@ import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { DissolveBar } from './components/Dissolve/DissolveBar'
+import { useNarrowWindow } from './hooks/useNarrowWindow'
 import { setLocalOffset } from './api/client'
 import { onReminderDue } from './api/events'
 import { notify } from './api/notify'
@@ -141,7 +142,14 @@ export function App(): ReactNode {
     if (compose.open === null) delete document.documentElement.dataset['composing']
     else document.documentElement.dataset['composing'] = compose.minimized ? 'min' : 'true'
   }, [compose.open, compose.minimized])
-  useMailKeys(mailbox.selected?.message ?? null, mailbox.messages, mailbox.select, actions, preferences.readingPane === 'off' ? mailbox.close : null, {
+  // A narrow window folds the sidebar to its rail and opens messages over the list, whatever the settings say; the
+  // sidebar can still be peeked open from the title bar, and folds again once a place is picked.
+  const narrow = useNarrowWindow()
+  const [peek, setPeek] = useState(false)
+  const sidebarCollapsed = narrow ? !peek : preferences.sidebarCollapsed
+  const setSidebarCollapsed = narrow ? (collapsed: boolean) => setPeek(!collapsed) : preferences.setSidebarCollapsed
+  const readingPane = narrow ? 'off' : preferences.readingPane
+  useMailKeys(mailbox.selected?.message ?? null, mailbox.messages, mailbox.select, actions, readingPane === 'off' ? mailbox.close : null, {
     compose: () => {
       if (sending.any) compose.start('new', null)
     },
@@ -169,12 +177,12 @@ export function App(): ReactNode {
   }
 
   return (
-    <div className="app" data-sidebar={preferences.sidebarCollapsed ? 'collapsed' : 'open'} data-reading={preferences.readingPane} data-open={mailbox.selected !== null}>
+    <div className="app" data-sidebar={sidebarCollapsed ? 'collapsed' : 'open'} data-reading={readingPane} data-open={mailbox.selected !== null}>
       <TitleBar
         themePreference={preferences.themePreference}
         onThemePreference={preferences.setThemePreference}
-        sidebarCollapsed={preferences.sidebarCollapsed}
-        onSidebarCollapsed={preferences.setSidebarCollapsed}
+        sidebarCollapsed={sidebarCollapsed}
+        onSidebarCollapsed={setSidebarCollapsed}
         onSettings={openSettings}
         bell={
           <NotificationBell
@@ -196,9 +204,15 @@ export function App(): ReactNode {
         theme={preferences.theme}
         looks={looks.looks}
         folded={folded.folded}
-        collapsed={preferences.sidebarCollapsed}
-        onOpen={mailbox.open}
-        onOpenView={mailbox.openView}
+        collapsed={sidebarCollapsed}
+        onOpen={(place) => {
+          setPeek(false)
+          mailbox.open(place)
+        }}
+        onOpenView={(view) => {
+          setPeek(false)
+          mailbox.openView(view)
+        }}
         onCompose={() => (sending.any ? compose.start('new', null) : openIntegrations())}
         canCompose={sending.any}
         draftCount={compose.drafts.length}
@@ -246,7 +260,7 @@ export function App(): ReactNode {
         onQuery={mailbox.setQuery}
         scope={mailbox.scope}
         onScope={mailbox.setScope}
-        wide={preferences.readingPane === 'off'}
+        wide={readingPane === 'off'}
         details={preferences.senderChecks}
         emptyState={workspace?.id === DISSOLVE_WORKSPACE && mailbox.view === null && mailbox.place?.folder === null ? <Overview workspace={workspace} onOpen={mailbox.open} /> : undefined}
         banner={workspace?.id === DISSOLVE_WORKSPACE && mailbox.view === null && mailbox.place !== null ? <DissolveBar key={mailbox.place.folder ?? ''} place={mailbox.place} onOpen={mailbox.open} /> : undefined}
@@ -264,7 +278,7 @@ export function App(): ReactNode {
         onRemoveTag={mailbox.removeTag}
         tagSuggestions={mailbox.tags}
         actions={actions}
-        onBack={preferences.readingPane === 'off' ? mailbox.close : null}
+        onBack={readingPane === 'off' ? mailbox.close : null}
         onOpenIntegrations={openIntegrations}
         canReply={mailbox.selected !== null && sending.can(mailbox.selected.message.to)}
         canForward={sending.any}

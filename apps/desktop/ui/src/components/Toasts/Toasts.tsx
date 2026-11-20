@@ -107,7 +107,10 @@ function FeedbackToast({ item, undoLabel, dismissLabel }: { item: Feedback; undo
         <Glyph aria-hidden="true" />
       </span>
       <span className="toast__words">
-        <span className="toast__text">{item.text}</span>
+        <span className="toast__text">
+          {item.text}
+          {item.count > 1 && <span className="toast__count">{item.count}</span>}
+        </span>
         {item.detail !== undefined && <span className="toast__detail">{item.detail}</span>}
       </span>
       {item.undo !== undefined && (
