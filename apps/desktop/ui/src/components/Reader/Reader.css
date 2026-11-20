@@ -259,19 +259,15 @@
   margin-top: var(--space-3);
 }
 
-/* The message as sent, on its own white page with rounded corners, as most senders design for. */
+/* The message as sent: a designed one on its own paper with rounded corners, a plain one in the app's colours. */
 .message-html {
   display: grid;
   gap: var(--space-2);
   margin-top: var(--space-5);
 }
 
-.message-html__frame {
-  width: 100%;
-  border: 0;
+.message-html__page {
   border-radius: var(--radius-md);
-  background: var(--surface-plate);
-  box-shadow: 0 0 0 1px var(--border-faint);
 }
 
 .message-html__blocked {

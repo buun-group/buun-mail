@@ -57,6 +57,11 @@
   --status-danger-fg: #b3261e;
   --status-success-fg: #1f7a3d;
   --status-success-bg: #e3f4e8;
+  --mail-paper: #ffffff;
+  --mail-ink: #1a1a1a;
+  --mail-link: #2453c7;
+  --mail-edge: #ededed;
+  --mail-grain-opacity: 0.07;
 
   /* The close button's hover, as Windows draws it. */
   --window-close-hover: #c42b1c;
@@ -188,6 +193,11 @@
   --status-danger-fg: #ff8a8a;
   --status-success-fg: #74d494;
   --status-success-bg: #12301d;
+  --mail-paper: #ecebe7;
+  --mail-ink: #1c1b19;
+  --mail-link: #2148ad;
+  --mail-edge: transparent;
+  --mail-grain-opacity: 0.12;
 
   --emboss-light: rgba(255, 255, 255, 0.08);
   --emboss-dark: rgba(0, 0, 0, 0.7);

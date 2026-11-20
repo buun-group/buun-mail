@@ -202,6 +202,7 @@ export function App(): ReactNode {
       />
       )}
       <Reader
+        grain={preferences.grain}
         message={mailbox.selected?.message ?? null}
         body={mailbox.selected?.body ?? null}
         recipients={mailbox.selected?.recipients ?? null}

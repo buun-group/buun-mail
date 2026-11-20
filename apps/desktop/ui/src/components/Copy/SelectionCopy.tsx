@@ -24,7 +24,9 @@ export function SelectionCopy({ within }: { within: RefObject<HTMLElement | null
       const selection = window.getSelection()
       const text = selection?.toString().trim() ?? ''
       const area = within.current
-      if (selection === null || text === '' || selection.rangeCount === 0 || area === null || !area.contains(selection.anchorNode)) {
+      // A selection inside an HTML message's shadow root is that viewer's to offer.
+      const inShadow = selection?.anchorNode instanceof Element && selection.anchorNode.shadowRoot !== null
+      if (selection === null || text === '' || selection.rangeCount === 0 || area === null || !area.contains(selection.anchorNode) || inShadow) {
         setSpot(null)
         return
       }

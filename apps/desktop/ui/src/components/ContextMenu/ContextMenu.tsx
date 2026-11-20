@@ -56,7 +56,7 @@ export function ContextMenu({ request, onClose }: { request: MenuRequest; onClos
     const element = menu.current
     if (element === null) return
     const { width, height } = element.getBoundingClientRect()
-    setPlace({ left: Math.min(request.x, window.innerWidth - width - EDGE), top: Math.min(request.y, window.innerHeight - height - EDGE) })
+    setPlace({ left: Math.max(EDGE, Math.min(request.x, window.innerWidth - width - EDGE)), top: Math.max(EDGE, Math.min(request.y, window.innerHeight - height - EDGE)) })
     element.querySelector<HTMLElement>('[role^="menuitem"]:not([aria-disabled="true"])')?.focus()
   }, [request])
 

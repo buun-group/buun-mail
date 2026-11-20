@@ -25,3 +25,23 @@ describe('sealHtml', () => {
     expect(open).not.toContain('<script')
   })
 })
+
+describe('sealing for drawing inline', () => {
+  it('leaves nothing that reaches the web, runs, or draws over the app', () => {
+    const sealed = sealHtml(
+      '<svg><image href="https://track.example/a.png"/><use xlink:href="https://x.example/s.svg#i"/><set attributeName="href" to="javascript:alert(1)"/></svg>' +
+        '<div style="background-image: image-set(\'https://track.example/b.png\' 1x)">x</div>' +
+        '<a href="javascript:alert(1)">bad</a><a href="https://ok.example" ping="https://track.example/p">ok</a>' +
+        '<div popover>over</div><style>.x{background:-webkit-image-set("https://t.example/c.png" 1x)}</style>',
+      false,
+    )
+    // Live addresses only: a blocked one is kept as data-blocked-*, which fetches nothing.
+    expect(sealed).not.toMatch(/\s(xlink:)?href="https:\/\/(track|x)\./u)
+    expect(sealed).not.toMatch(/image-set\([^)]*https:/u)
+    expect(sealed).not.toContain('javascript:')
+    expect(sealed).not.toContain('<set')
+    expect(sealed).not.toContain('popover')
+    expect(sealed).not.toContain('ping=')
+    expect(sealed).toContain('href="https://ok.example"')
+  })
+})

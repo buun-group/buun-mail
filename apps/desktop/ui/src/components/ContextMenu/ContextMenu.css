@@ -3,6 +3,10 @@
   z-index: 200;
   min-width: 13rem;
   max-width: 18rem;
+  /* A long menu stays inside the window and scrolls, rather than running off its bottom. */
+  max-height: calc(100vh - 16px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: var(--space-1);
   border-radius: var(--radius-md);
   background: var(--surface-card-hover);

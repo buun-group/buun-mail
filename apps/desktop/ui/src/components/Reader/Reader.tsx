@@ -33,6 +33,8 @@ import { TipButton } from '../Tooltip/TipButton'
 import './Reader.css'
 
 interface ReaderProps {
+  /** The paper grain is on, so a designed message's paper wears it too. */
+  grain: boolean
   message: Message | null
   /** The message's text, null while it loads. */
   body: string | null
@@ -137,7 +139,7 @@ function Fields({ message, recipients }: { message: Message; recipients: Recipie
 }
 
 /** The open message. With nothing open, the other Buun Group products. */
-export function Reader({ message, body, recipients, detail, workspace, theme, onAddTag, onRemoveTag, tagSuggestions, actions, onBack, backTo, onOpenIntegrations, canReply, canForward, onCompose, onOpenMessage }: ReaderProps): ReactNode {
+export function Reader({ grain, message, body, recipients, detail, workspace, theme, onAddTag, onRemoveTag, tagSuggestions, actions, onBack, backTo, onOpenIntegrations, canReply, canForward, onCompose, onOpenMessage }: ReaderProps): ReactNode {
   const { t } = useTranslation('mail')
   const article = useRef<HTMLElement | null>(null)
   const bodyText = useRef<HTMLDivElement | null>(null)
@@ -334,7 +336,7 @@ export function Reader({ message, body, recipients, detail, workspace, theme, on
         {detail !== null && <Attachments messageId={message.id} attachments={detail.attachments} />}
         {detail?.html != null && !asText ? (
           <>
-            <MessageHtml key={message.id} html={detail.html.html} remote={detail.html.remote} onMenu={(found) => openHtmlMenu(message, found)} />
+            <MessageHtml key={message.id} html={detail.html.html} remote={detail.html.remote} grain={grain} onMenu={(found) => openHtmlMenu(message, found)} />
             <button type="button" className="reader__switch" onClick={() => setAsText(true)}>
               {t('html.showText')}
             </button>
