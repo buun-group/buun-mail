@@ -29,6 +29,7 @@ pub struct ImapAccount {
     /// The sign-in name, usually the full address.
     pub username: String,
     /// The password or app password. Never sent to the UI.
+    #[serde(with = "crate::vault::sealed")]
     pub password: String,
     /// The folder collected, usually `INBOX`.
     pub folder: String,

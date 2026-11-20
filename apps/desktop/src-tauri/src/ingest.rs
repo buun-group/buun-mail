@@ -43,6 +43,8 @@ pub struct Arrived {
     pub record: MessageRecord,
     /// True when a rule keeps it out of notifications.
     pub quiet: bool,
+    /// Alert channels a rule asked to tell, by id.
+    pub alerts: Vec<String>,
 }
 
 /// Parses, routes, runs the rules on and stores one message. Returns what was stored when it was new, `None` when the
@@ -111,7 +113,7 @@ pub fn ingest(incoming: Incoming<'_>, router: &Router, rules: &[CheckedRule], st
             detail: format!("\"{}\"", record.subject),
         })?;
     }
-    Ok(Some(Arrived { record, quiet: outcome.quiet }))
+    Ok(Some(Arrived { record, quiet: outcome.quiet, alerts: outcome.alerts }))
 }
 
 /// A file's messages: every message in an `.mbox`, or the file itself when it is one message.

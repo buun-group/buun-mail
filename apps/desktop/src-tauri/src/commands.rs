@@ -11,6 +11,7 @@ use buun_mail_store::Placement;
 use tauri::{AppHandle, State};
 
 use crate::agent::{AgentState, AgentStatusDto};
+use crate::alerts::{AlertChannelDto, AlertService};
 use crate::dissolve::{DissolveInboxDto, DissolveService, DissolveStatusDto};
 use crate::dto::{ActivityDto, ContactDto, ImportReportDto, KnownContactDto, MessageDetailDto, MessageDto, ShelfDto, TagCountDto, ViewDto, WorkspaceDto};
 use crate::error::AppError;
@@ -19,6 +20,7 @@ use crate::imap::{ImapAccountDto, ImapSecurity, ImapService};
 use crate::mailbox::{Actor, AttachmentDataDto, ExportFormat, Mailbox};
 use crate::send::{DraftDto, Security, SendFailure, SendService, SendableDto, SenderDto, SmtpServer};
 use crate::sync::{AvailableZone, CheckReportDto, DomainRoute, GatewayStatusDto, OwnedDomain, SyncService};
+use crate::vault::reveal::{RevealLock, RevealStatusDto};
 
 /// Every workspace for the sidebar.
 #[tauri::command]
@@ -458,4 +460,79 @@ pub async fn extend_dissolve_inbox(dissolve: State<'_, DissolveService>, id: Str
 pub async fn burn_dissolve_inbox(dissolve: State<'_, DissolveService>, id: String) -> Result<DissolveStatusDto, String> {
     let service = dissolve.inner().clone();
     tauri::async_runtime::spawn_blocking(move || service.burn_inbox(&id)).await.map_err(|error| error.to_string())?
+}
+
+/// Whether a reveal code is set, and how long reveals stay open.
+#[tauri::command]
+pub fn reveal_status(lock: State<'_, RevealLock>) -> RevealStatusDto {
+    lock.status()
+}
+
+/// Sets, changes or removes the reveal code (`code` of `None` removes it); changing or removing needs the current one.
+#[tauri::command]
+pub async fn set_reveal_code(lock: State<'_, RevealLock>, current: Option<String>, code: Option<String>) -> Result<RevealStatusDto, String> {
+    lock.set_code(current.as_deref(), code.as_deref())
+}
+
+/// Closes reveals now, so the next one asks for the code.
+#[tauri::command]
+pub fn lock_reveals(lock: State<'_, RevealLock>) -> RevealStatusDto {
+    lock.lock();
+    lock.status()
+}
+
+/// A saved secret shown again: a gateway's token, a mailbox's password, a sender's key or password, an alert's secret.
+/// Asks for the reveal code when one is set and reveals are not open.
+#[tauri::command]
+#[allow(clippy::too_many_arguments, reason = "each service that holds a secret is its own Tauri state")]
+pub async fn reveal_secret(
+    lock: State<'_, RevealLock>,
+    sync: State<'_, SyncService>,
+    imap: State<'_, ImapService>,
+    send: State<'_, SendService>,
+    alerts: State<'_, AlertService>,
+    kind: String,
+    id: String,
+    code: Option<String>,
+) -> Result<String, String> {
+    lock.check(code.as_deref())?;
+    let found = match kind.as_str() {
+        "gateway" => sync.secret(&id),
+        "imap" => imap.secret(&id),
+        "sender" => send.secret(&id),
+        "alert" => alerts.secret(&id),
+        _ => None,
+    };
+    found.filter(|secret| !secret.is_empty()).ok_or_else(|| "That secret is not saved here.".to_owned())
+}
+
+/// Every alert channel, never a secret.
+#[tauri::command]
+pub fn list_alerts(alerts: State<'_, AlertService>) -> Result<Vec<AlertChannelDto>, AppError> {
+    alerts.list()
+}
+
+/// Adds an alert channel after checking it has what it needs.
+#[tauri::command]
+pub fn add_alert(
+    alerts: State<'_, AlertService>,
+    name: String,
+    kind: crate::alerts::AlertKind,
+    fields: std::collections::BTreeMap<String, String>,
+    secret: String,
+) -> Result<Vec<AlertChannelDto>, String> {
+    alerts.add(&name, kind, fields, &secret)
+}
+
+/// Forgets an alert channel.
+#[tauri::command]
+pub fn remove_alert(alerts: State<'_, AlertService>, id: String) -> Result<Vec<AlertChannelDto>, AppError> {
+    alerts.remove(&id)
+}
+
+/// Sends a sample alert through a channel, away from the window's thread.
+#[tauri::command]
+pub async fn test_alert(alerts: State<'_, AlertService>, id: String) -> Result<(), String> {
+    let service = alerts.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || service.test(&id)).await.map_err(|error| error.to_string())?
 }

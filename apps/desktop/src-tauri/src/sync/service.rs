@@ -89,6 +89,12 @@ pub struct SyncService {
 }
 
 impl SyncService {
+    /// A gateway's mailbox token, for showing it again once the reveal code allows.
+    #[must_use]
+    pub fn secret(&self, id: &str) -> Option<String> {
+        self.shared.gateways.lock().ok()?.iter().find(|gateway| gateway.id == id).map(|gateway| gateway.token.clone())
+    }
+
     /// Loads the saved gateways and starts the loop. `app` lets it announce new mail; tests pass none.
     #[must_use]
     pub fn start(config_folder: PathBuf, mailbox: Arc<Mailbox>, app: Option<AppHandle>) -> Self {

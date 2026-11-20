@@ -30,6 +30,8 @@ pub struct Outcome {
     pub mark_read: bool,
     /// True when a rule keeps it quiet.
     pub quiet: bool,
+    /// The alert channels to send to, by id, in rule order, without repeats.
+    pub alerts: Vec<String>,
     /// The names of the rules that ran, for the activity log.
     pub fired: Vec<String>,
 }
@@ -56,6 +58,11 @@ pub fn evaluate(rules: &[CheckedRule], facts: &Facts<'_>) -> Outcome {
                 }
                 Action::MarkRead => outcome.mark_read = true,
                 Action::Quiet => outcome.quiet = true,
+                Action::Alert { channel } => {
+                    if !outcome.alerts.contains(channel) {
+                        outcome.alerts.push(channel.clone());
+                    }
+                }
             }
         }
     }
@@ -111,13 +118,18 @@ mod tests {
                 stripe.clone(),
                 vec![Action::Tag { tag: "money".to_owned() }, Action::Move { workspace: None, folder: Some("Receipts".to_owned()) }],
             )),
-            checked(&Rule::new("Quiet", stripe.clone(), vec![Action::Quiet, Action::MarkRead, Action::Tag { tag: "money".to_owned() }])),
+            checked(&Rule::new(
+                "Quiet",
+                stripe.clone(),
+                vec![Action::Quiet, Action::MarkRead, Action::Tag { tag: "money".to_owned() }, Action::Alert { channel: "slack-1".to_owned() }],
+            )),
             checked(&Rule::new("Elsewhere", stripe, vec![Action::Move { workspace: Some("personal".to_owned()), folder: None }])),
         ];
         let outcome = run(&rules, "receipts@stripe.com", "me@acme.com", "Receipt");
         assert_eq!(outcome.tags, ["money"]);
         assert_eq!(outcome.moved_to, Some(("personal".to_owned(), None)));
         assert!(outcome.quiet && outcome.mark_read);
+        assert_eq!(outcome.alerts, ["slack-1"]);
         assert_eq!(outcome.fired, ["Tag", "Quiet", "Elsewhere"]);
     }
 

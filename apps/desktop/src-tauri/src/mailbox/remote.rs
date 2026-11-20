@@ -33,7 +33,10 @@ impl Mailbox {
         let rules = self.rules.read()?;
         let store = self.store.lock()?;
         match ingest(Incoming { raw, envelope_to, received_at, placed: None }, &router, &rules, &store) {
-            Ok(Some(new)) => Ok((!new.quiet).then(|| MessageDto::from(new.record))),
+            Ok(Some(new)) => {
+                self.alert(&new.alerts, &new.record);
+                Ok((!new.quiet).then(|| MessageDto::from(new.record)))
+            }
             Ok(None) => Ok(None),
             Err(IngestError::Store(error)) => Err(AppError::Store(error)),
             Err(other) => Err(AppError::Unreadable(other.to_string())),
@@ -52,7 +55,10 @@ impl Mailbox {
         let rules = self.rules.read()?;
         let store = self.store.lock()?;
         match ingest(Incoming { raw, envelope_to: Some(envelope_to), received_at, placed: Some(placement) }, &router, &rules, &store) {
-            Ok(Some(new)) => Ok((id, (!new.quiet).then(|| MessageDto::from(new.record)))),
+            Ok(Some(new)) => {
+                self.alert(&new.alerts, &new.record);
+                Ok((id, (!new.quiet).then(|| MessageDto::from(new.record))))
+            }
             Ok(None) => Ok((id, None)),
             Err(IngestError::Store(error)) => Err(AppError::Store(error)),
             Err(other) => Err(AppError::Unreadable(other.to_string())),

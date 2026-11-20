@@ -6,6 +6,8 @@
 //! - `sync`: collecting mail from the Buun Mail Gateway
 //! - `send`: sending through a connected service such as Resend
 //! - `imap`: collecting from IMAP mailboxes
+//! - `alerts`: telling you elsewhere (Slack, a text, an email) when a rule matches arriving mail
+//! - `vault`: secrets sealed at rest under this install's key, and the code asked before showing one
 //! - `dissolve`: dissolve.email's disposable inboxes as a workspace, after signing in with OAuth
 //! - `ingest`: parse, route and store one message; every mail source goes through it
 //! - `mailbox`: what the UI and agents read and change, on top of the store
@@ -15,6 +17,7 @@
 //! - `error`: the one error the commands return
 
 mod agent;
+mod alerts;
 mod commands;
 mod dissolve;
 mod dto;
@@ -26,6 +29,7 @@ mod mailbox;
 mod paths;
 mod send;
 mod sync;
+mod vault;
 
 use std::sync::Arc;
 
@@ -48,25 +52,19 @@ pub fn run() {
         .plugin(tauri_plugin_notification::init())
         .setup(|app| {
             let paths = AppPaths::resolve(app.handle())?;
+            // Before anything reads a settings file: the install's key, and any plain secret an older version left, sealed.
+            vault::open(&paths.config)?;
+            app.manage(vault::reveal::RevealLock::open(&paths.config));
             let mailbox = Arc::new(Mailbox::open(&paths)?);
             // Mail in the trash longer than thirty days goes for good. A failure here never stops the app opening.
             let _ = mailbox.empty_trash(true, &mailbox::Actor::App);
-            // Mail stored before conversations and search is linked and indexed in the background, a batch at a time.
-            let catching_up = Arc::clone(&mailbox);
-            let handle = app.handle().clone();
-            std::thread::spawn(move || {
-                let mut done = 0;
-                while let Ok(count @ 1..) = catching_up.catch_up(200) {
-                    done += count;
-                }
-                if done > 0 {
-                    events::mail_changed(&handle);
-                }
-            });
+            catch_up(Arc::clone(&mailbox), app.handle().clone());
             app.manage(agent::AgentState::open(paths.config.clone(), Arc::clone(&mailbox), Some(app.handle().clone()))?);
             app.manage(sync::SyncService::start(paths.config.clone(), Arc::clone(&mailbox), Some(app.handle().clone())));
             wake_snoozed(Arc::clone(&mailbox), app.handle().clone());
-            app.manage(send::SendService::open(paths.config.clone(), Arc::clone(&mailbox)));
+            let send = send::SendService::open(paths.config.clone(), Arc::clone(&mailbox));
+            app.manage(alerts::AlertService::start(paths.config.clone(), &mailbox, send.clone()));
+            app.manage(send);
             app.manage(imap::ImapService::start(paths.config.clone(), Arc::clone(&mailbox), Some(app.handle().clone())));
             app.manage(dissolve::DissolveService::start(paths.config.clone(), Arc::clone(&mailbox), Some(app.handle().clone())));
             app.manage(mailbox);
@@ -113,6 +111,14 @@ pub fn run() {
             commands::dissolve_domains,
             commands::extend_dissolve_inbox,
             commands::burn_dissolve_inbox,
+            commands::reveal_status,
+            commands::set_reveal_code,
+            commands::lock_reveals,
+            commands::reveal_secret,
+            commands::list_alerts,
+            commands::add_alert,
+            commands::remove_alert,
+            commands::test_alert,
             commands::open_message,
             commands::mark_all_read,
             commands::tag_message,
@@ -152,6 +158,19 @@ fn wake_snoozed(mailbox: Arc<Mailbox>, app: tauri::AppHandle) {
                 events::mail_changed(&app);
             }
             std::thread::sleep(std::time::Duration::from_secs(60));
+        }
+    });
+}
+
+/// Mail stored before conversations, search, sizes and sender checks is caught up in the background, a batch at a time.
+fn catch_up(mailbox: Arc<Mailbox>, app: tauri::AppHandle) {
+    std::thread::spawn(move || {
+        let mut done = 0;
+        while let Ok(count @ 1..) = mailbox.catch_up(200) {
+            done += count;
+        }
+        if done > 0 {
+            events::mail_changed(&app);
         }
     });
 }

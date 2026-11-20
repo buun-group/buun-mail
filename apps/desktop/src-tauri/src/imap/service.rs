@@ -67,6 +67,12 @@ struct Inner {
 pub struct ImapService(Arc<Inner>);
 
 impl ImapService {
+    /// A mailbox's password, for showing it again once the reveal code allows.
+    #[must_use]
+    pub fn secret(&self, id: &str) -> Option<String> {
+        self.0.accounts.lock().ok()?.iter().find(|account| account.id == id).map(|account| account.password.clone())
+    }
+
     /// Loads the saved mailboxes and starts checking them every two minutes. `app` lets it announce new mail.
     #[must_use]
     pub fn start(config_folder: PathBuf, mailbox: Arc<Mailbox>, app: Option<AppHandle>) -> Self {

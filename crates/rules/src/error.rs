@@ -26,6 +26,9 @@ pub enum RuleError {
     /// A tag is empty.
     #[error("rule `{0}` has an empty tag")]
     EmptyTag(String),
+    /// An alert action names no channel.
+    #[error("rule `{0}` sends an alert without saying where")]
+    NoChannel(String),
     /// The JSON is not a rule.
     #[error("that is not a rule: {0}")]
     Json(#[from] serde_json::Error),

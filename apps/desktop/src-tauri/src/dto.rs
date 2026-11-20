@@ -165,6 +165,35 @@ impl From<MessageRecord> for MessageDto {
     }
 }
 
+impl MessageDto {
+    /// A made-up message for Send a test, plainly a test.
+    #[must_use]
+    pub fn sample_for_alert() -> Self {
+        Self {
+            id: "test".to_owned(),
+            workspace: "Buun Mail".to_owned(),
+            folder: None,
+            from_name: "Buun Mail".to_owned(),
+            from: "test@buun-mail.invalid".to_owned(),
+            to: "you".to_owned(),
+            matched: None,
+            folder_matched: None,
+            subject: "This is a test alert".to_owned(),
+            preview: "Alerts sent here look like this when a rule matches arriving mail.".to_owned(),
+            received_at: crate::mailbox::rfc3339_now(),
+            unread: true,
+            starred: false,
+            shelf: ShelfDto::Active,
+            thread_id: None,
+            thread_size: 1,
+            snoozed_until: None,
+            tags: Vec::new(),
+            size: None,
+            checks: None,
+        }
+    }
+}
+
 /// An open message: its summary and its readable text.
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]

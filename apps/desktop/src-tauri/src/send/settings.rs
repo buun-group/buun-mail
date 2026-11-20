@@ -51,6 +51,7 @@ pub struct SenderSettings {
     /// Which service it is.
     pub kind: SenderKind,
     /// The secret: Resend's API key, or the mail server's password. Never sent to the UI.
+    #[serde(with = "crate::vault::sealed")]
     pub api_key: String,
     /// The mail server, for an SMTP sender.
     #[serde(default)]

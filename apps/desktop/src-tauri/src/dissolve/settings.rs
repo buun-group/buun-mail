@@ -40,8 +40,10 @@ pub struct Account {
     /// Its plan when last checked.
     pub plan: String,
     /// The access token.
+    #[serde(with = "crate::vault::sealed")]
     pub access_token: String,
     /// The refresh token.
+    #[serde(with = "crate::vault::sealed")]
     pub refresh_token: String,
     /// When the access token ends, Unix seconds.
     pub expires_at: i64,

@@ -64,6 +64,12 @@ pub enum Action {
     MarkRead,
     /// Keeps it quiet: no toast, no desktop notification.
     Quiet,
+    /// Sends an alert through one of the app's alert channels (Slack, a text, an email), by the channel's id. Only mail
+    /// that arrives alerts; re-running rules over stored mail never does.
+    Alert {
+        /// The alert channel's id.
+        channel: String,
+    },
 }
 
 fn enabled_by_default() -> bool {
@@ -112,6 +118,9 @@ impl Rule {
         }
         if self.actions.iter().any(|action| matches!(action, Action::Tag { tag } if tag.trim().is_empty())) {
             return Err(RuleError::EmptyTag(name.to_owned()));
+        }
+        if self.actions.iter().any(|action| matches!(action, Action::Alert { channel } if channel.trim().is_empty())) {
+            return Err(RuleError::NoChannel(name.to_owned()));
         }
         let pattern =
             |raw: &Option<String>| raw.as_deref().map(Pattern::parse).transpose().map_err(|source| RuleError::Pattern { rule: name.to_owned(), source });

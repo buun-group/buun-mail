@@ -24,7 +24,8 @@ pub struct GatewaySettings {
     pub name: String,
     /// The gateway's address, such as `https://mail-gateway.buungroup.com`.
     pub url: String,
-    /// The mailbox token, `bmg_...`.
+    /// The mailbox token, `bmg_...`, sealed at rest.
+    #[serde(with = "crate::vault::sealed")]
     pub token: String,
 }
 

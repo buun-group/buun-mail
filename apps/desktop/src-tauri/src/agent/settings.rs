@@ -26,7 +26,8 @@ pub struct AgentSettings {
     pub enabled: bool,
     /// The local port.
     pub port: u16,
-    /// The bearer token every request must carry.
+    /// The bearer token every request must carry, sealed at rest.
+    #[serde(with = "crate::vault::sealed")]
     pub token: String,
 }
 

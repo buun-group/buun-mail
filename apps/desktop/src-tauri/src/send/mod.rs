@@ -10,5 +10,5 @@ mod service;
 mod settings;
 mod smtp;
 
-pub use service::{DraftDto, SendFailure, SendService, SendableDto, SenderDto};
+pub use service::{ContactInput, DraftDto, SendFailure, SendService, SendableDto, SenderDto};
 pub use smtp::{Security, SmtpServer};

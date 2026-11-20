@@ -82,20 +82,33 @@ fn missing(what: &str, error: &tauri::Error) -> AppError {
 ///
 /// [`AppError::File`] when the folder or file cannot be written.
 pub fn write_private(path: &Path, contents: &str) -> Result<(), AppError> {
+    write_private_bytes(path, contents.as_bytes())
+}
+
+/// Writes bytes so only this user can read them: into a file created private, then renamed over the old one, so no
+/// other user can read it even for a moment and a crash never leaves it half written.
+///
+/// # Errors
+///
+/// [`AppError::File`] when the folder or the file cannot be written.
+pub fn write_private_bytes(path: &Path, contents: &[u8]) -> Result<(), AppError> {
+    use std::io::Write as _;
     if let Some(folder) = path.parent() {
         std::fs::create_dir_all(folder).map_err(|source| file_error(folder, source))?;
     }
-    std::fs::write(path, contents).map_err(|source| file_error(path, source))?;
-    restrict(path).map_err(|source| file_error(path, source))
+    let partial = path.with_extension("partial");
+    let mut file = private_file(&partial).map_err(|source| file_error(&partial, source))?;
+    file.write_all(contents).and_then(|()| file.sync_all()).map_err(|source| file_error(&partial, source))?;
+    std::fs::rename(&partial, path).map_err(|source| file_error(path, source))
 }
 
 #[cfg(unix)]
-fn restrict(path: &Path) -> std::io::Result<()> {
-    use std::os::unix::fs::PermissionsExt;
-    std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o600))
+fn private_file(path: &Path) -> std::io::Result<std::fs::File> {
+    use std::os::unix::fs::OpenOptionsExt as _;
+    std::fs::OpenOptions::new().write(true).create(true).truncate(true).mode(0o600).open(path)
 }
 
 #[cfg(not(unix))]
-fn restrict(_path: &Path) -> std::io::Result<()> {
-    Ok(())
+fn private_file(path: &Path) -> std::io::Result<std::fs::File> {
+    std::fs::OpenOptions::new().write(true).create(true).truncate(true).open(path)
 }

@@ -69,6 +69,16 @@ pub struct Mailbox {
     store: Mutex<Store>,
     routing_path: PathBuf,
     provided: RwLock<Vec<ProvidedWorkspace>>,
+    alerts: Mutex<Option<std::sync::mpsc::Sender<Alerted>>>,
+}
+
+/// A message that arrived and the alert channels its rules asked to tell.
+#[derive(Debug, Clone)]
+pub struct Alerted {
+    /// The channels, by id.
+    pub channels: Vec<String>,
+    /// The message, as the list shows it.
+    pub message: crate::dto::MessageDto,
 }
 
 impl Mailbox {
@@ -89,7 +99,41 @@ impl Mailbox {
     /// [`AppError`] when the store cannot be read.
     pub fn new(router: Router, store: Store, routing_path: PathBuf) -> Result<Self, AppError> {
         let rules = load_rules(&store)?;
-        Ok(Self { router: RwLock::new(router), rules: RwLock::new(rules), store: Mutex::new(store), routing_path, provided: RwLock::default() })
+        Ok(Self {
+            router: RwLock::new(router),
+            rules: RwLock::new(rules),
+            store: Mutex::new(store),
+            routing_path,
+            provided: RwLock::default(),
+            alerts: Mutex::default(),
+        })
+    }
+
+    /// Where arriving mail's alerts go. Only arrivals alert; imports and re-run rules never do.
+    pub fn on_alert(&self, sink: std::sync::mpsc::Sender<Alerted>) {
+        if let Ok(mut alerts) = self.alerts.lock() {
+            *alerts = Some(sink);
+        }
+    }
+
+    /// Notes an alert sent, or why it was not, in the activity log.
+    pub fn note_alert(&self, channel: &str, subject: &str, problem: Option<&str>) {
+        if let Ok(store) = self.store.lock() {
+            let detail = problem.map_or_else(|| format!("{channel}: \"{subject}\""), |problem| format!("{channel}: \"{subject}\" not sent: {problem}"));
+            let _ = log(&store, &Actor::App, if problem.is_none() { "alert" } else { "alert_failed" }, detail);
+        }
+    }
+
+    /// Hands a new message's alerts to the alert service, when a rule asked for any.
+    pub(crate) fn alert(&self, channels: &[String], record: &buun_mail_store::MessageRecord) {
+        if channels.is_empty() {
+            return;
+        }
+        if let Ok(alerts) = self.alerts.lock()
+            && let Some(sink) = alerts.as_ref()
+        {
+            let _ = sink.send(Alerted { channels: channels.to_vec(), message: crate::dto::MessageDto::from(record.clone()) });
+        }
     }
 
     /// Where the routing file lives, for the settings screen.
@@ -107,6 +151,11 @@ fn load_rules(store: &Store) -> Result<Vec<CheckedRule>, AppError> {
 /// Notes a change in the activity log.
 fn log(store: &Store, actor: &Actor, action: &str, detail: String) -> Result<(), AppError> {
     Ok(store.log(&Activity { at: unix_now(), actor: actor.label(), action: action.to_owned(), detail })?)
+}
+
+/// Now, as RFC 3339 in UTC.
+pub(crate) fn rfc3339_now() -> String {
+    buun_mail_message::rfc3339(unix_now())
 }
 
 /// Now, in Unix seconds. A clock before 1970 counts as 1970.

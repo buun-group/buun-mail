@@ -140,6 +140,12 @@ struct Inner {
 pub struct SendService(Arc<Inner>);
 
 impl SendService {
+    /// A sender's key or password, for showing it again once the reveal code allows.
+    #[must_use]
+    pub fn secret(&self, id: &str) -> Option<String> {
+        self.0.senders.lock().ok()?.iter().find(|sender| sender.id == id).map(|sender| sender.api_key.clone())
+    }
+
     /// Loads the saved senders. `api` is Resend's address, or a fake one in tests.
     #[must_use]
     pub fn open(config_folder: PathBuf, mailbox: Arc<Mailbox>) -> Self {
