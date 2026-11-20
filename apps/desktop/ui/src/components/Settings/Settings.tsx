@@ -18,6 +18,7 @@ import { SecuritySection } from './SecuritySection'
 import { WorkspacesSection } from './WorkspacesSection'
 
 import './Settings.css'
+import { closeOnBackdrop } from '../../lib/backdrop'
 
 /** Each section's name, as keys for `t()`. */
 const SECTION_LABELS = {
@@ -65,8 +66,9 @@ export function Settings({ open, onClose, preferences, workspaces, looks, onLook
     if (!open && element.open) element.close()
   }, [open])
 
+  // A click on the dimmed page around Settings closes it, as pressing the X does.
   return (
-    <dialog ref={dialog} className="settings" aria-labelledby="settings-title" tabIndex={-1} onClose={onClose}>
+    <dialog ref={dialog} className="settings" aria-labelledby="settings-title" tabIndex={-1} onClose={onClose} {...closeOnBackdrop}>
       <nav className="settings__nav" aria-label={t('sectionsLabel')}>
         <h2 id="settings-title">{t('title')}</h2>
         {SETTINGS_SECTIONS.map((id) => {

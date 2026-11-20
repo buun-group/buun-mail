@@ -334,3 +334,21 @@ describe('press feedback and the focus ring', () => {
     expect(await screen.findByRole('button', { name: 'Sent' }, { timeout: 2000 })).toBeTruthy()
   })
 })
+
+describe('closing settings', () => {
+  it('closes on a click on the page around it, not on a drag that starts inside', async () => {
+    const { closeOnBackdrop } = await import('../lib/backdrop')
+    const dialog = document.createElement('dialog')
+    document.body.append(dialog)
+    dialog.showModal()
+    dialog.getBoundingClientRect = () => ({ left: 100, top: 100, right: 400, bottom: 400, width: 300, height: 300, x: 100, y: 100, toJSON: () => ({}) })
+    const press = (x: number, y: number, target: EventTarget = dialog) => ({ currentTarget: dialog, target, clientX: x, clientY: y }) as never
+    closeOnBackdrop.onPointerDown(press(200, 200, dialog.ownerDocument.body))
+    closeOnBackdrop.onClick(press(20, 20))
+    expect(dialog.open).toBe(true)
+    closeOnBackdrop.onPointerDown(press(20, 20))
+    closeOnBackdrop.onClick(press(20, 20))
+    expect(dialog.open).toBe(false)
+    dialog.remove()
+  })
+})
