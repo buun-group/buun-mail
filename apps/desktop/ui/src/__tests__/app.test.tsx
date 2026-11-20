@@ -169,3 +169,16 @@ describe('sender checks setting', () => {
     await waitFor(() => expect(screen.queryByText('SPF pass, DKIM pass, DMARC pass, 63 KB')).toBeNull())
   })
 })
+
+describe('dissolve.email overview', () => {
+  it('lists every live inbox on the workspace page and opens one', async () => {
+    const { Overview } = await import('../components/Dissolve/Overview')
+    const { preview } = await import('../api/preview')
+    preview.dissolve.connect()
+    const opened: unknown[] = []
+    render(<Overview workspace={undefined} onOpen={(place) => opened.push(place)} />)
+    fireEvent.click(await screen.findByText('signup-7k2@dissolve.email'))
+    expect(screen.getByRole('heading', { name: /live inbox/ })).toBeTruthy()
+    expect(opened).toEqual([{ workspace: 'dissolve', folder: 'signup-7k2@dissolve.email' }])
+  })
+})

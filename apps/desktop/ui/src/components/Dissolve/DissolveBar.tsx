@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 
 import { burnDissolveInbox, dissolveStatus, extendDissolveInbox } from '../../api/client'
 import type { DissolveInbox, DissolveStatus, Place } from '../../api/types'
+import i18n from '../../i18n'
 import { IconAdd, IconBurn, IconCopy, IconExtend, IconTimer } from '../../icons'
 import { copyWithToast } from '../../lib/copy'
 import { DISSOLVE_WORKSPACE, formatTimeLeft, readMeter, timeLeft } from '../../lib/dissolve'
@@ -18,6 +19,15 @@ import './Dissolve.css'
 
 /** How often the time left is redrawn. */
 const TICK_MS = 30_000
+
+/** Live inboxes and new ones this hour against the plan, leaving out what dissolve.email has not reported. */
+function usageWords(status: DissolveStatus): string {
+  const known = (meter: { used: number | null; limit: number | null }): boolean => meter.used !== null && meter.limit !== null
+  const parts: string[] = []
+  if (known(status.limits.inboxes)) parts.push(i18n.t('mail:dissolve.usageInboxes', { value: readMeter(status.limits.inboxes).value }))
+  if (known(status.limits.hourlyCreations)) parts.push(i18n.t('mail:dissolve.usageHourly', { value: readMeter(status.limits.hourlyCreations).value }))
+  return parts.join(', ')
+}
 
 const reason = (cause: unknown): string => (cause instanceof Error ? cause.message : String(cause))
 
@@ -62,7 +72,7 @@ export function DissolveBar({ place, onOpen }: { place: Place; onOpen: (place: P
             <>
               <span>{status.email ?? ''}</span>
               <span className="dissolve-bar__usage" data-full={readMeter(status.limits.inboxes).full || readMeter(status.limits.hourlyCreations).full}>
-                {t('dissolve.usage', { inboxes: readMeter(status.limits.inboxes).value, hourly: readMeter(status.limits.hourlyCreations).value })}
+                {usageWords(status)}
               </span>
             </>
           ) : (

@@ -297,10 +297,11 @@
     "nameHint": "Leave the name empty for a random one. Choosing it is on dissolve.email Pro and Business.",
     "make": "Make address",
     "making": "Making...",
-    "usage": "{{inboxes}} inboxes, {{hourly}} new this hour",
     "extendUsed": "Used {{used}} of {{limit}} extensions on the {{plan}} plan",
     "extendFrom": "Can be extended from {{time}}",
-    "extensionsCount": "{{used}} of {{limit}} extensions"
+    "extensionsCount": "{{used}} of {{limit}} extensions",
+    "usageInboxes": "{{value}} inboxes",
+    "usageHourly": "{{value}} new this hour"
   },
   "verification": {
     "label": "Found in this message",
@@ -364,5 +365,18 @@
       "none": "No DMARC check was recorded; {{domain}} may not publish a policy."
     },
     "size": "{{bytes}} bytes, attachments and formatting included."
+  },
+  "overview": {
+    "live_one": "{{count}} live inbox",
+    "live_other": "{{count}} live inboxes",
+    "kept_one": "{{count}} ended, kept here",
+    "kept_other": "{{count}} ended, kept here",
+    "messages_one": "{{count}} message",
+    "messages_other": "{{count}} messages",
+    "unread_one": "{{count}} unread",
+    "unread_other": "{{count}} unread",
+    "ended": "Ended",
+    "none": "No inboxes yet. New address makes one.",
+    "noneLive": "No live inboxes. New address makes one."
   }
 }

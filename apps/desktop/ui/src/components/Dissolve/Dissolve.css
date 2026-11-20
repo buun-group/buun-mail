@@ -188,3 +188,123 @@
   font-size: var(--text-xs);
   color: var(--text-muted);
 }
+.overview {
+  overflow-y: auto;
+  padding: var(--space-3) var(--space-4) var(--space-6);
+}
+.overview__title {
+  margin: var(--space-3) 0 var(--space-2);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.overview__empty {
+  color: var(--text-muted);
+}
+.overview__rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--border-faint);
+  border-radius: var(--radius-md);
+}
+.overview__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding-right: var(--space-2);
+}
+.overview__row + .overview__row {
+  border-top: 1px solid var(--border-faint);
+}
+.overview__open {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--space-3);
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-2-5, var(--space-2)) var(--space-3);
+  border-radius: var(--radius-md);
+  text-align: left;
+}
+.overview__open:hover {
+  background: var(--alpha-4);
+}
+.overview__glyph {
+  color: var(--text-muted);
+}
+.overview__who {
+  display: grid;
+  min-width: 0;
+}
+.overview__address {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+}
+.overview__name {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+.overview__counts {
+  display: inline-flex;
+  gap: var(--space-3);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+.overview__unread {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--brand-text);
+}
+.overview__left {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 8.5rem;
+  justify-content: flex-end;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+.overview__left[data-soon='true'] {
+  color: var(--status-danger-fg);
+}
+.overview__tools {
+  display: inline-flex;
+  gap: 2px;
+}
+.overview__tool {
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+}
+.overview__tool:hover {
+  background: var(--alpha-6);
+}
+.overview__tool[aria-disabled='true'] {
+  opacity: 0.45;
+}
+.overview__tool--danger {
+  color: var(--status-danger-fg);
+}
+@media (max-width: 40rem) {
+  .overview__open {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .overview__counts,
+  .overview__left {
+    grid-column: 2;
+    justify-content: flex-start;
+    min-width: 0;
+  }
+}

@@ -112,7 +112,7 @@ const dissolve = {
   status: dissolveCopy,
   connect: (): DissolveStatus => {
     Object.assign(DISSOLVE, { connected: true, email: 'you@example.com', plan: 'free', lastChecked: new Date().toISOString(), limits: FREE_LIMITS })
-    if (DISSOLVE.inboxes.length === 0) DISSOLVE.inboxes.push({ id: 'inb_preview', address: 'signup-7k2@dissolve.email', name: 'Sign-ups', expiresAt: new Date(Date.now() + 5 * HOUR).toISOString(), ended: false, stored: 0, extensions: { used: 1, limit: 1, canExtend: false, availableAt: null } })
+    if (DISSOLVE.inboxes.length === 0) DISSOLVE.inboxes.push({ id: 'inb_preview', address: 'signup-7k2@dissolve.email', name: 'Sign-ups', expiresAt: new Date(Date.now() + 5 * HOUR).toISOString(), ended: false, stored: 1, extensions: { used: 1, limit: 1, canExtend: false, availableAt: null } })
     return dissolveCopy()
   },
   disconnect: (deleteMail: boolean): DissolveStatus => {

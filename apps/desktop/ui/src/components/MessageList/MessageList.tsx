@@ -53,6 +53,8 @@ interface MessageListProps {
   wide: boolean
   /** A bar under the header for the open workspace, such as dissolve.email's inbox actions. */
   banner?: ReactNode
+  /** Shown instead of the empty-folder words, such as dissolve.email's list of inboxes on its workspace page. */
+  emptyState?: ReactNode
   /** Show each message's sender checks and size (Settings, General). */
   details?: boolean
 }
@@ -63,7 +65,7 @@ const VIEW_GLYPHS = { starred: IconStar, snoozed: IconSnooze, archive: IconArchi
  * The open folder's messages, or a view across workspaces, newest first, as flat rows split by hairlines. Unread is
  * heavier type and an envelope glyph. Right click, the menu key or Shift F10 on a row opens what can be done to it.
  */
-export function MessageList({ workspace, place, view, messages, selectedId, onSelect, actions, workspaceName, theme, sort, onSort, filter, onFilter, total, looks, query, onQuery, scope, onScope, wide, banner, details = false }: MessageListProps): ReactNode {
+export function MessageList({ workspace, place, view, messages, selectedId, onSelect, actions, workspaceName, theme, sort, onSort, filter, onFilter, total, looks, query, onQuery, scope, onScope, wide, banner, details = false, emptyState }: MessageListProps): ReactNode {
   const { t } = useTranslation(['mail', 'common'])
   const [menu, setMenu] = useState<MenuRequest | null>(null)
   const closeMenu = useCallback(() => setMenu(null), [])
@@ -218,6 +220,8 @@ export function MessageList({ workspace, place, view, messages, selectedId, onSe
             {t('list.filter.clear')}
           </button>
         </div>
+      ) : messages.length === 0 && emptyState !== undefined ? (
+        emptyState
       ) : messages.length === 0 ? (
         <p className="message-list__empty">
           {view === null ? <Trans t={t} i18nKey="list.empty" components={{ addresses: <code>{workspace?.addresses.join(', ') ?? t('list.thisWorkspace')}</code> }} /> : t(`list.emptyView.${view}`)}

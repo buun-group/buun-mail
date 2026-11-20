@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { DissolveBar } from './components/Dissolve/DissolveBar'
+import { Overview } from './components/Dissolve/Overview'
 import { DISSOLVE_WORKSPACE } from './lib/dissolve'
 
 import { Confirm } from './components/Confirm/Confirm'
@@ -196,6 +197,7 @@ export function App(): ReactNode {
         onScope={mailbox.setScope}
         wide={preferences.readingPane === 'off'}
         details={preferences.senderChecks}
+        emptyState={workspace?.id === DISSOLVE_WORKSPACE && mailbox.view === null && mailbox.place?.folder === null ? <Overview workspace={workspace} onOpen={mailbox.open} /> : undefined}
         banner={workspace?.id === DISSOLVE_WORKSPACE && mailbox.view === null && mailbox.place !== null ? <DissolveBar key={mailbox.place.folder ?? ''} place={mailbox.place} onOpen={mailbox.open} /> : undefined}
       />
       )}
