@@ -29,6 +29,8 @@ export function RuleEditor({ rule, workspaces, onSave, onCancel }: RuleEditorPro
   const [from, setFrom] = useState(rule?.when.from ?? '')
   const [to, setTo] = useState(rule?.when.to ?? '')
   const [subject, setSubject] = useState(rule?.when.subjectContains ?? '')
+  const [body, setBody] = useState(rule?.when.bodyContains ?? '')
+  const [tagged, setTagged] = useState(rule?.when.tagged ?? '')
   const [tag, setTag] = useState(action('tag')?.tag ?? '')
   const [moveWorkspace, setMoveWorkspace] = useState(action('move')?.workspace ?? '')
   const [moveFolder, setMoveFolder] = useState(action('move')?.folder ?? '')
@@ -47,8 +49,8 @@ export function RuleEditor({ rule, workspaces, onSave, onCancel }: RuleEditorPro
 
   const build = (): Rule => {
     const actions: RuleAction[] = []
-    const tagged = blank(tag)
-    if (tagged !== undefined) actions.push({ type: 'tag', tag: tagged })
+    const tagToAdd = blank(tag)
+    if (tagToAdd !== undefined) actions.push({ type: 'tag', tag: tagToAdd })
     if (move) actions.push({ type: 'move', ...(blank(moveWorkspace) === undefined ? {} : { workspace: moveWorkspace }), ...(blank(moveFolder) === undefined ? {} : { folder: moveFolder.trim() }) })
     if (markRead) actions.push({ type: 'markRead' })
     if (quiet) actions.push({ type: 'quiet' })
@@ -58,6 +60,8 @@ export function RuleEditor({ rule, workspaces, onSave, onCancel }: RuleEditorPro
       ...(blank(from) === undefined ? {} : { from: from.trim() }),
       ...(blank(to) === undefined ? {} : { to: to.trim() }),
       ...(blank(subject) === undefined ? {} : { subjectContains: subject.trim() }),
+      ...(blank(body) === undefined ? {} : { bodyContains: body.trim() }),
+      ...(blank(tagged) === undefined ? {} : { tagged: tagged.trim() }),
     }
     return { id: rule?.id ?? '', name: name.trim(), enabled: rule?.enabled ?? true, when, actions }
   }
@@ -97,6 +101,8 @@ export function RuleEditor({ rule, workspaces, onSave, onCancel }: RuleEditorPro
         {field('rule-from', t('editor.isFrom'), from, setFrom, '*@stripe.com')}
         {field('rule-to', t('editor.sentTo'), to, setTo, 'billing@acme.com')}
         {field('rule-subject', t('editor.subject'), subject, setSubject, t('editor.subjectPlaceholder'))}
+        {field('rule-body', t('editor.body'), body, setBody, t('editor.bodyPlaceholder'))}
+        {field('rule-tagged', t('editor.tagged'), tagged, setTagged, t('editor.taggedPlaceholder'))}
       </fieldset>
 
       <fieldset>

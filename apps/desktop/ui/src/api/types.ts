@@ -125,6 +125,10 @@ export interface RuleWhen {
   from?: string
   to?: string
   subjectContains?: string
+  /** Text the message's words contain. */
+  bodyContains?: string
+  /** A tag it carries, from an earlier rule or added by hand. */
+  tagged?: string
 }
 
 /** What a rule does. */
@@ -158,7 +162,8 @@ export interface AgentStatus {
   enabled: boolean
   running: boolean
   url: string
-  token: string
+  /** The token's last four characters; the token itself comes only through a reveal. */
+  tokenHint: string
   problem: string | null
 }
 
@@ -359,4 +364,4 @@ export interface AlertChannel {
 }
 
 /** Which saved secret to show: a gateway's token, a mailbox's password, a sender's key, an alert's secret. */
-export type SecretKind = 'gateway' | 'imap' | 'sender' | 'alert'
+export type SecretKind = 'gateway' | 'imap' | 'sender' | 'alert' | 'agent'

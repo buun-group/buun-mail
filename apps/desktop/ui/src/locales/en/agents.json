@@ -11,7 +11,8 @@
     "copy": "Copy the token",
     "copied": "Token copied",
     "regenerate": "Make a new token",
-    "regenerateConfirm": "Cut off agents and make a new token"
+    "regenerateConfirm": "Cut off agents and make a new token",
+    "needsReveal": "Show the token first"
   },
   "copyFailed": "Copy failed: select the text and copy it",
   "connect": {

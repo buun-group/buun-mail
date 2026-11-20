@@ -15,7 +15,7 @@
 //! let checked = [rule.check()?];
 //! let from = Address::parse("receipts@stripe.com")?;
 //! let to = Address::parse("me@acme.com")?;
-//! let outcome = evaluate(&checked, &Facts { workspace: "acme", folder: None, from: &from, to: &to, subject: "Your receipt" });
+//! let outcome = evaluate(&checked, &Facts { workspace: "acme", folder: None, from: &from, to: &to, subject: "Your receipt", body: "", tags: &[] });
 //! assert_eq!(outcome.tags, ["receipt"]);
 //! # Ok::<(), Box<dyn std::error::Error>>(())
 //! ```
@@ -24,6 +24,6 @@ mod engine;
 mod error;
 mod rule;
 
-pub use engine::{Facts, Outcome, evaluate};
+pub use engine::{Facts, Outcome, alerts_for_tag, evaluate};
 pub use error::RuleError;
 pub use rule::{Action, CheckedRule, Rule, When};

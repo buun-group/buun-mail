@@ -10,7 +10,7 @@
     "name": "Name",
     "namePlaceholder": "Stripe receipts",
     "when": "When mail",
-    "whenHint": "Fill in what matters; leave the rest blank. Addresses can be exact or *@domain.",
+    "whenHint": "Fill in what matters; leave the rest blank. Addresses can be exact or *@domain. A rule on a tag also runs when you add that tag yourself, so it can alert you.",
     "isIn": "Is in",
     "anyWorkspace": "Any workspace",
     "isFrom": "Is from",
@@ -31,7 +31,11 @@
     "save": "Save rule",
     "alert": "Alert me through",
     "noAlert": "No alert",
-    "alertHint": "Alert channels are set up in Integrations, Alert me. Only mail that arrives alerts."
+    "alertHint": "Alert channels are set up in Integrations, Alert me. Only mail that arrives alerts.",
+    "body": "Its words contain",
+    "bodyPlaceholder": "new subscription",
+    "tagged": "Has the tag",
+    "taggedPlaceholder": "sale"
   },
   "describe": {
     "sentence": "Mail {{conditions}}: {{actions}}.",
@@ -47,6 +51,8 @@
     "theInbox": "the inbox",
     "markRead": "mark read",
     "quiet": "keep quiet",
-    "alert": "alert me"
+    "alert": "alert me",
+    "body": "with \"{{text}}\" in its words",
+    "tagged": "tagged {{tag}}"
   }
 }

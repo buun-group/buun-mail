@@ -39,6 +39,12 @@ pub struct When {
     /// Text the subject contains, ignoring case.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub subject_contains: Option<String>,
+    /// Text the message's words contain, ignoring case: "new subscription", "order #".
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub body_contains: Option<String>,
+    /// A tag it carries: one an earlier rule added, or one a person or an agent adds later (which can then alert).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tagged: Option<String>,
 }
 
 /// What a rule does.
@@ -110,7 +116,14 @@ impl Rule {
             return Err(RuleError::NoName);
         }
         let when = &self.when;
-        if when.workspace.is_none() && when.from.is_none() && when.to.is_none() && when.subject_contains.as_deref().is_none_or(|text| text.trim().is_empty()) {
+        let empty = |text: &Option<String>| text.as_deref().is_none_or(|text| text.trim().is_empty());
+        if when.workspace.is_none()
+            && when.from.is_none()
+            && when.to.is_none()
+            && empty(&when.subject_contains)
+            && empty(&when.body_contains)
+            && empty(&when.tagged)
+        {
             return Err(RuleError::NoCondition(name.to_owned()));
         }
         if self.actions.is_empty() {
@@ -129,6 +142,8 @@ impl Rule {
             from: pattern(&when.from)?,
             to: pattern(&when.to)?,
             subject: when.subject_contains.as_deref().map(str::trim).filter(|text| !text.is_empty()).map(str::to_lowercase),
+            body: when.body_contains.as_deref().map(str::trim).filter(|text| !text.is_empty()).map(str::to_lowercase),
+            tagged: when.tagged.as_deref().map(str::trim).filter(|text| !text.is_empty()).map(str::to_owned),
         })
     }
 }
@@ -140,6 +155,8 @@ pub struct CheckedRule {
     pub(crate) from: Option<Pattern>,
     pub(crate) to: Option<Pattern>,
     pub(crate) subject: Option<String>,
+    pub(crate) body: Option<String>,
+    pub(crate) tagged: Option<String>,
 }
 
 impl CheckedRule {
@@ -147,6 +164,12 @@ impl CheckedRule {
     #[must_use]
     pub const fn rule(&self) -> &Rule {
         &self.rule
+    }
+
+    /// True when it looks at the message's words, so a caller knows to read them.
+    #[must_use]
+    pub const fn needs_body(&self) -> bool {
+        self.body.is_some()
     }
 }
 

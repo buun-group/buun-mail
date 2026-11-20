@@ -21,8 +21,8 @@ pub struct AgentStatusDto {
     pub running: bool,
     /// The URL to give an agent.
     pub url: String,
-    /// The bearer token.
-    pub token: String,
+    /// The bearer token's last four characters; the token itself is shown only through a reveal.
+    pub token_hint: String,
     /// Why it is not running, when it should be.
     pub problem: Option<String>,
 }
@@ -50,6 +50,12 @@ impl AgentState {
         Ok(state)
     }
 
+    /// The bearer token, for showing it again once the reveal code allows, and for a setup line copied after that.
+    #[must_use]
+    pub fn secret(&self) -> Option<String> {
+        self.settings.lock().ok().map(|settings| settings.token.clone())
+    }
+
     /// The current status.
     ///
     /// # Errors
@@ -61,7 +67,7 @@ impl AgentState {
             enabled: settings.enabled,
             running: self.server.is_running(),
             url: settings.url(),
-            token: settings.token.clone(),
+            token_hint: settings.token.chars().rev().take(4).collect::<Vec<_>>().into_iter().rev().collect(),
             problem: self.problem.lock()?.clone(),
         })
     }

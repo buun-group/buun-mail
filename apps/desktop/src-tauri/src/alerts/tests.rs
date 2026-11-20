@@ -143,3 +143,24 @@ fn a_rule_alerts_when_matching_mail_arrives() {
     assert_eq!(body["event"], "mail.arrived");
     assert_eq!(body["message"]["subject"], "New subscription: Pro plan");
 }
+
+#[test]
+fn tagging_a_message_by_hand_alerts_through_its_rule() {
+    let setup = setup();
+    let (base, seen) = fake_service();
+    let _ = setup.alerts.add("VIP", AlertKind::Webhook, BTreeMap::new(), &format!("{base}/vip"));
+    let rule = Rule::new("VIP alert", When { tagged: Some("vip".to_owned()), ..When::default() }, vec![Action::Alert { channel: "alert-1".to_owned() }]);
+    setup.mailbox.save_rule(rule, &Actor::You).unwrap_or_else(|error| unreachable!("rule: {error}"));
+    let raw =
+        b"From: Big Client <ceo@client.example>\r\nTo: hello@gunspec.io\r\nSubject: Partnership\r\nMessage-ID: <p1@client.example>\r\n\r\nLet us talk.\r\n";
+    let id = setup.mailbox.take_in(raw, "hello@gunspec.io", 1_795_000_000).ok().flatten().map(|message| message.id).unwrap_or_default();
+    thread::sleep(Duration::from_millis(150));
+    assert_eq!(seen.lock().map_or(0, |log| log.len()), 0, "nothing until the tag is added");
+    let _ = setup.mailbox.tag(&id, &["vip".to_owned()], &Actor::You);
+    let log = wait_for(&seen, 1);
+    let body = serde_json::from_str::<serde_json::Value>(&log.first().map(|entry| entry.3.clone()).unwrap_or_default()).unwrap_or_default();
+    assert_eq!(body["message"]["subject"], "Partnership");
+    let _ = setup.mailbox.tag(&id, &["vip".to_owned()], &Actor::You);
+    thread::sleep(Duration::from_millis(150));
+    assert_eq!(seen.lock().map_or(0, |log| log.len()), 1, "a tag already there does not alert again");
+}

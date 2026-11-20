@@ -81,7 +81,7 @@ export function previewDetail(id: string): MessageDetail {
 const RULES: Rule[] = [
   { id: 'preview-1', name: 'Stripe receipts', enabled: true, when: { from: '*@stripe.com' }, actions: [{ type: 'tag', tag: 'receipt' }, { type: 'markRead' }] },
 ]
-const AGENT: AgentStatus = { enabled: false, running: false, url: 'http://127.0.0.1:28700/mcp', token: 'preview-token-only-in-the-browser', problem: null }
+const AGENT: AgentStatus = { enabled: false, running: false, url: 'http://127.0.0.1:28700/mcp', tokenHint: 'wser', problem: null }
 
 function retag(id: string, change: (tags: string[]) => string[]): Message {
   const message = MESSAGES.find((item) => item.id === id)
@@ -145,7 +145,7 @@ const dissolve = {
 const SECURITY: { code: string | null; openUntil: number } = { code: null, openUntil: 0 }
 const securityStatus = (): RevealStatus => ({ codeSet: SECURITY.code !== null, openFor: SECURITY.code !== null && SECURITY.openUntil > Date.now() ? Math.round((SECURITY.openUntil - Date.now()) / 1000) : 0 })
 const ALERTS: AlertChannel[] = []
-const SECRETS = new Map<string, string>([['sender:preview-sender', 're_demo_key_1234']])
+const SECRETS = new Map<string, string>([['sender:preview-sender', 're_demo_key_1234'], ['agent:token', 'preview-token-only-in-the-browser']])
 const security = {
   status: securityStatus,
   set: (current: string | null, code: string | null): RevealStatus => {

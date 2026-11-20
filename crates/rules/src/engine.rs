@@ -17,6 +17,10 @@ pub struct Facts<'a> {
     pub to: &'a Address,
     /// The subject.
     pub subject: &'a str,
+    /// The message's words, lowercased; empty when not read (a rule on the words then does not match).
+    pub body: &'a str,
+    /// The tags it already carries.
+    pub tags: &'a [String],
 }
 
 /// What the rules decided, all together.
@@ -40,7 +44,11 @@ pub struct Outcome {
 #[must_use]
 pub fn evaluate(rules: &[CheckedRule], facts: &Facts<'_>) -> Outcome {
     let mut outcome = Outcome::default();
-    for checked in rules.iter().filter(|checked| checked.rule.enabled && matches(checked, facts)) {
+    for checked in rules {
+        // In order, so a rule on a tag sees the tags earlier rules added.
+        if !checked.rule.enabled || !matches(checked, facts, &outcome.tags) {
+            continue;
+        }
         outcome.fired.push(checked.rule.name.clone());
         for action in &checked.rule.actions {
             match action {
@@ -69,12 +77,33 @@ pub fn evaluate(rules: &[CheckedRule], facts: &Facts<'_>) -> Outcome {
     outcome
 }
 
-/// True when every condition the rule gives holds for this message.
-fn matches(checked: &CheckedRule, facts: &Facts<'_>) -> bool {
+/// True when every condition the rule gives holds for this message, `added` being the tags earlier rules gave it.
+fn matches(checked: &CheckedRule, facts: &Facts<'_>, added: &[String]) -> bool {
     checked.rule.when.workspace.as_deref().is_none_or(|workspace| workspace == facts.workspace)
         && checked.from.as_ref().is_none_or(|pattern| pattern.matches(facts.from))
         && checked.to.as_ref().is_none_or(|pattern| pattern.matches(facts.to))
         && checked.subject.as_deref().is_none_or(|text| facts.subject.to_lowercase().contains(text))
+        && checked.body.as_deref().is_none_or(|text| facts.body.contains(text))
+        && checked.tagged.as_deref().is_none_or(|tag| facts.tags.iter().chain(added).any(|have| have.eq_ignore_ascii_case(tag)))
+}
+
+/// The alert channels to tell when a person or an agent adds `tag` to a stored message: the alerts of enabled rules on
+/// that tag whose other conditions hold. `facts.tags` holds the message's tags with the new one.
+#[must_use]
+pub fn alerts_for_tag(rules: &[CheckedRule], tag: &str, facts: &Facts<'_>) -> Vec<String> {
+    let mut channels: Vec<String> = Vec::new();
+    for checked in rules.iter().filter(|checked| {
+        checked.rule.enabled && checked.tagged.as_deref().is_some_and(|wanted| wanted.eq_ignore_ascii_case(tag)) && matches(checked, facts, &[])
+    }) {
+        for action in &checked.rule.actions {
+            if let Action::Alert { channel } = action
+                && !channels.contains(channel)
+            {
+                channels.push(channel.clone());
+            }
+        }
+    }
+    channels
 }
 
 #[cfg(test)]
@@ -94,7 +123,7 @@ mod tests {
 
     fn run(rules: &[CheckedRule], from: &str, to: &str, subject: &str) -> Outcome {
         let (from, to) = (address(from), address(to));
-        evaluate(rules, &Facts { workspace: "acme", folder: None, from: &from, to: &to, subject })
+        evaluate(rules, &Facts { workspace: "acme", folder: None, from: &from, to: &to, subject, body: "", tags: &[] })
     }
 
     #[test]
@@ -131,6 +160,22 @@ mod tests {
         assert!(outcome.quiet && outcome.mark_read);
         assert_eq!(outcome.alerts, ["slack-1"]);
         assert_eq!(outcome.fired, ["Tag", "Quiet", "Elsewhere"]);
+    }
+
+    #[test]
+    fn matches_the_words_and_a_tag_an_earlier_rule_added() {
+        let sale =
+            Rule::new("Sale", When { body_contains: Some("New Subscription".to_owned()), ..When::default() }, vec![Action::Tag { tag: "sale".to_owned() }]);
+        let alert = Rule::new("Tell me", When { tagged: Some("sale".to_owned()), ..When::default() }, vec![Action::Alert { channel: "slack-1".to_owned() }]);
+        let rules = [checked(&sale), checked(&alert)];
+        let (from, to) = (address("a@stripe.com"), address("billing@gunspec.io"));
+        let facts = |body| Facts { workspace: "gunspec", folder: None, from: &from, to: &to, subject: "Receipt", body, tags: &[] };
+        assert_eq!(evaluate(&rules, &facts("a new subscription to pro")).alerts, ["slack-1"]);
+        assert_eq!(evaluate(&rules, &facts("a refund")).alerts, Vec::<String>::new());
+        let tagged = ["sale".to_owned()];
+        let later = Facts { tags: &tagged, ..facts("") };
+        assert_eq!(alerts_for_tag(&rules, "sale", &later), ["slack-1"]);
+        assert_eq!(alerts_for_tag(&rules, "other", &later), Vec::<String>::new());
     }
 
     #[test]

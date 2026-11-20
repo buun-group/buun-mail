@@ -69,6 +69,8 @@ pub fn ingest(incoming: Incoming<'_>, router: &Router, rules: &[CheckedRule], st
             route.folder_matched.map(ToString::to_string),
         ),
     };
+    // A rule on the message's words reads them: lowercased, the head only, read once.
+    let words = if rules.iter().any(CheckedRule::needs_body) { rule_words(incoming.raw) } else { String::new() };
     let outcome = evaluate(
         rules,
         &Facts {
@@ -77,6 +79,8 @@ pub fn ingest(incoming: Incoming<'_>, router: &Router, rules: &[CheckedRule], st
             from: &envelope.from,
             to: &envelope.to,
             subject: &parsed.subject,
+            body: &words,
+            tags: &[],
         },
     );
     let record = MessageRecord {
@@ -132,4 +136,13 @@ pub fn file_for_reading(store: &Store, record: &MessageRecord, raw: &[u8]) -> Re
     let ids = thread_ids(raw);
     store.link(&record.id, ids.message_id.as_deref(), &ids.parents())?;
     store.index_text(&record.id, &record.subject, &format!("{} {} {}", record.from_name, record.from, record.to), &body_text(raw))
+}
+
+/// How much of a message's words a rule looks at: plenty for any receipt or notice, bounded for a huge one.
+const RULE_WORDS: usize = 64 * 1024;
+
+/// A message's words as rules read them: the text body, lowercased, its head only.
+#[must_use]
+pub fn rule_words(raw: &[u8]) -> String {
+    body_text(raw).chars().take(RULE_WORDS).collect::<String>().to_lowercase()
 }

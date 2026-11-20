@@ -8,6 +8,8 @@ function condition(when: RuleWhen, workspaceName: (id: string) => string): strin
     when.from === undefined ? null : i18n.t('rules:describe.from', { pattern: when.from }),
     when.to === undefined ? null : i18n.t('rules:describe.to', { pattern: when.to }),
     when.subjectContains === undefined ? null : i18n.t('rules:describe.subject', { text: when.subjectContains }),
+    when.bodyContains === undefined ? null : i18n.t('rules:describe.body', { text: when.bodyContains }),
+    when.tagged === undefined ? null : i18n.t('rules:describe.tagged', { tag: when.tagged }),
   ].filter((part): part is string => part !== null)
 }
 

@@ -491,6 +491,7 @@ pub async fn reveal_secret(
     imap: State<'_, ImapService>,
     send: State<'_, SendService>,
     alerts: State<'_, AlertService>,
+    agent: State<'_, AgentState>,
     kind: String,
     id: String,
     code: Option<String>,
@@ -501,6 +502,7 @@ pub async fn reveal_secret(
         "imap" => imap.secret(&id),
         "sender" => send.secret(&id),
         "alert" => alerts.secret(&id),
+        "agent" => agent.secret(),
         _ => None,
     };
     found.filter(|secret| !secret.is_empty()).ok_or_else(|| "That secret is not saved here.".to_owned())

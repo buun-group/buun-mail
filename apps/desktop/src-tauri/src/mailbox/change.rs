@@ -47,10 +47,44 @@ impl Mailbox {
     ///
     /// [`AppError`] for an unknown id, or when the store cannot be written.
     pub fn tag(&self, id: &str, tags: &[String], actor: &Actor) -> Result<MessageDto, AppError> {
-        let store = self.store.lock()?;
-        store.add_tags(id, tags)?;
-        let message = store.get(id)?;
-        log(&store, actor, "tag", format!("{} on \"{}\"", tags.join(", "), message.subject))?;
+        let (message, alerts) = {
+            let store = self.store.lock()?;
+            let before = store.get(id)?.tags;
+            store.add_tags(id, tags)?;
+            let message = store.get(id)?;
+            log(&store, actor, "tag", format!("{} on \"{}\"", tags.join(", "), message.subject))?;
+            // A rule on a tag can alert when a person or an agent adds that tag.
+            let fresh: Vec<&String> = tags.iter().filter(|tag| !before.iter().any(|had| had.eq_ignore_ascii_case(tag))).collect();
+            let rules = self.rules.read()?;
+            let mut alerts: Vec<String> = Vec::new();
+            if let (false, Ok(from), Ok(to)) =
+                (fresh.is_empty(), buun_mail_routing::Address::parse(&message.from), buun_mail_routing::Address::parse(&message.to))
+            {
+                let words = if rules.iter().any(buun_mail_rules::CheckedRule::needs_body) {
+                    crate::ingest::rule_words(&store.raw(id).unwrap_or_default())
+                } else {
+                    String::new()
+                };
+                let facts = buun_mail_rules::Facts {
+                    workspace: &message.placement.workspace,
+                    folder: message.placement.folder.as_deref(),
+                    from: &from,
+                    to: &to,
+                    subject: &message.subject,
+                    body: &words,
+                    tags: &message.tags,
+                };
+                for tag in fresh {
+                    for channel in buun_mail_rules::alerts_for_tag(&rules, tag, &facts) {
+                        if !alerts.contains(&channel) {
+                            alerts.push(channel);
+                        }
+                    }
+                }
+            }
+            (message, alerts)
+        };
+        self.alert(&alerts, &message);
         Ok(message.into())
     }
 

@@ -59,10 +59,19 @@ impl Mailbox {
         let rules = self.rules.read()?;
         let store = self.store.lock()?;
         let mut changed = 0;
+        let needs_body = rules.iter().any(buun_mail_rules::CheckedRule::needs_body);
         for message in store.all()? {
             let (Ok(from), Ok(to)) = (Address::parse(&message.from), Address::parse(&message.to)) else { continue };
-            let facts =
-                Facts { workspace: &message.placement.workspace, folder: message.placement.folder.as_deref(), from: &from, to: &to, subject: &message.subject };
+            let words = if needs_body { crate::ingest::rule_words(&store.raw(&message.id).unwrap_or_default()) } else { String::new() };
+            let facts = Facts {
+                workspace: &message.placement.workspace,
+                folder: message.placement.folder.as_deref(),
+                from: &from,
+                to: &to,
+                subject: &message.subject,
+                body: &words,
+                tags: &message.tags,
+            };
             let outcome = evaluate(&rules, &facts);
             if outcome.fired.is_empty() {
                 continue;

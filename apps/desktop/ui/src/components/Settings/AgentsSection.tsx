@@ -2,13 +2,15 @@ import { useCallback, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { agentStatus, listActivity, regenerateAgentToken, setAgentEnabled } from '../../api/client'
+import { agentStatus, listActivity, regenerateAgentToken, revealSecret, setAgentEnabled } from '../../api/client'
 import type { Activity, AgentStatus } from '../../api/types'
 import { ACTIVITY_SHOWN, AGENT_CLIENTS } from '../../constants/agents'
 import type { AgentClientId } from '../../constants/agents'
-import { AGENT_CLIENT_GLYPHS, IconCopy, IconHide, IconRegenerate, IconShow } from '../../icons'
+import { AGENT_CLIENT_GLYPHS, IconCopy, IconRegenerate } from '../../icons'
 import { copyWithToast } from '../../lib/copy'
+import { toast } from '../../lib/feedback'
 import { formatReceived } from '../../lib/time'
+import { SecretField } from './SecretField'
 import { Switch } from './Switch'
 
 const reason = (error: unknown): string => (error instanceof Error ? error.message : String(error))
@@ -21,7 +23,6 @@ export function AgentsSection(): ReactNode {
   const [status, setStatus] = useState<AgentStatus | null>(null)
   const [activity, setActivity] = useState<Activity[]>([])
   const [client, setClient] = useState<AgentClientId>('claude')
-  const [showToken, setShowToken] = useState(false)
   const [confirming, setConfirming] = useState(false)
   const [copied, setCopied] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -48,7 +49,6 @@ export function AgentsSection(): ReactNode {
 
   if (status === null) return <p className="settings__empty">{t('loading')}</p>
   const chosen = AGENT_CLIENTS.find((item) => item.id === client) ?? AGENT_CLIENTS[0]
-  const token = showToken ? status.token : '*'.repeat(24)
 
   return (
     <>
@@ -66,16 +66,9 @@ export function AgentsSection(): ReactNode {
         </div>
         <div className="settings__row">
           <div className="agent-token">
-            <span className="settings__label">{t('token.title')}</span>
-            <code>{token}</code>
+            <SecretField kind="agent" id="token" label={t('token.title')} />
           </div>
           <span className="settings__actions settings__actions--tight">
-            <button type="button" className="settings__icon-button" aria-label={showToken ? t('token.hide') : t('token.show')} onClick={() => setShowToken(!showToken)}>
-              {showToken ? <IconHide aria-hidden="true" /> : <IconShow aria-hidden="true" />}
-            </button>
-            <button type="button" className="settings__icon-button" aria-label={t('token.copy')} onClick={(event) => copy(t('token.copied'), status.token, event.currentTarget)}>
-              <IconCopy aria-hidden="true" />
-            </button>
             {confirming ? (
               <button
                 type="button"
@@ -117,12 +110,18 @@ export function AgentsSection(): ReactNode {
           <div id="client-panel" role="tabpanel" aria-labelledby={`client-${chosen.id}`} className="agent-snippet">
             <div className="agent-snippet__head">
               <span className="settings__hint">{chosen.file === undefined ? t(chosen.where) : t('connect.whereFile', { path: chosen.file })}</span>
-              <button type="button" className="settings__button" onClick={(event) => copy(t('connect.setupCopied', { name: t(chosen.name) }), chosen.snippet(status.url, status.token), event.currentTarget)}>
+              <button type="button" className="settings__button" onClick={(event) => {
+                  // The setup line carries the token, so it comes through a reveal: asked for the code when one is set.
+                  const from = event.currentTarget
+                  revealSecret('agent', 'token', null)
+                    .then((token) => copy(t('connect.setupCopied', { name: t(chosen.name) }), chosen.snippet(status.url, token), from))
+                    .catch((cause: unknown) => toast({ text: t('token.needsReveal'), detail: reason(cause), tone: 'problem' }))
+                }}>
                 <IconCopy aria-hidden="true" />
                 {t('common:copy')}
               </button>
             </div>
-            <pre>{chosen.snippet(status.url, showToken ? status.token : '<token>')}</pre>
+            <pre>{chosen.snippet(status.url, '<token>')}</pre>
           </div>
         )}
         {copied !== null && (
