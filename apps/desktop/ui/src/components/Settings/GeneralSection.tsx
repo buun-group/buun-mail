@@ -131,8 +131,8 @@ export function GeneralSection({ preferences, updates }: { preferences: Preferen
           <div className="settings__actions settings__actions--tight">
             {updates.found?.newer === true && (
               <>
-                <BusyButton className="settings__button" glyph={IconReceive} run={updates.install} busyLabel={t('updates.installing')}>
-                  {t('updates.install', { version: updates.found.latest })}
+                <BusyButton className="settings__button" glyph={IconReceive} run={updates.install} busyLabel={t(updates.found.inPlace ? 'updates.installingInPlace' : 'updates.installing')}>
+                  {t(updates.found.inPlace ? 'updates.installRestart' : 'updates.install', { version: updates.found.latest })}
                 </BusyButton>
                 <button type="button" className="settings__button" onClick={() => void openExternal(updates.found?.url ?? '')}>
                   <IconExternal aria-hidden="true" />

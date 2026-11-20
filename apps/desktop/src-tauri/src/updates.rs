@@ -39,16 +39,33 @@ pub struct UpdateDto {
     pub url: String,
     /// The installer file for this system, when there is one.
     pub asset: Option<String>,
+    /// True when installing replaces this copy and restarts it; false when it downloads the installer to run.
+    pub in_place: bool,
 }
 
 /// An installer that was downloaded.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DownloadedDto {
-    /// Where it was saved.
+    /// Where it was saved; empty when it installed in place.
     pub path: String,
     /// True when it is run by opening it (setup, disk image, package); false for an `.AppImage`, shown in its folder.
     pub opens: bool,
+    /// True when it installed in place and the app is about to restart into the new version.
+    pub restarting: bool,
+}
+
+/// Whether this copy can replace itself: the Windows installer, the macOS app, and an `.AppImage`. A `.deb` or `.rpm`
+/// belongs to the system's package manager, so those download the new package instead.
+#[must_use]
+pub fn updates_in_place() -> bool {
+    cfg!(any(target_os = "windows", target_os = "macos")) || (cfg!(target_os = "linux") && std::env::var_os("APPIMAGE").is_some())
+}
+
+/// Where a release's updater manifest lives: the `latest.json` the release workflow attaches to every release.
+#[must_use]
+pub fn manifest_url(version: &str) -> String {
+    download_url(&format!("v{version}"), "latest.json")
 }
 
 /// One version, ordered as semantic versioning orders them: a release after its own pre-releases.
@@ -147,7 +164,15 @@ pub fn check(early: bool) -> Result<UpdateDto, String> {
         let latest = tag.trim_start_matches('v').to_owned();
         let Some(asset) = asset_name(&latest, version.is_beta()) else { break };
         if attached(&tag, &asset)? {
-            return Ok(UpdateDto { current: CURRENT.to_owned(), latest, newer: true, beta: version.is_beta(), url: release_page(&tag), asset: Some(asset) });
+            return Ok(UpdateDto {
+                current: CURRENT.to_owned(),
+                latest,
+                newer: true,
+                beta: version.is_beta(),
+                url: release_page(&tag),
+                asset: Some(asset),
+                in_place: updates_in_place(),
+            });
         }
     }
     Ok(UpdateDto {
@@ -157,6 +182,7 @@ pub fn check(early: bool) -> Result<UpdateDto, String> {
         beta: false,
         url: format!("https://github.com/{RELEASES_REPO}/releases"),
         asset: None,
+        in_place: updates_in_place(),
     })
 }
 

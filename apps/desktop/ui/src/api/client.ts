@@ -125,12 +125,15 @@ export async function checkForUpdate(early: boolean): Promise<UpdateInfo> {
   // `?update` in the preview's address pretends a newer release is out, to see the pop-up.
   if (new URLSearchParams(window.location.search).has('update')) {
     const latest = early ? '0.6.0-beta.2' : '0.6.0'
-    return { current: '0.5.0', latest, newer: true, beta: early, url: `https://github.com/buun-group/buun-mail/releases/tag/v${latest}`, asset: `Buun.Mail_${latest}_amd64.deb` }
+    return { current: '0.5.0', latest, newer: true, beta: early, url: `https://github.com/buun-group/buun-mail/releases/tag/v${latest}`, asset: `Buun.Mail_${latest}_amd64.deb`, inPlace: false }
   }
-  return { current: '0.5.0', latest: '0.5.0', newer: false, beta: false, url: 'https://github.com/buun-group/buun-mail/releases', asset: null }
+  return { current: '0.5.0', latest: '0.5.0', newer: false, beta: false, url: 'https://github.com/buun-group/buun-mail/releases', asset: null, inPlace: false }
 }
 
-/** Downloads a release's installer for this computer into Downloads and opens it. */
+/**
+ * Installs a release: in place with a restart where this copy can replace itself (the app never answers then), or by
+ * downloading its installer into Downloads and opening it.
+ */
 export async function installUpdate(version: string): Promise<DownloadedUpdate> {
   if (isTauri()) return invoke<DownloadedUpdate>(COMMANDS.installUpdate, { version })
   throw new Error('Installing needs the desktop app.')
