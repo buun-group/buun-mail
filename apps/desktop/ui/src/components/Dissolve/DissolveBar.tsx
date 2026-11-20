@@ -3,9 +3,9 @@ import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { burnDissolveInbox, dissolveStatus, extendDissolveInbox } from '../../api/client'
-import type { DissolveInbox, DissolveStatus, Place } from '../../api/types'
+import type { DissolveStatus, MadeDissolveInbox, Place } from '../../api/types'
 import i18n from '../../i18n'
-import { IconAdd, IconBurn, IconCopy, IconExtend, IconTimer } from '../../icons'
+import { IconAdd, IconBurn, IconCopy, IconExtend, IconIdentity, IconTimer } from '../../icons'
 import { copyWithToast } from '../../lib/copy'
 import { DISSOLVE_WORKSPACE, formatTimeLeft, readMeter, timeLeft } from '../../lib/dissolve'
 import { formatListed } from '../../lib/time'
@@ -13,6 +13,7 @@ import { TipButton } from '../Tooltip/TipButton'
 import { toast } from '../../lib/feedback'
 import { Confirm } from '../Confirm/Confirm'
 import type { Confirmation } from '../Confirm/Confirm'
+import { IdentityCard } from './IdentityCard'
 import { NewAddress } from './NewAddress'
 
 import './Dissolve.css'
@@ -31,10 +32,13 @@ function usageWords(status: DissolveStatus): string {
 
 const reason = (cause: unknown): string => (cause instanceof Error ? cause.message : String(cause))
 
+/** The address whose identity card opens when its folder does: one just made with an identity. */
+let openIdentityFor: string | null = null
+
 /**
  * The dissolve.email workspace's bar under the list header. On the workspace's own inbox: the account and New address.
- * On an inbox's folder: its address to copy, the time it has left, Extend, and Burn (asked first). Keyed by folder, so
- * each folder reads the status afresh.
+ * On an inbox's folder: its address to copy, the time it has left, Extend, Burn (asked first), and Identity, which opens
+ * its agent identity under the bar. Keyed by folder, so each folder reads the status afresh.
  */
 export function DissolveBar({ place, onOpen }: { place: Place; onOpen: (place: Place) => void }): ReactNode {
   const { t } = useTranslation('mail')
@@ -43,6 +47,11 @@ export function DissolveBar({ place, onOpen }: { place: Place; onOpen: (place: P
   const [busy, setBusy] = useState(false)
   const [confirming, setConfirming] = useState<Confirmation | null>(null)
   const [making, setMaking] = useState<HTMLElement | null>(null)
+  const [showIdentity, setShowIdentity] = useState(() => place.folder !== null && place.folder === openIdentityFor)
+
+  useEffect(() => {
+    if (place.folder !== null && place.folder === openIdentityFor) openIdentityFor = null
+  }, [place.folder])
 
   useEffect(() => {
     let live = true
@@ -59,9 +68,14 @@ export function DissolveBar({ place, onOpen }: { place: Place; onOpen: (place: P
   if (status === null) return null
   const inbox = place.folder === null ? undefined : status.inboxes.find((item) => item.address === place.folder)
 
-  const made = (fresh: DissolveInbox): void => {
+  const made = (fresh: MadeDissolveInbox): void => {
     setMaking(null)
-    void copyWithToast(fresh.address, t('dissolve.madeCopied')).then(() => onOpen({ workspace: DISSOLVE_WORKSPACE, folder: fresh.address }))
+    if (fresh.identityMade !== null) openIdentityFor = fresh.address
+    const copied = fresh.identityMade !== null ? t('identity.madeWithAddress') : t('dissolve.madeCopied')
+    void copyWithToast(fresh.address, copied).then(() => {
+      if (fresh.identitySkipped !== null) toast({ text: t('identity.skipped'), detail: fresh.identitySkipped, tone: 'problem', glyph: IconIdentity })
+      onOpen({ workspace: DISSOLVE_WORKSPACE, folder: fresh.address })
+    })
   }
 
   if (inbox === undefined) {
@@ -85,7 +99,7 @@ export function DissolveBar({ place, onOpen }: { place: Place; onOpen: (place: P
             {t('dissolve.newAddress')}
           </button>
         )}
-        {making !== null && <NewAddress anchor={making} onMade={made} onClose={() => setMaking(null)} />}
+        {making !== null && <NewAddress anchor={making} identities={status.identities} onStatus={setStatus} onMade={made} onClose={() => setMaking(null)} />}
       </div>
     )
   }
@@ -126,7 +140,10 @@ export function DissolveBar({ place, onOpen }: { place: Place; onOpen: (place: P
       },
     })
 
+  // Identity shows once the plan has them or this address is known to have one; Free accounts never see it.
+  const identityOn = inbox.identity || status.identities.plan === true
   return (
+    <>
     <div className="dissolve-bar">
       <button type="button" className="dissolve-bar__address" onClick={(event) => void copyWithToast(inbox.address, undefined, event.currentTarget)} aria-label={t('dissolve.copyAddress', { address: inbox.address })}>
         <span>{inbox.address}</span>
@@ -143,11 +160,19 @@ export function DissolveBar({ place, onOpen }: { place: Place; onOpen: (place: P
           {t('dissolve.extend')}
         </TipButton>
       )}
+      {identityOn && (
+        <button type="button" className="dissolve-bar__button" aria-expanded={showIdentity} onClick={() => setShowIdentity((open) => !open)}>
+          <IconIdentity aria-hidden="true" />
+          {t('identity.button')}
+        </button>
+      )}
       <button type="button" className="dissolve-bar__button dissolve-bar__button--danger" disabled={busy} onClick={burn}>
         <IconBurn aria-hidden="true" />
         {inbox.ended ? t('dissolve.deleteHere') : t('dissolve.burn')}
       </button>
       <Confirm request={confirming} cancelLabel={t('actions.cancel')} onClose={() => setConfirming(null)} />
     </div>
+    {identityOn && showIdentity && <IdentityCard inbox={inbox} identities={status.identities} onStatus={setStatus} onClose={() => setShowIdentity(false)} />}
+    </>
   )
 }

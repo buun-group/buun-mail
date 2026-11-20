@@ -2,13 +2,15 @@ import { useEffect, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { checkDissolve, connectDissolve, disconnectDissolve, dissolveStatus, setDissolveKeep } from '../../api/client'
+import { checkDissolve, connectDissolve, disconnectDissolve, dissolveStatus, setDissolveIdentityWithNew, setDissolveKeep } from '../../api/client'
 import type { DissolveStatus } from '../../api/types'
-import { IconRegenerate } from '../../icons'
+import { IconIdentity, IconRegenerate } from '../../icons'
 import { toast } from '../../lib/feedback'
+import { readMeter } from '../../lib/dissolve'
 import { formatFull } from '../../lib/time'
 import { Confirm } from '../Confirm/Confirm'
 import type { Confirmation } from '../Confirm/Confirm'
+import { allowIdentities } from '../Dissolve/IdentityCard'
 import { Limits } from '../Dissolve/Limits'
 import { reason } from './SenderCard'
 import { Switch } from './Switch'
@@ -17,8 +19,9 @@ import { Skeleton } from '../Busy/Skeleton'
 
 /**
  * dissolve.email: Connect opens the browser to approve Buun Mail, then its inboxes become a workspace with a folder each.
- * Connected, it shows the account, whether ended inboxes' mail is kept, Check now, and Disconnect (keeping the mail,
- * or deleting it too after asking).
+ * Connected, it shows the account, whether ended inboxes' mail is kept, agent identities on a plan that has them
+ * (allow them, then whether each new address gets one), Check now, and Disconnect (keeping the mail, or deleting it
+ * too after asking).
  */
 export function DissolveConnect({ onChanged, onConnected }: { onChanged: () => void; onConnected: (connected: boolean) => void }): ReactNode {
   const { t } = useTranslation('integrations')
@@ -113,6 +116,43 @@ export function DissolveConnect({ onChanged, onConnected }: { onChanged: () => v
           </div>
           <Switch id="dissolve-keep" labelledBy="dissolve-keep-label" checked={status.keepAfterExpiry} onChange={(keep) => void setDissolveKeep(keep).then(setStatus)} />
         </div>
+        {status.identities.plan === true && status.identities.granted && (
+          <div className="settings__row">
+            <div>
+              <p id="dissolve-identities-label" className="settings__label">
+                {t('dissolve.identitiesTitle')}
+              </p>
+              <p className="settings__hint">{t('dissolve.identitiesHint', { used: readMeter(status.identities.live).value })}</p>
+            </div>
+            <Switch id="dissolve-identities" labelledBy="dissolve-identities-label" checked={status.identities.withNew} onChange={(on) => void setDissolveIdentityWithNew(on).then(setStatus)} />
+          </div>
+        )}
+        {status.identities.plan === true && !status.identities.granted && (
+          <div className="settings__row">
+            <div>
+              <p className="settings__label">{t('dissolve.identitiesAllowTitle')}</p>
+              <p className="settings__hint">{t('dissolve.identitiesAllowHint')}</p>
+            </div>
+            <BusyButton
+              className="settings__button"
+              glyph={IconIdentity}
+              busyLabel={t('dissolve.identitiesAllowing')}
+              run={() =>
+                allowIdentities()
+                  .then((next) => {
+                    setStatus(next)
+                    toast({ text: t('dissolve.identitiesAllowed'), tone: 'done', glyph: IconIdentity })
+                  })
+                  .catch((cause: unknown) => {
+                    toast({ text: t('dissolve.identitiesAllowFailed'), detail: reason(cause), tone: 'problem' })
+                    throw cause
+                  })
+              }
+            >
+              {t('dissolve.identitiesAllow')}
+            </BusyButton>
+          </div>
+        )}
         <div className="settings__actions settings__actions--tight">
           <BusyButton
             className="settings__button"

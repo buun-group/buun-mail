@@ -1,4 +1,4 @@
-import type { Activity, AgentStatus, AlertChannel, Profile, Template, Writing, Reminder, ScheduledMessage, AlertKind, Contact, RevealStatus, DissolveInbox, DissolveStatus, Draft, ImapAccount, KnownContact, SmtpServer, MailView, Message, MessageDetail, Place, Rule, Sendable, Sender, TagCount, Workspace, WorkspaceEdit } from './types'
+import type { Activity, AgentStatus, AlertChannel, Profile, Template, Writing, Reminder, ScheduledMessage, AlertKind, Contact, RevealStatus, DissolveIdentities, DissolveIdentity, DissolveInbox, DissolveStatus, MadeDissolveInbox, Persona, Draft, ImapAccount, KnownContact, SmtpServer, MailView, Message, MessageDetail, Place, Rule, Sendable, Sender, TagCount, Workspace, WorkspaceEdit } from './types'
 
 /**
  * A small stand-in mailbox for `pnpm dev:ui`, where there is no Rust side, so the layout can be tuned in a plain
@@ -147,19 +147,42 @@ const HOUR = 3_600_000
 const NO_METER = { used: null, limit: null, resetAt: null }
 const NO_LIMITS = { plan: null, inboxes: NO_METER, inboxMinutes: null, lifetimeMinutes: null, extensionsPerInbox: null, customNames: null, hourlyCreations: NO_METER, requests: NO_METER, messageChecks: { used: 4, limit: 5, resetAt: null } }
 const FREE_LIMITS = { plan: 'free', inboxes: { used: 1, limit: 3, resetAt: null }, inboxMinutes: 10, lifetimeMinutes: 20, extensionsPerInbox: 1, customNames: false, hourlyCreations: { used: 2, limit: 5, resetAt: new Date(Date.now() + 38 * 60_000).toISOString() }, requests: { used: 6, limit: 30, resetAt: null }, messageChecks: { used: 4, limit: 5, resetAt: null } }
-const DISSOLVE: DissolveStatus = { connected: false, server: 'https://api.dissolve.email', email: null, plan: null, keepAfterExpiry: false, inboxes: [], lastChecked: null, problem: null, limits: NO_LIMITS }
-const dissolveCopy = (): DissolveStatus => ({ ...DISSOLVE, limits: { ...DISSOLVE.limits }, inboxes: DISSOLVE.inboxes.map((inbox) => ({ ...inbox })) })
+const NO_IDENTITIES: DissolveIdentities = { plan: null, granted: false, live: NO_METER, withNew: true }
+const DISSOLVE: DissolveStatus = { connected: false, server: 'https://api.dissolve.email', email: null, plan: null, keepAfterExpiry: false, inboxes: [], lastChecked: null, problem: null, limits: NO_LIMITS, identities: NO_IDENTITIES }
+/** inbox id to its identity, and its password under `identity:<inbox id>` in SECRETS. */
+const IDENTITIES = new Map<string, DissolveIdentity>()
+const dissolveCopy = (): DissolveStatus => {
+  const live = DISSOLVE.inboxes.filter((inbox) => !inbox.ended && IDENTITIES.has(inbox.id)).length
+  const identities = { ...DISSOLVE.identities, live: { used: live, limit: DISSOLVE.identities.plan === true ? 10 : null, resetAt: null } }
+  return { ...DISSOLVE, limits: { ...DISSOLVE.limits }, identities, inboxes: DISSOLVE.inboxes.map((inbox) => ({ ...inbox, identity: IDENTITIES.has(inbox.id) })) }
+}
+const PERSONAS: Persona[] = [
+  { fullName: 'Ada Example', firstName: 'Ada', lastName: 'Example', username: 'ada.example42', dateOfBirth: '1991-04-02', country: 'GB', address: { street: '1 Fiction Row', city: 'Leeds', state: 'West Yorkshire', zip: 'LS1 1AA', formatted: '1 Fiction Row\nLeeds\nLS1 1AA' }, phone: '07700 900123' },
+  { fullName: 'Noah Sample', firstName: 'Noah', lastName: 'Sample', username: 'noah_sample7', dateOfBirth: '1986-11-19', country: 'AU', address: { street: '22 Story Street', city: 'Brisbane', state: 'QLD', zip: '4000', formatted: '22 Story Street\nBrisbane QLD 4000' }, phone: '0491 570 006' },
+]
+/** Makes (or remakes) a pretend identity for an inbox, with a pretend password the reveal hands out. */
+const pretendIdentity = (inbox: DissolveInbox, turn: number): DissolveIdentity => {
+  const identity: DissolveIdentity = { id: IDENTITIES.get(inbox.id)?.id ?? `idn_${IDENTITIES.size + 1}`, email: inbox.address, hasPassword: true, persona: PERSONAS[turn % PERSONAS.length] ?? null }
+  IDENTITIES.set(inbox.id, identity)
+  SECRETS.set(`identity:${inbox.id}`, `Pretend-Pass-${turn}-${inbox.id}-x7Q!`)
+  return { ...identity }
+}
+let identityTurn = 0
+/** `?pro` in the address puts the preview account on Pro, which has agent identities. */
+const previewPro = (): boolean => typeof location !== 'undefined' && new URLSearchParams(location.search).has('pro')
 
 /** dissolve.email in the browser preview: a pretend account with one inbox, changed in memory. */
 const dissolve = {
   status: dissolveCopy,
-  connect: (): DissolveStatus => {
-    Object.assign(DISSOLVE, { connected: true, email: 'you@example.com', plan: 'free', lastChecked: new Date().toISOString(), limits: FREE_LIMITS })
-    if (DISSOLVE.inboxes.length === 0) DISSOLVE.inboxes.push({ id: 'inb_preview', address: 'signup-7k2@dissolve.email', name: 'Sign-ups', expiresAt: new Date(Date.now() + 5 * HOUR).toISOString(), ended: false, stored: 1, extensions: { used: 1, limit: 1, canExtend: false, availableAt: null } })
+  connect: (identities?: boolean): DissolveStatus => {
+    const pro = identities === true || previewPro()
+    const granted = pro && (identities ?? DISSOLVE.identities.granted)
+    Object.assign(DISSOLVE, { connected: true, email: 'you@example.com', plan: pro ? 'pro' : 'free', lastChecked: new Date().toISOString(), limits: pro ? { ...FREE_LIMITS, plan: 'pro', customNames: true } : FREE_LIMITS, identities: { ...DISSOLVE.identities, plan: pro, granted } })
+    if (DISSOLVE.inboxes.length === 0) DISSOLVE.inboxes.push({ id: 'inb_preview', address: 'signup-7k2@dissolve.email', name: 'Sign-ups', expiresAt: new Date(Date.now() + 5 * HOUR).toISOString(), ended: false, stored: 1, extensions: { used: 1, limit: 1, canExtend: false, availableAt: null }, identity: false })
     return dissolveCopy()
   },
   disconnect: (deleteMail: boolean): DissolveStatus => {
-    Object.assign(DISSOLVE, { connected: false, email: null, plan: null, limits: NO_LIMITS })
+    Object.assign(DISSOLVE, { connected: false, email: null, plan: null, limits: NO_LIMITS, identities: { ...NO_IDENTITIES, withNew: DISSOLVE.identities.withNew } })
     if (deleteMail) DISSOLVE.inboxes = []
     return dissolveCopy()
   },
@@ -167,10 +190,29 @@ const dissolve = {
     DISSOLVE.keepAfterExpiry = keep
     return dissolveCopy()
   },
-  create: (name?: string, domain?: string): DissolveInbox => {
-    const inbox: DissolveInbox = { id: `inb_${DISSOLVE.inboxes.length + 1}`, address: `${name ?? `new-${DISSOLVE.inboxes.length + 1}`}@${domain ?? 'dissolve.email'}`, name: name ?? null, expiresAt: new Date(Date.now() + 10 * 60_000).toISOString(), ended: false, stored: 0, extensions: null }
+  create: (name?: string, domain?: string, identity = false): MadeDissolveInbox => {
+    const inbox: DissolveInbox = { id: `inb_${DISSOLVE.inboxes.length + 1}`, address: `${name ?? `new-${DISSOLVE.inboxes.length + 1}`}@${domain ?? 'dissolve.email'}`, name: name ?? null, expiresAt: new Date(Date.now() + 10 * 60_000).toISOString(), ended: false, stored: 0, extensions: null, identity: false }
     DISSOLVE.inboxes.unshift(inbox)
-    return { ...inbox }
+    const made = identity && DISSOLVE.identities.granted ? pretendIdentity(inbox, identityTurn++) : null
+    return { ...inbox, identity: made !== null, identityMade: made, identitySkipped: null }
+  },
+  identity: (inboxId: string): DissolveIdentity | null => {
+    const known = IDENTITIES.get(inboxId)
+    return known === undefined ? null : { ...known }
+  },
+  addIdentity: (inboxId: string): DissolveIdentity => {
+    const inbox = DISSOLVE.inboxes.find((item) => item.id === inboxId)
+    if (inbox === undefined) throw new Error('it is no longer on dissolve.email')
+    return pretendIdentity(inbox, identityTurn++)
+  },
+  regenerate: (inboxId: string): DissolveIdentity => {
+    const inbox = DISSOLVE.inboxes.find((item) => item.id === inboxId)
+    if (inbox === undefined || !IDENTITIES.has(inboxId)) throw new Error('this address has no agent identity')
+    return pretendIdentity(inbox, identityTurn++)
+  },
+  withNew: (on: boolean): DissolveStatus => {
+    DISSOLVE.identities = { ...DISSOLVE.identities, withNew: on }
+    return dissolveCopy()
   },
   extend: (id: string): DissolveStatus => {
     const inbox = DISSOLVE.inboxes.find((item) => item.id === id)
@@ -179,6 +221,8 @@ const dissolve = {
   },
   burn: (id: string): DissolveStatus => {
     DISSOLVE.inboxes = DISSOLVE.inboxes.filter((item) => item.id !== id)
+    IDENTITIES.delete(id)
+    SECRETS.delete(`identity:${id}`)
     return dissolveCopy()
   },
 }

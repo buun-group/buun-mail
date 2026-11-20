@@ -12,7 +12,7 @@ use serde::Serialize;
 use tauri::AppHandle;
 
 use super::WORKSPACE;
-use super::api::{Api, ApiError, Me, Meter, RemoteInbox, RemoteMessage};
+use super::api::{Api, ApiError, Me, Meter, Persona, RemoteIdentity, RemoteInbox, RemoteMessage};
 use super::oauth::{self, Metadata, OAuthError, SIGN_IN_WAIT};
 use super::settings::{self, Account, DissolveSettings, Extensions, KnownInbox};
 use crate::dto::MessageDto;
@@ -81,6 +81,56 @@ pub struct DissolveInboxDto {
     pub stored: usize,
     /// Its extensions, as last reported.
     pub extensions: Option<Extensions>,
+    /// True when it is known to have an agent identity.
+    pub identity: bool,
+}
+
+/// An agent identity as the window sees it: never the password, which only [`DissolveService::identity_password`]
+/// gives, through the reveal lock.
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct IdentityDto {
+    /// Its id on dissolve.email.
+    pub id: String,
+    /// The email to sign up with: the inbox's address.
+    pub email: String,
+    /// Whether dissolve.email holds a password for it that can be read now.
+    pub has_password: bool,
+    /// The made-up person to fill the form in with.
+    pub persona: Option<Persona>,
+}
+
+impl From<RemoteIdentity> for IdentityDto {
+    fn from(identity: RemoteIdentity) -> Self {
+        Self { id: identity.id, email: identity.email, has_password: identity.password.is_some_and(|password| !password.is_empty()), persona: identity.persona }
+    }
+}
+
+/// A new inbox, with the identity made with it or why there is none.
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct MadeInboxDto {
+    /// The inbox.
+    #[serde(flatten)]
+    pub inbox: DissolveInboxDto,
+    /// Its agent identity, when one was made.
+    pub identity_made: Option<IdentityDto>,
+    /// Why one asked for was not made, in dissolve.email's words.
+    pub identity_skipped: Option<String>,
+}
+
+/// Agent identities: whether the plan has them, whether this app may make them, and how many are live.
+#[derive(Debug, Clone, Default, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct DissolveIdentitiesDto {
+    /// Whether the plan includes them; `None` until dissolve.email has said.
+    pub plan: Option<bool>,
+    /// True when the person approved them for this app, so it can make and read them.
+    pub granted: bool,
+    /// Inboxes here with an identity, against the plan's cap.
+    pub live: Meter,
+    /// Make one with each new address.
+    pub with_new: bool,
 }
 
 /// The connection as Settings and the workspace header show it. Never a token.
@@ -105,6 +155,8 @@ pub struct DissolveStatusDto {
     pub problem: Option<String>,
     /// The plan's limits and what is used of them.
     pub limits: DissolveLimitsDto,
+    /// Agent identities on this plan and sign-in.
+    pub identities: DissolveIdentitiesDto,
 }
 
 #[derive(Default)]
@@ -198,6 +250,7 @@ impl DissolveService {
                 ended: known.ended,
                 stored: known.messages.len(),
                 extensions: known.extensions.clone(),
+                identity: known.identity.is_some(),
             })
             .collect();
         inboxes.sort_by(|a, b| a.ended.cmp(&b.ended).then_with(|| b.expires_at.cmp(&a.expires_at)));
@@ -211,17 +264,22 @@ impl DissolveService {
             last_checked: progress.last_checked.clone(),
             problem: progress.problem.clone(),
             limits: limits_of(&saved, &progress),
+            identities: identities_of(&saved, &progress),
         })
     }
 
     /// Signs in: opens the browser at dissolve.email's approval page, waits up to five minutes for it to come back to
-    /// this computer, keeps the tokens, then collects. `server` replaces the saved server when given.
+    /// this computer, keeps the tokens, then collects. `server` replaces the saved server when given; `identities`
+    /// asks for agent identities too (or stops asking), and otherwise the last choice stands.
     ///
     /// # Errors
     ///
     /// Why it failed, in words for Settings.
-    pub fn connect(&self, server: Option<&str>) -> Result<DissolveStatusDto, String> {
+    pub fn connect(&self, server: Option<&str>, identities: Option<bool>) -> Result<DissolveStatusDto, String> {
         let mut saved = self.0.settings.lock().map_err(|error| error.to_string())?.clone();
+        if let Some(identities) = identities {
+            saved.identities = identities;
+        }
         if let Some(server) = server.map(str::trim).filter(|server| !server.is_empty()) {
             check_server(server)?;
             if server.trim_end_matches('/') != saved.server() {
@@ -237,7 +295,14 @@ impl DissolveService {
         let loopback = oauth::Loopback::open().map_err(|error| error.to_string())?;
         let pair = oauth::pkce().map_err(|error| error.to_string())?;
         let state = oauth::random(24).map_err(|error| error.to_string())?;
-        (self.0.open_browser)(&oauth::authorize_url(&metadata, &saved.client_id, &loopback.redirect, &state, &pair.challenge))?;
+        (self.0.open_browser)(&oauth::authorize_url(
+            &metadata,
+            &saved.client_id,
+            &loopback.redirect,
+            &state,
+            &pair.challenge,
+            &oauth::scopes(saved.identities),
+        ))?;
         let code = loopback.wait(&state, &metadata.issuer, SIGN_IN_WAIT).map_err(|error| error.to_string())?;
         let tokens = oauth::exchange(&metadata, &saved.client_id, &code, &loopback.redirect, &pair.verifier, unix_now()).map_err(|error| error.to_string())?;
         let me = Api::new(saved.server(), &tokens.access).me().map_err(|error| error.to_string())?;
@@ -294,13 +359,17 @@ impl DissolveService {
         self.status()
     }
 
-    /// Makes an inbox, on `domain` or the account's default, and gives it a folder.
+    /// Makes an inbox, on `domain` or the account's default, and gives it a folder. With `identity`, and agent
+    /// identities approved for this app, dissolve.email makes one for it in the same call; when it cannot (the plan's
+    /// cap, say) the inbox is still made and the answer says why.
     ///
     /// # Errors
     ///
     /// Why it failed, such as a plan limit, in dissolve.email's words.
-    pub fn create_inbox(&self, domain: Option<&str>, name: Option<&str>) -> Result<DissolveInboxDto, String> {
-        let made = match self.call(|api| api.create_inbox(domain, name)) {
+    pub fn create_inbox(&self, domain: Option<&str>, name: Option<&str>, identity: bool) -> Result<MadeInboxDto, String> {
+        // Without the scope dissolve.email refuses the whole request, inbox and all, so only ask when it was approved.
+        let identity = identity && self.status().is_ok_and(|status| status.identities.granted);
+        let made = match self.call(|api| api.create_inbox(domain, name, identity)) {
             Ok(made) => made,
             Err(ApiError::Limited { message, meter }) => {
                 if let Ok(mut progress) = self.0.progress.lock() {
@@ -317,11 +386,97 @@ impl DissolveService {
         }
         let mut saved = self.0.settings.lock().map_err(|error| error.to_string())?.clone();
         remember(&mut saved, &made);
+        if let (Some(known), Some(identity)) = (saved.inboxes.get_mut(&made.id), &made.identity) {
+            known.identity = Some(identity.id.clone());
+        }
         self.save(&saved).map_err(|error| error.to_string())?;
         self.show_workspace().map_err(|error| error.to_string())?;
         self.announce(&[]);
         let extensions = saved.inboxes.get(&made.id).and_then(|known| known.extensions.clone());
-        Ok(DissolveInboxDto { id: made.id, address: made.address, name: made.custom_name, expires_at: made.expires_at, ended: false, stored: 0, extensions })
+        let inbox = DissolveInboxDto {
+            id: made.id,
+            address: made.address,
+            name: made.custom_name,
+            expires_at: made.expires_at,
+            ended: false,
+            stored: 0,
+            extensions,
+            identity: made.identity.is_some(),
+        };
+        Ok(MadeInboxDto { inbox, identity_made: made.identity.map(IdentityDto::from), identity_skipped: made.identity_skipped.map(|skipped| skipped.message) })
+    }
+
+    /// An inbox's agent identity, or `None` when it has none.
+    ///
+    /// # Errors
+    ///
+    /// Why it could not be read, in words for the window.
+    pub fn identity(&self, inbox: &str) -> Result<Option<IdentityDto>, String> {
+        Ok(self.fetch_identity(inbox)?.map(IdentityDto::from))
+    }
+
+    /// The password of an inbox's identity, read from dissolve.email each time: it is never kept here. For the reveal
+    /// lock, which asks for the reveal code first when one is set.
+    ///
+    /// # Errors
+    ///
+    /// Why it could not be read, in words for the window.
+    pub fn identity_password(&self, inbox: &str) -> Result<Option<String>, String> {
+        Ok(self.fetch_identity(inbox)?.and_then(|identity| identity.password))
+    }
+
+    fn fetch_identity(&self, inbox: &str) -> Result<Option<RemoteIdentity>, String> {
+        let found = self.call(|api| api.inbox_identity(inbox)).map_err(|error| error.to_string())?;
+        self.note_identity(inbox, found.as_ref().map(|identity| identity.id.clone()))?;
+        Ok(found)
+    }
+
+    /// Gives an inbox an agent identity, with a persona.
+    ///
+    /// # Errors
+    ///
+    /// dissolve.email's refusal, such as the plan's cap, in its words.
+    pub fn add_identity(&self, inbox: &str) -> Result<IdentityDto, String> {
+        let made = self.call(|api| api.add_identity(inbox)).map_err(|error| error.to_string())?;
+        self.note_identity(inbox, Some(made.id.clone()))?;
+        Ok(made.into())
+    }
+
+    /// A new persona and password for an inbox's identity, keeping its address. The old password is gone for good.
+    ///
+    /// # Errors
+    ///
+    /// Why it failed, such as an inbox that has ended, in words for the window.
+    pub fn regenerate_identity(&self, inbox: &str) -> Result<IdentityDto, String> {
+        let known = self.0.settings.lock().map_err(|error| error.to_string())?.inboxes.get(inbox).and_then(|known| known.identity.clone());
+        let id = match known {
+            Some(id) => id,
+            None => self.fetch_identity(inbox)?.map(|identity| identity.id).ok_or_else(|| "this address has no agent identity".to_owned())?,
+        };
+        self.call(|api| api.regenerate_identity(&id)).map(IdentityDto::from).map_err(|error| error.to_string())
+    }
+
+    /// Makes an agent identity with each new address, or not.
+    ///
+    /// # Errors
+    ///
+    /// [`AppError`] when the settings cannot be written.
+    pub fn set_identity_with_new(&self, on: bool) -> Result<DissolveStatusDto, AppError> {
+        let mut saved = self.0.settings.lock()?.clone();
+        saved.identity_with_new = Some(on);
+        self.save(&saved)?;
+        self.status()
+    }
+
+    /// Remembers which identity an inbox has, or that it has none.
+    fn note_identity(&self, inbox: &str, identity: Option<String>) -> Result<(), String> {
+        let mut saved = self.0.settings.lock().map_err(|error| error.to_string())?.clone();
+        let Some(known) = saved.inboxes.get_mut(inbox) else { return Ok(()) };
+        if known.identity == identity {
+            return Ok(());
+        }
+        known.identity = identity;
+        self.save(&saved).map_err(|error| error.to_string())
     }
 
     /// The domains a new inbox can be made on, the default first.
@@ -511,6 +666,10 @@ impl DissolveService {
         if let Some(account) = saved.account.as_mut() {
             account.plan.clone_from(&me.plan);
         }
+        // Off a plan with identities, stop asking for them: the approval page would refuse the next sign-in.
+        if me.limits.agent_identities == Some(false) {
+            saved.identities = false;
+        }
         self.save(&saved).map_err(|error| error.to_string())?;
         if let Ok(mut progress) = self.0.progress.lock() {
             progress.me = Some((me, unix_now()));
@@ -628,6 +787,22 @@ fn limits_of(saved: &DissolveSettings, progress: &Progress) -> DissolveLimitsDto
         hourly_creations: hourly,
         requests,
         message_checks: Meter { used: i64::try_from(POLLS_PER_CHECK).ok(), limit: Some(SERVER_POLLS_PER_MINUTE), reset_at: None },
+    }
+}
+
+/// Agent identities: the plan's word on them, whether this sign-in may use them, and how many inboxes here have one.
+fn identities_of(saved: &DissolveSettings, progress: &Progress) -> DissolveIdentitiesDto {
+    let me = progress.me.as_ref().map(|(me, _)| me);
+    let granted = match me.and_then(|me| me.connection.as_ref()) {
+        Some(connection) => connection.scopes.iter().any(|scope| scope == "identities:write"),
+        None => saved.identities,
+    };
+    let live = saved.inboxes.values().filter(|known| !known.ended && known.identity.is_some()).count();
+    DissolveIdentitiesDto {
+        plan: me.and_then(|me| me.limits.agent_identities),
+        granted: granted && saved.account.is_some(),
+        live: Meter { used: i64::try_from(live).ok(), limit: me.and_then(|me| me.limits.max_agent_identities), reset_at: None },
+        with_new: saved.identity_with_new.unwrap_or(true),
     }
 }
 

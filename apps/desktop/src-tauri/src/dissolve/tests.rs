@@ -29,6 +29,30 @@ struct Fake {
     deleted: Vec<String>,
     /// The free plan's hourly creations are used up.
     hourly_full: bool,
+    /// The account is on Pro, which has agent identities.
+    pro: bool,
+    /// The person approved agent identities for the app.
+    granted: bool,
+    /// inbox id to (identity id, password).
+    identities: BTreeMap<String, (String, String)>,
+    /// Live identities the plan allows.
+    identity_cap: usize,
+    /// Requests to make an inbox that asked for an identity too.
+    asked_identity: usize,
+}
+
+/// An identity as dissolve.email answers with it.
+fn identity_json(id: &str, email: &str, password: &str) -> Value {
+    json!({ "id": id, "email": email, "password": password, "inboxId": "x", "label": null, "origin": "inbox", "persona": { "firstName": "Ada", "lastName": "Example", "fullName": "Ada Example", "gender": "female", "country": "GB", "username": "ada.example", "dateOfBirth": "1990-04-02", "address": { "street": "1 Fiction Row", "city": "Leeds", "state": "West Yorkshire", "zip": "LS1 1AA", "formatted": "1 Fiction Row\nLeeds\nLS1 1AA" }, "phone": "07700 900123", "synthetic": true } })
+}
+
+/// A Pro account: identities on, and the scopes this sign-in was given.
+fn pro_plan(granted: bool) -> Value {
+    let mut scopes = vec!["profile", "email", "inboxes:read", "inboxes:write", "messages:read", "messages:write"];
+    if granted {
+        scopes.extend(["identities:read", "identities:write"]);
+    }
+    json!({ "id": "usr_1", "email": "me@example.com", "plan": "pro", "limits": { "maxInboxes": 25, "agentIdentities": true, "maxAgentIdentities": 2 }, "connection": { "kind": "app", "scopes": scopes } })
 }
 
 fn source(id: &str, to: &str) -> String {
@@ -68,6 +92,70 @@ fn extension_refusal() -> Value {
     json!({ "error": "EXTENSION_LIMIT_REACHED", "message": "The free plan allows 1 extension.", "limit": 1, "current": 1 })
 }
 
+/// The routes for agent identities: an inbox with its identity, making one, and regenerating it. `None` for any other.
+fn identity_route(fake: &mut Fake, method: &str, path: &[&str], body: &str) -> Option<tiny_http::Response<std::io::Cursor<Vec<u8>>>> {
+    let response = match (method, path) {
+        ("POST", ["v1", "inboxes"]) if !fake.hourly_full => {
+            let id = format!("inb_{}", fake.inboxes.len() + 1);
+            let address = format!("new{}@dissolve.test", fake.inboxes.len() + 1);
+            fake.inboxes.insert(id.clone(), (address.clone(), "2026-12-01T00:00:00.000Z".to_owned()));
+            let asked: Value = serde_json::from_str(body).unwrap_or(Value::Null);
+            let mut answer = json!({ "id": id, "address": address, "customName": "Shop", "expiresAt": "2026-12-01T00:00:00.000Z" });
+            if asked["identity"]["create"] == true {
+                fake.asked_identity += 1;
+                if fake.identities.len() < fake.identity_cap {
+                    let identity = format!("idn_{}", fake.identities.len() + 1);
+                    fake.identities.insert(id.clone(), (identity.clone(), "pw-1".to_owned()));
+                    answer["identity"] = identity_json(&identity, &address, "pw-1");
+                } else {
+                    answer["identitySkipped"] =
+                        json!({ "reason": "limit", "message": "You already have 2 active agent identities, the most your plan allows." });
+                }
+            }
+            json_response(201, &answer)
+        }
+        ("GET", ["v1", "inboxes", id]) => match fake.inboxes.get(*id) {
+            Some((address, _)) => {
+                let linked = fake.identities.get(*id);
+                let mut answer = json!({ "id": id, "address": address, "identityId": linked.map(|(identity, _)| identity.clone()) });
+                if let (Some((identity, password)), true) = (linked, fake.granted) {
+                    answer["identity"] = identity_json(identity, address, password);
+                }
+                json_response(200, &answer)
+            }
+            None => json_response(404, &json!({ "message": "Inbox not found" })),
+        },
+        ("POST", ["v1", "identities"]) => {
+            let asked: Value = serde_json::from_str(body).unwrap_or(Value::Null);
+            let inbox = asked["inboxId"].as_str().unwrap_or_default().to_owned();
+            if fake.identities.len() >= fake.identity_cap {
+                json_response(429, &json!({ "error": "LIMIT_EXCEEDED", "message": "Your plan allows 2 active agent identities." }))
+            } else {
+                let identity = format!("idn_{}", fake.identities.len() + 1);
+                let address = fake.inboxes.get(&inbox).map(|(address, _)| address.clone()).unwrap_or_default();
+                fake.identities.insert(inbox, (identity.clone(), "pw-1".to_owned()));
+                json_response(201, &identity_json(&identity, &address, "pw-1"))
+            }
+        }
+        ("POST", ["v1", "identities", id, "regenerate"]) => {
+            let id = (*id).to_owned();
+            let found = fake.identities.iter_mut().find(|(_, (identity, _))| *identity == id).map(|(inbox, entry)| {
+                entry.1 = "pw-2".to_owned();
+                inbox.clone()
+            });
+            match found {
+                Some(inbox) => {
+                    let address = fake.inboxes.get(&inbox).map(|(address, _)| address.clone()).unwrap_or_default();
+                    json_response(200, &identity_json(&id, &address, "pw-2"))
+                }
+                None => json_response(404, &json!({ "message": "Identity not found" })),
+            }
+        }
+        _ => return None,
+    };
+    Some(response)
+}
+
 /// Starts the fake server; returns its address and its state.
 fn fake_server() -> (String, Arc<Mutex<Fake>>) {
     let server = tiny_http::Server::http("127.0.0.1:0").unwrap_or_else(|error| unreachable!("listen: {error}"));
@@ -85,83 +173,83 @@ fn fake_server() -> (String, Arc<Mutex<Fake>>) {
             let Ok(mut fake) = shared.lock() else { return };
             let authorized = bearer == format!("Bearer {}", fake.accepted);
             let path: Vec<&str> = url.split('?').next().unwrap_or("").trim_start_matches('/').split('/').collect();
-            let response = match (method.as_str(), path.as_slice()) {
-                ("GET", [".well-known", "oauth-authorization-server"]) => json_response(200, &metadata(&issuer)),
-                ("POST", ["oauth", "register"]) => {
-                    let asked: Value = serde_json::from_str(&body).unwrap_or(Value::Null);
-                    let ok = asked["token_endpoint_auth_method"] == "none" && asked["redirect_uris"] == json!(["http://127.0.0.1/callback"]);
-                    if ok {
-                        json_response(201, &json!({ "client_id": "dyn_test" }))
-                    } else {
-                        json_response(400, &json!({ "error": "invalid_client_metadata" }))
-                    }
-                }
-                ("POST", ["oauth", "token"]) => {
-                    if body.contains("grant_type=authorization_code")
-                        && body.contains("code=code-1")
-                        && body.contains("code_verifier=")
-                        && body.contains("client_id=dyn_test")
-                    {
-                        json_response(200, &json!({ "access_token": "at-1", "refresh_token": "rt-1", "expires_in": 3600, "token_type": "Bearer" }))
-                    } else if body.contains("grant_type=refresh_token") && body.contains("refresh_token=rt-1") {
-                        fake.accepted = "at-2".to_owned();
-                        json_response(200, &json!({ "access_token": "at-2", "refresh_token": "rt-2", "expires_in": 3600 }))
-                    } else {
-                        json_response(400, &json!({ "error": "invalid_grant", "error_description": "That code is not valid." }))
-                    }
-                }
-                ("POST", ["oauth", "revoke"]) => json_response(200, &json!({})),
-                _ if !authorized => json_response(401, &json!({ "message": "Unauthorized" })),
-                ("GET", ["v1", "me"]) => json_response(200, &free_plan()),
-                ("POST", ["v1", "inboxes"]) if fake.hourly_full => json_response(429, &hourly_refusal()),
-                ("POST", ["v1", "inboxes", "inb_a", "extend"]) if fake.hourly_full => json_response(403, &extension_refusal()),
-                ("GET", ["v1", "inboxes"]) => json_response(
-                    200,
-                    &Value::Array(
-                        fake.inboxes
-                            .iter()
-                            .map(|(id, (address, expires))| json!({ "id": id, "address": address, "customName": null, "expiresAt": expires }))
-                            .collect(),
-                    ),
-                ),
-                ("GET", ["v1", "domains"]) => json_response(200, &domains()),
-                ("POST", ["v1", "inboxes"]) => {
-                    let id = format!("inb_{}", fake.inboxes.len() + 1);
-                    let address = format!("new{}@dissolve.test", fake.inboxes.len() + 1);
-                    fake.inboxes.insert(id.clone(), (address.clone(), "2026-12-01T00:00:00.000Z".to_owned()));
-                    json_response(201, &json!({ "id": id, "address": address, "customName": "Shop", "expiresAt": "2026-12-01T00:00:00.000Z" }))
-                }
-                ("POST", ["v1", "inboxes", id, "extend"]) => {
-                    let id = (*id).to_owned();
-                    match fake.inboxes.get_mut(&id) {
-                        Some(found) => {
-                            found.1 = "2026-12-24T00:00:00.000Z".to_owned();
-                            json_response(200, &json!({ "id": id, "address": found.0, "expiresAt": found.1 }))
+            let identity = if authorized { identity_route(&mut fake, &method, &path, &body) } else { None };
+            let response = if let Some(response) = identity {
+                response
+            } else {
+                match (method.as_str(), path.as_slice()) {
+                    ("GET", [".well-known", "oauth-authorization-server"]) => json_response(200, &metadata(&issuer)),
+                    ("POST", ["oauth", "register"]) => {
+                        let asked: Value = serde_json::from_str(&body).unwrap_or(Value::Null);
+                        let ok = asked["token_endpoint_auth_method"] == "none" && asked["redirect_uris"] == json!(["http://127.0.0.1/callback"]);
+                        if ok {
+                            json_response(201, &json!({ "client_id": "dyn_test" }))
+                        } else {
+                            json_response(400, &json!({ "error": "invalid_client_metadata" }))
                         }
-                        None => json_response(404, &json!({ "message": "Inbox not found" })),
                     }
-                }
-                ("DELETE", ["v1", "inboxes", id]) => {
-                    let id = (*id).to_owned();
-                    fake.inboxes.remove(&id);
-                    fake.deleted.push(id);
-                    json_response(200, &json!({ "success": true }))
-                }
-                ("GET", ["v1", "inboxes", id, "messages"]) => {
-                    fake.polls += 1;
-                    let list = fake.messages.get(*id).cloned().unwrap_or_default();
-                    json_response(
+                    ("POST", ["oauth", "token"]) => {
+                        if body.contains("grant_type=authorization_code")
+                            && body.contains("code=code-1")
+                            && body.contains("code_verifier=")
+                            && body.contains("client_id=dyn_test")
+                        {
+                            json_response(200, &json!({ "access_token": "at-1", "refresh_token": "rt-1", "expires_in": 3600, "token_type": "Bearer" }))
+                        } else if body.contains("grant_type=refresh_token") && body.contains("refresh_token=rt-1") {
+                            fake.accepted = "at-2".to_owned();
+                            json_response(200, &json!({ "access_token": "at-2", "refresh_token": "rt-2", "expires_in": 3600 }))
+                        } else {
+                            json_response(400, &json!({ "error": "invalid_grant", "error_description": "That code is not valid." }))
+                        }
+                    }
+                    ("POST", ["oauth", "revoke"]) => json_response(200, &json!({})),
+                    _ if !authorized => json_response(401, &json!({ "message": "Unauthorized" })),
+                    ("GET", ["v1", "me"]) if fake.pro => json_response(200, &pro_plan(fake.granted)),
+                    ("GET", ["v1", "me"]) => json_response(200, &free_plan()),
+                    ("POST", ["v1", "inboxes"]) if fake.hourly_full => json_response(429, &hourly_refusal()),
+                    ("POST", ["v1", "inboxes", "inb_a", "extend"]) if fake.hourly_full => json_response(403, &extension_refusal()),
+                    ("GET", ["v1", "inboxes"]) => json_response(
+                        200,
+                        &Value::Array(
+                            fake.inboxes
+                                .iter()
+                                .map(|(id, (address, expires))| json!({ "id": id, "address": address, "customName": null, "expiresAt": expires }))
+                                .collect(),
+                        ),
+                    ),
+                    ("GET", ["v1", "domains"]) => json_response(200, &domains()),
+                    ("POST", ["v1", "inboxes", id, "extend"]) => {
+                        let id = (*id).to_owned();
+                        match fake.inboxes.get_mut(&id) {
+                            Some(found) => {
+                                found.1 = "2026-12-24T00:00:00.000Z".to_owned();
+                                json_response(200, &json!({ "id": id, "address": found.0, "expiresAt": found.1 }))
+                            }
+                            None => json_response(404, &json!({ "message": "Inbox not found" })),
+                        }
+                    }
+                    ("DELETE", ["v1", "inboxes", id]) => {
+                        let id = (*id).to_owned();
+                        fake.inboxes.remove(&id);
+                        fake.deleted.push(id);
+                        json_response(200, &json!({ "success": true }))
+                    }
+                    ("GET", ["v1", "inboxes", id, "messages"]) => {
+                        fake.polls += 1;
+                        let list = fake.messages.get(*id).cloned().unwrap_or_default();
+                        json_response(
                         200,
                         &Value::Array(list.iter().map(|(message, _)| json!({ "id": message, "fromAddress": "hello@shop.example", "fromName": "Shop", "subject": format!("Your code {message}"), "bodyText": "Your code is 482913.", "receivedAt": "2026-11-20T10:00:00.000Z" })).collect()),
                     )
-                }
-                ("GET", ["v1", "inboxes", id, "messages", message, "eml"]) => {
-                    match fake.messages.get(*id).and_then(|list| list.iter().find(|(found, _)| found == message)).and_then(|(_, raw)| raw.clone()) {
-                        Some(raw) => tiny_http::Response::from_string(raw).with_status_code(200),
-                        None => json_response(404, &json!({ "error": "RAW_UNAVAILABLE" })),
                     }
+                    ("GET", ["v1", "inboxes", id, "messages", message, "eml"]) => {
+                        match fake.messages.get(*id).and_then(|list| list.iter().find(|(found, _)| found == message)).and_then(|(_, raw)| raw.clone()) {
+                            Some(raw) => tiny_http::Response::from_string(raw).with_status_code(200),
+                            None => json_response(404, &json!({ "error": "RAW_UNAVAILABLE" })),
+                        }
+                    }
+                    _ => json_response(404, &json!({ "message": "Not found" })),
                 }
-                _ => json_response(404, &json!({ "message": "Not found" })),
             };
             drop(fake);
             let _ = request.respond(response);
@@ -211,7 +299,7 @@ fn setup() -> Setup {
 
 fn connected(setup: &Setup) -> DissolveService {
     let service = DissolveService::new(setup.config.clone(), Arc::clone(&setup.mailbox), None, browser(setup.base.clone(), "code=code-1"));
-    let status = service.connect(Some(&setup.base)).unwrap_or_else(|error| unreachable!("connect: {error}"));
+    let status = service.connect(Some(&setup.base), None).unwrap_or_else(|error| unreachable!("connect: {error}"));
     assert!(status.connected);
     service
 }
@@ -285,7 +373,7 @@ fn makes_extends_and_burns_inboxes() {
     let setup = setup();
     let service = connected(&setup);
     assert_eq!(service.domains(), Ok(vec!["dissolve.test".to_owned(), "other.test".to_owned()]));
-    let made = service.create_inbox(None, Some("Shop")).unwrap_or_else(|error| unreachable!("create: {error}"));
+    let made = service.create_inbox(None, Some("Shop"), false).unwrap_or_else(|error| unreachable!("create: {error}")).inbox;
     assert_eq!(made.address, "new2@dissolve.test");
     let extended = service.extend_inbox(&made.id).unwrap_or_else(|error| unreachable!("extend: {error}"));
     assert!(extended.inboxes.iter().any(|inbox| inbox.id == made.id && inbox.expires_at.starts_with("2026-12-24")));
@@ -315,10 +403,10 @@ fn polls_a_few_inboxes_a_check_in_turn() {
 fn refuses_a_decline_a_forged_answer_and_plain_text_servers() {
     let setup = setup();
     let declined = DissolveService::new(setup.config.clone(), Arc::clone(&setup.mailbox), None, browser(setup.base.clone(), "error=access_denied"));
-    assert_eq!(declined.connect(Some(&setup.base)).err().as_deref(), Some("you declined in the browser"));
+    assert_eq!(declined.connect(Some(&setup.base), None).err().as_deref(), Some("you declined in the browser"));
     let forged = DissolveService::new(setup.config.clone(), Arc::clone(&setup.mailbox), None, browser("https://evil.example".to_owned(), "code=code-1"));
-    assert!(forged.connect(Some(&setup.base)).is_err_and(|error| error.contains("did not match")));
-    assert!(declined.connect(Some("http://dissolve.example")).is_err_and(|error| error.contains("https")));
+    assert!(forged.connect(Some(&setup.base), None).is_err_and(|error| error.contains("did not match")));
+    assert!(declined.connect(Some("http://dissolve.example"), None).is_err_and(|error| error.contains("https")));
     assert!(declined.status().is_ok_and(|status| !status.connected));
 }
 
@@ -338,11 +426,71 @@ fn shows_the_plan_limits_and_records_the_ones_it_hits() {
         fake.hourly_full = true;
     }
     // The hourly limit reads as dissolve.email said it, not as slow down, and its count shows.
-    assert_eq!(service.create_inbox(None, None).err().as_deref(), Some("You've reached your limit of 5 new inboxes an hour on the free plan."));
+    assert_eq!(service.create_inbox(None, None, false).err().as_deref(), Some("You've reached your limit of 5 new inboxes an hour on the free plan."));
     let hourly = service.status().map(|status| status.limits.hourly_creations).unwrap_or_default();
     assert_eq!((hourly.used, hourly.limit, hourly.reset_at.as_deref()), (Some(5), Some(5), Some("2099-01-01T00:00:00.000Z")));
 
     assert_eq!(service.extend_inbox("inb_a").err().as_deref(), Some("The free plan allows 1 extension."));
     let extensions = service.status().ok().and_then(|status| status.inboxes.into_iter().find(|inbox| inbox.id == "inb_a")).and_then(|inbox| inbox.extensions);
     assert_eq!(extensions.map(|found| (found.used, found.limit, found.can_extend)), Some((Some(1), Some(1), Some(false))));
+}
+
+#[test]
+fn makes_an_agent_identity_with_a_new_address_once_allowed_on_a_plan_that_has_them() {
+    let setup = setup();
+    if let Ok(mut fake) = setup.fake.lock() {
+        fake.pro = true;
+        fake.identity_cap = 2;
+    }
+    let service = connected(&setup);
+    let identities = service.status().unwrap_or_else(|error| unreachable!("{error}")).identities;
+    assert_eq!((identities.plan, identities.granted, identities.with_new), (Some(true), false, true), "a first sign-in never asks for identities");
+
+    // Not yet allowed: the inbox is made without asking, since dissolve.email would refuse the whole request.
+    let made = service.create_inbox(None, None, true).unwrap_or_else(|error| unreachable!("create: {error}"));
+    assert!(made.identity_made.is_none() && made.identity_skipped.is_none());
+    assert_eq!(setup.fake.lock().map_or(9, |fake| fake.asked_identity), 0);
+
+    // Turning them on signs in again, asking for the identity scopes this time.
+    let fake = Arc::clone(&setup.fake);
+    let approve = browser(setup.base.clone(), "code=code-1");
+    let allowing = DissolveService::new(
+        setup.config.clone(),
+        Arc::clone(&setup.mailbox),
+        None,
+        Box::new(move |url: &str| {
+            if let Ok(mut state) = fake.lock() {
+                state.granted = url.contains("identities%3Awrite");
+            }
+            approve(url)
+        }),
+    );
+    let status = allowing.connect(None, Some(true)).unwrap_or_else(|error| unreachable!("connect: {error}"));
+    assert!(status.identities.granted);
+
+    let made = allowing.create_inbox(None, None, true).unwrap_or_else(|error| unreachable!("create: {error}"));
+    let identity = made.identity_made.unwrap_or_else(|| unreachable!("no identity"));
+    assert_eq!((identity.email.as_str(), identity.has_password), (made.inbox.address.as_str(), true));
+    assert_eq!(identity.persona.map(|persona| persona.full_name), Some("Ada Example".to_owned()));
+    assert!(made.inbox.identity);
+    let status = allowing.status().unwrap_or_else(|error| unreachable!("{error}"));
+    assert_eq!((status.identities.live.used, status.identities.live.limit), (Some(1), Some(2)));
+
+    // The password is read from dissolve.email when revealed, and never written to this computer.
+    assert_eq!(allowing.identity_password(&made.inbox.id), Ok(Some("pw-1".to_owned())));
+    let regenerated = allowing.regenerate_identity(&made.inbox.id).unwrap_or_else(|error| unreachable!("regenerate: {error}"));
+    assert_eq!(regenerated.id, identity.id);
+    assert_eq!(allowing.identity_password(&made.inbox.id), Ok(Some("pw-2".to_owned())));
+    let saved = std::fs::read_to_string(setup.config.join("dissolve.json")).unwrap_or_default();
+    assert!(!saved.contains("pw-") && saved.contains(&identity.id));
+
+    // An address without one can be given one, up to the plan's cap, which reads in dissolve.email's words.
+    assert_eq!(allowing.identity("inb_a"), Ok(None));
+    assert!(allowing.add_identity("inb_a").is_ok_and(|added| added.has_password));
+    assert_eq!(allowing.add_identity("inb_2").err().as_deref(), Some("Your plan allows 2 active agent identities."));
+    let skipped = allowing.create_inbox(None, None, true).unwrap_or_else(|error| unreachable!("create: {error}"));
+    assert_eq!(skipped.identity_skipped.as_deref(), Some("You already have 2 active agent identities, the most your plan allows."));
+
+    // Making one with each new address can be turned off.
+    assert!(allowing.set_identity_with_new(false).is_ok_and(|status| !status.identities.with_new));
 }

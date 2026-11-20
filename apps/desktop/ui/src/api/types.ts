@@ -320,6 +320,60 @@ export interface DissolveInbox {
   stored: number
   /** Its extensions, as dissolve.email last reported them. */
   extensions: DissolveExtensions | null
+  /** True when it is known to have an agent identity. */
+  identity: boolean
+}
+
+/** A new inbox, with the identity made with it or why there is none. Mirrors `MadeInboxDto`. */
+export interface MadeDissolveInbox extends DissolveInbox {
+  identityMade: DissolveIdentity | null
+  /** Why an identity asked for was not made, in dissolve.email's words. */
+  identitySkipped: string | null
+}
+
+/** A made-up person's postal address. Mirrors `PersonaAddress`. */
+export interface PersonaAddress {
+  street: string
+  city: string
+  state: string
+  zip: string
+  /** The whole address on lines, as the country writes it. */
+  formatted: string
+}
+
+/** A synthetic person to fill in a sign-up form with; every value is made up. Mirrors `Persona`. */
+export interface Persona {
+  fullName: string
+  firstName: string
+  lastName: string
+  username: string
+  /** YYYY-MM-DD. */
+  dateOfBirth: string
+  /** Two letters, such as GB. */
+  country: string
+  address: PersonaAddress
+  phone: string | null
+}
+
+/** An agent identity, never its password (that comes through `revealSecret('identity', inboxId)`). Mirrors `IdentityDto`. */
+export interface DissolveIdentity {
+  id: string
+  /** The email to sign up with: the inbox's address. */
+  email: string
+  hasPassword: boolean
+  persona: Persona | null
+}
+
+/** Agent identities on this plan and sign-in. Mirrors `DissolveIdentitiesDto`. */
+export interface DissolveIdentities {
+  /** Whether the plan includes them; null until dissolve.email has said. */
+  plan: boolean | null
+  /** True once the person approved them for this app. */
+  granted: boolean
+  /** Inboxes here with an identity, against the plan's cap. */
+  live: Meter
+  /** Make one with each new address. */
+  withNew: boolean
 }
 
 /** An inbox's extensions. A null limit is unlimited or not reported. */
@@ -361,6 +415,7 @@ export interface DissolveStatus {
   lastChecked: string | null
   problem: string | null
   limits: DissolveLimits
+  identities: DissolveIdentities
 }
 
 /** Whether a reveal code is set, and how many seconds reveals stay open. Mirrors `RevealStatusDto`. */
@@ -385,7 +440,7 @@ export interface AlertChannel {
 }
 
 /** Which saved secret to show: a gateway's token, a mailbox's password, a sender's key, an alert's secret. */
-export type SecretKind = 'gateway' | 'imap' | 'sender' | 'alert' | 'agent'
+export type SecretKind = 'gateway' | 'imap' | 'sender' | 'alert' | 'agent' | 'identity'
 
 /** A message scheduled to go later. Mirrors `ScheduledDto`. */
 export interface ScheduledMessage {
