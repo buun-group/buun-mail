@@ -1,14 +1,52 @@
-/* Work under way: the glyph turns while it runs. */
+/* Work under way: the glyph gives way to a letter in flight (BusyGlyph). */
 .busy-button[data-busy='true'] {
   cursor: progress;
 }
 .busy-button[data-busy='true'] .busy-button__glyph {
-  animation: busy-turn 0.8s linear infinite;
   color: var(--brand-text);
 }
-@keyframes busy-turn {
-  to {
-    transform: rotate(360deg);
+.busy-glyph {
+  flex-shrink: 0;
+  overflow: visible;
+}
+.busy-glyph__letter {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: busy-fly 1.2s cubic-bezier(0.45, 0, 0.25, 1) infinite;
+}
+/* Each line grows from the letter's tail and streams away behind it, one after another. */
+.busy-glyph__streak {
+  transform-box: fill-box;
+  transform-origin: right center;
+  animation: busy-stream 1.2s cubic-bezier(0.3, 0, 0.2, 1) infinite;
+}
+.busy-glyph__streak--2 {
+  animation-delay: 0.2s;
+}
+.busy-glyph__streak--3 {
+  animation-delay: 0.4s;
+}
+@keyframes busy-fly {
+  0%,
+  100% {
+    transform: translate(-0.5px, 0.4px) rotate(-6deg);
+  }
+  50% {
+    transform: translate(1.5px, -0.6px) rotate(-2deg);
+  }
+}
+@keyframes busy-stream {
+  0% {
+    opacity: 0;
+    transform: translateX(1px) scaleX(0.2);
+  }
+  35% {
+    opacity: 1;
+    transform: translateX(0) scaleX(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-3px) scaleX(0.4);
   }
 }
 
@@ -71,7 +109,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .busy-button[data-busy='true'] .busy-button__glyph {
+  .busy-glyph__letter {
+    animation: none;
+  }
+  .busy-glyph__streak {
     animation: busy-pulse 1.2s ease-in-out infinite;
   }
   .skeleton__line {
