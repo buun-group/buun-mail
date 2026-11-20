@@ -473,3 +473,10 @@ export async function messageNote(id: string): Promise<string | null> {
 export async function setMessageNote(id: string, text: string): Promise<void> {
   return isTauri() ? invoke<void>(COMMANDS.setMessageNote, { id, text }) : preview.notes.set(id, text)
 }
+
+/** Asks for a folder on this computer. Resolves to its path, or null when the person cancels. */
+export async function pickFolder(): Promise<string | null> {
+  if (!isTauri()) return null
+  const picked = await open({ multiple: false, directory: true })
+  return typeof picked === 'string' ? picked : null
+}

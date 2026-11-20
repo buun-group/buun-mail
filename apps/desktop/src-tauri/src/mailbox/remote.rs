@@ -29,12 +29,17 @@ impl Mailbox {
     }
 
     fn take_in_with(&self, raw: &[u8], envelope_to: Option<&str>, received_at: i64) -> Result<Option<MessageDto>, AppError> {
-        let router = self.router.read()?;
-        let rules = self.rules.read()?;
-        let store = self.store.lock()?;
-        match ingest(Incoming { raw, envelope_to, received_at, placed: None }, &router, &rules, &store) {
+        // The locks are let go before the follow-ups (alerts, saved attachments), which take the store themselves.
+        let outcome = {
+            let router = self.router.read()?;
+            let rules = self.rules.read()?;
+            let store = self.store.lock()?;
+            ingest(Incoming { raw, envelope_to, received_at, placed: None }, &router, &rules, &store)
+        };
+        match outcome {
             Ok(Some(new)) => {
                 self.alert(&new.alerts, &new.record);
+                self.save_attachments_to(&new.save_to, &new.record, raw);
                 Ok((!new.quiet).then(|| MessageDto::from(new.record)))
             }
             Ok(None) => Ok(None),
@@ -51,12 +56,16 @@ impl Mailbox {
     /// [`AppError`] when the mailbox is unavailable, or the message cannot be read or stored.
     pub fn take_in_placed(&self, raw: &[u8], envelope_to: &str, placement: &Placement, received_at: i64) -> Result<(String, Option<MessageDto>), AppError> {
         let id = buun_mail_message::parse(raw, received_at).map_err(|error| AppError::Unreadable(error.to_string()))?.id;
-        let router = self.router.read()?;
-        let rules = self.rules.read()?;
-        let store = self.store.lock()?;
-        match ingest(Incoming { raw, envelope_to: Some(envelope_to), received_at, placed: Some(placement) }, &router, &rules, &store) {
+        let outcome = {
+            let router = self.router.read()?;
+            let rules = self.rules.read()?;
+            let store = self.store.lock()?;
+            ingest(Incoming { raw, envelope_to: Some(envelope_to), received_at, placed: Some(placement) }, &router, &rules, &store)
+        };
+        match outcome {
             Ok(Some(new)) => {
                 self.alert(&new.alerts, &new.record);
+                self.save_attachments_to(&new.save_to, &new.record, raw);
                 Ok((id, (!new.quiet).then(|| MessageDto::from(new.record))))
             }
             Ok(None) => Ok((id, None)),

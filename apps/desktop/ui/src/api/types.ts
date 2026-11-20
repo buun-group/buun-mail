@@ -143,7 +143,7 @@ export interface RuleWhen {
 }
 
 /** What a rule does. */
-export type RuleAction = { type: 'tag'; tag: string } | { type: 'move'; workspace?: string; folder?: string } | { type: 'markRead' } | { type: 'quiet' } | { type: 'trash' } | { type: 'alert'; channel: string }
+export type RuleAction = { type: 'tag'; tag: string } | { type: 'move'; workspace?: string; folder?: string } | { type: 'markRead' } | { type: 'quiet' } | { type: 'trash' } | { type: 'saveAttachments'; folder: string } | { type: 'alert'; channel: string }
 
 /** A rule, as the app, the settings screen and agents all write it. */
 export interface Rule {

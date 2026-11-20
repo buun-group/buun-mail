@@ -26,6 +26,9 @@ pub enum RuleError {
     /// A tag is empty.
     #[error("rule `{0}` has an empty tag")]
     EmptyTag(String),
+    /// A save-attachments action names no folder, or not a whole path.
+    #[error("rule `{0}` saves attachments without a whole folder path")]
+    NoFolder(String),
     /// An alert action names no channel.
     #[error("rule `{0}` sends an alert without saying where")]
     NoChannel(String),

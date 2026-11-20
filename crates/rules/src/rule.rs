@@ -72,6 +72,11 @@ pub enum Action {
     Quiet,
     /// Puts it straight in the trash: a blocked sender.
     Trash,
+    /// Saves its attachments (not pictures shown in its text) into a folder on this computer as it arrives.
+    SaveAttachments {
+        /// The folder, as an absolute path.
+        folder: String,
+    },
     /// Sends an alert through one of the app's alert channels (Slack, a text, an email), by the channel's id. Only mail
     /// that arrives alerts; re-running rules over stored mail never does.
     Alert {
@@ -133,6 +138,9 @@ impl Rule {
         }
         if self.actions.iter().any(|action| matches!(action, Action::Tag { tag } if tag.trim().is_empty())) {
             return Err(RuleError::EmptyTag(name.to_owned()));
+        }
+        if self.actions.iter().any(|action| matches!(action, Action::SaveAttachments { folder } if !std::path::Path::new(folder.trim()).is_absolute())) {
+            return Err(RuleError::NoFolder(name.to_owned()));
         }
         if self.actions.iter().any(|action| matches!(action, Action::Alert { channel } if channel.trim().is_empty())) {
             return Err(RuleError::NoChannel(name.to_owned()));

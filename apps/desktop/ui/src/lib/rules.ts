@@ -35,6 +35,8 @@ function action(item: RuleAction, workspaceName: (id: string) => string): string
       return i18n.t('rules:describe.quiet')
     case 'trash':
       return i18n.t('rules:describe.trash')
+    case 'saveAttachments':
+      return i18n.t('rules:describe.saveAttachments', { folder: item.folder })
     case 'alert':
       return i18n.t('rules:describe.alert')
   }

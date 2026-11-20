@@ -207,3 +207,37 @@ fn a_blocked_sender_goes_straight_to_the_trash_unannounced() -> Result<(), AppEr
     assert_eq!(trashed.iter().map(|message| message.subject.as_str()).collect::<Vec<_>>(), vec!["Win"]);
     Ok(())
 }
+
+#[test]
+fn saves_attachments_into_a_folder_a_rule_names_without_overwriting() -> Result<(), AppError> {
+    let (folder, mailbox) = mailbox();
+    let target = folder.path().join("invoices");
+    let rule = Rule::new(
+        "Save invoices",
+        When { from: Some("*@stripe.com".to_owned()), ..When::default() },
+        vec![Action::SaveAttachments { folder: target.display().to_string() }],
+    );
+    mailbox.save_rule(rule, &Actor::You)?;
+    let message = |id: &str| {
+        format!(
+            "From: receipts@stripe.com\r\nTo: billing@flung.dev\r\nSubject: Invoice {id}\r\nMessage-ID: <{id}@stripe.com>\r\nMIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary=b\r\n\r\n--b\r\nContent-Type: text/plain\r\n\r\nAttached.\r\n--b\r\nContent-Type: application/pdf\r\nContent-Disposition: attachment; filename=\"../invoice.pdf\"\r\nContent-Transfer-Encoding: base64\r\n\r\nJVBERi0xLjQ=\r\n--b--\r\n"
+        )
+    };
+    let _ = mailbox.take_in(message("i1").as_bytes(), "billing@flung.dev", 1_795_000_000)?;
+    let _ = mailbox.take_in(message("i2").as_bytes(), "billing@flung.dev", 1_795_000_001)?;
+    let mut saved: Vec<String> =
+        fs::read_dir(&target).map(|entries| entries.flatten().map(|entry| entry.file_name().to_string_lossy().into_owned()).collect()).unwrap_or_default();
+    saved.sort();
+    assert_eq!(saved, ["invoice (2).pdf", "invoice.pdf"], "kept inside the folder, never over the first");
+    assert_eq!(fs::read(target.join("invoice.pdf")).unwrap_or_default(), b"%PDF-1.4");
+    assert!(
+        Rule::new(
+            "Bad",
+            When { from: Some("*@x.example".to_owned()), ..When::default() },
+            vec![Action::SaveAttachments { folder: "relative/path".to_owned() }]
+        )
+        .check()
+        .is_err()
+    );
+    Ok(())
+}

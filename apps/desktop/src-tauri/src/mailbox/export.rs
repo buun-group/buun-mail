@@ -113,6 +113,39 @@ impl Mailbox {
         Ok(path)
     }
 
+    /// Saves a new message's attachments into each folder a rule named: never the pictures its text shows, never over
+    /// a file already there (a number is added), and never opened. A folder that cannot be written is noted in the
+    /// activity log; the message is stored either way.
+    pub(crate) fn save_attachments_to(&self, folders: &[String], record: &buun_mail_store::MessageRecord, raw: &[u8]) {
+        if folders.is_empty() {
+            return;
+        }
+        let files: Vec<(String, Vec<u8>)> = buun_mail_message::attachments(raw)
+            .into_iter()
+            .filter(|info| !info.inline)
+            .filter_map(|info| buun_mail_message::attachment(raw, info.index).map(|(found, bytes)| (safe_name(&found.name), bytes)))
+            .collect();
+        if files.is_empty() {
+            return;
+        }
+        for folder in folders {
+            let target = Path::new(folder);
+            let written = fs::create_dir_all(target).and_then(|()| {
+                files.iter().try_for_each(|(name, bytes)| {
+                    let path = free_path(target, name);
+                    fs::write(path, bytes)
+                })
+            });
+            if let Ok(store) = self.store.lock() {
+                let detail = match &written {
+                    Ok(()) => format!("{} from \"{}\" into {folder}", files.len(), record.subject),
+                    Err(error) => format!("\"{}\" not saved into {folder}: {error}", record.subject),
+                };
+                let _ = super::log(&store, &super::Actor::App, if written.is_ok() { "save_attachments" } else { "save_attachments_failed" }, detail);
+            }
+        }
+    }
+
     /// Saves one attachment of a message to `path`. Returns its file name.
     ///
     /// # Errors
@@ -216,6 +249,28 @@ fn exported<'a>(record: &'a MessageRecord, body: &'a str) -> Exported<'a> {
 fn csv_cell(value: &str) -> String {
     let safe = if value.starts_with(['=', '+', '-', '@', '\t', '\r']) { format!("'{value}") } else { value.to_owned() };
     if safe.contains([',', '"', '\n', '\r']) { format!("\"{}\"", safe.replace('"', "\"\"")) } else { safe }
+}
+
+/// A file name safe to write: no folders, no leading dots, nothing a file system refuses.
+fn safe_name(name: &str) -> String {
+    let base = name.rsplit(['/', '\\']).next().unwrap_or(name);
+    let cleaned: String = base
+        .chars()
+        .map(|character| if character.is_control() || matches!(character, ':' | '*' | '?' | '"' | '<' | '>' | '|') { '_' } else { character })
+        .collect();
+    let trimmed = cleaned.trim().trim_start_matches('.').to_owned();
+    if trimmed.is_empty() { "attachment".to_owned() } else { trimmed }
+}
+
+/// A path in `folder` for `name` that is not taken: `invoice.pdf`, then `invoice (2).pdf`, and so on.
+fn free_path(folder: &Path, name: &str) -> std::path::PathBuf {
+    let first = folder.join(name);
+    if !first.exists() {
+        return first;
+    }
+    let (stem, extension) = name.rsplit_once('.').map_or((name, String::new()), |(stem, extension)| (stem, format!(".{extension}")));
+    // Bounded: ten thousand copies of one name is far past any real folder.
+    (2..10_000).map(|number| folder.join(format!("{stem} ({number}){extension}"))).find(|path| !path.exists()).unwrap_or(first)
 }
 
 #[cfg(test)]

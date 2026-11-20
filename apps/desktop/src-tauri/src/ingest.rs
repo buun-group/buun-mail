@@ -45,6 +45,8 @@ pub struct Arrived {
     pub quiet: bool,
     /// Alert channels a rule asked to tell, by id.
     pub alerts: Vec<String>,
+    /// Folders a rule asked to save its attachments into.
+    pub save_to: Vec<String>,
 }
 
 /// Parses, routes, runs the rules on and stores one message. Returns what was stored when it was new, `None` when the
@@ -118,7 +120,7 @@ pub fn ingest(incoming: Incoming<'_>, router: &Router, rules: &[CheckedRule], st
         })?;
     }
     // Mail a rule put in the trash (a blocked sender) is never announced.
-    Ok(Some(Arrived { record, quiet: outcome.quiet || outcome.trash, alerts: outcome.alerts }))
+    Ok(Some(Arrived { record, quiet: outcome.quiet || outcome.trash, alerts: outcome.alerts, save_to: outcome.save_to }))
 }
 
 /// A file's messages: every message in an `.mbox`, or the file itself when it is one message.

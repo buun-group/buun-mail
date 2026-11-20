@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { listAlerts } from '../../api/client'
+import { listAlerts, pickFolder } from '../../api/client'
 import type { AlertChannel, Rule, RuleAction, Workspace } from '../../api/types'
 import { Select } from '../Select/Select'
 
@@ -38,6 +38,7 @@ export function RuleEditor({ rule, workspaces, onSave, onCancel }: RuleEditorPro
   const [markRead, setMarkRead] = useState(action('markRead') !== undefined)
   const [quiet, setQuiet] = useState(action('quiet') !== undefined)
   const [toTrash, setToTrash] = useState(action('trash') !== undefined)
+  const [saveFolder, setSaveFolder] = useState(action('saveAttachments')?.folder ?? '')
   const [alert, setAlert] = useState(action('alert')?.channel ?? '')
   const [channels, setChannels] = useState<AlertChannel[]>([])
   useEffect(() => {
@@ -56,6 +57,7 @@ export function RuleEditor({ rule, workspaces, onSave, onCancel }: RuleEditorPro
     if (markRead) actions.push({ type: 'markRead' })
     if (quiet) actions.push({ type: 'quiet' })
     if (toTrash) actions.push({ type: 'trash' })
+    if (saveFolder.trim() !== '') actions.push({ type: 'saveAttachments', folder: saveFolder.trim() })
     if (alert !== '') actions.push({ type: 'alert', channel: alert })
     const when = {
       ...(blank(workspace) === undefined ? {} : { workspace }),
@@ -132,6 +134,16 @@ export function RuleEditor({ rule, workspaces, onSave, onCancel }: RuleEditorPro
           <input type="checkbox" id="rule-trash" checked={toTrash} onChange={(event) => setToTrash(event.target.checked)} />
           {t('editor.trash')}
         </label>
+        <div className="connect__field">
+          <label htmlFor="rule-save">{t('editor.saveAttachments')}</label>
+          <div className="rule-editor__folder">
+            <input id="rule-save" value={saveFolder} placeholder={t('editor.saveAttachmentsPlaceholder')} onChange={(event) => setSaveFolder(event.target.value)} autoComplete="off" spellCheck={false} />
+            <button type="button" className="settings__button" onClick={() => void pickFolder().then((picked) => picked !== null && setSaveFolder(picked))}>
+              {t('editor.chooseFolder')}
+            </button>
+          </div>
+          <small>{t('editor.saveAttachmentsHint')}</small>
+        </div>
         <div className="connect__field">
           <label htmlFor="rule-alert">{t('editor.alert')}</label>
           <Select id="rule-alert" value={alert} onChange={setAlert} options={[{ value: '', label: t('editor.noAlert') }, ...channels.map((channel) => ({ value: channel.id, label: channel.name }))]} />

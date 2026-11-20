@@ -36,7 +36,11 @@
     "bodyPlaceholder": "new subscription",
     "tagged": "Has the tag",
     "taggedPlaceholder": "sale",
-    "trash": "Move to trash"
+    "trash": "Move to trash",
+    "saveAttachments": "Save attachments to",
+    "saveAttachmentsPlaceholder": "No folder: do not save",
+    "chooseFolder": "Choose folder",
+    "saveAttachmentsHint": "Each attachment is saved as the mail arrives, never over a file already there and never opened."
   },
   "describe": {
     "sentence": "Mail {{conditions}}: {{actions}}.",
@@ -55,6 +59,7 @@
     "alert": "alert me",
     "body": "with \"{{text}}\" in its words",
     "tagged": "tagged {{tag}}",
-    "trash": "move to trash"
+    "trash": "move to trash",
+    "saveAttachments": "save attachments to {{folder}}"
   }
 }

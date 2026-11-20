@@ -36,6 +36,8 @@ pub struct Outcome {
     pub quiet: bool,
     /// True when a rule puts it in the trash.
     pub trash: bool,
+    /// Folders to save its attachments into, in rule order, without repeats.
+    pub save_to: Vec<String>,
     /// The alert channels to send to, by id, in rule order, without repeats.
     pub alerts: Vec<String>,
     /// The names of the rules that ran, for the activity log.
@@ -69,6 +71,12 @@ pub fn evaluate(rules: &[CheckedRule], facts: &Facts<'_>) -> Outcome {
                 Action::MarkRead => outcome.mark_read = true,
                 Action::Quiet => outcome.quiet = true,
                 Action::Trash => outcome.trash = true,
+                Action::SaveAttachments { folder } => {
+                    let folder = folder.trim().to_owned();
+                    if !outcome.save_to.contains(&folder) {
+                        outcome.save_to.push(folder);
+                    }
+                }
                 Action::Alert { channel } => {
                     if !outcome.alerts.contains(channel) {
                         outcome.alerts.push(channel.clone());
