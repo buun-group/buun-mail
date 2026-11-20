@@ -1,10 +1,10 @@
 //! Whether a newer Buun Mail is out: the latest published release on the project's GitHub releases page, compared
-//! with this build's version. Only the release list is asked for; nothing about the person or their mail is sent.
+//! with this build's version. Only the public releases page is asked; nothing about the person or their mail is sent.
 //! Drafts and pre-releases are never offered.
 
 use std::time::Duration;
 
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use ureq::Agent;
 
 /// The repository whose releases are checked. A fork that ships its own builds changes this one line.
@@ -29,42 +29,39 @@ pub struct UpdateDto {
     pub published_at: Option<String>,
 }
 
-/// The fields of GitHub's release that the check reads.
-#[derive(Debug, Deserialize)]
-struct Release {
-    tag_name: String,
-    html_url: String,
-    published_at: Option<String>,
-}
-
 /// Asks GitHub for the latest release. Blocking: call it off the window's thread.
+///
+/// It reads where the public releases page sends `/releases/latest` (to `/releases/tag/v0.5.0`) rather than calling
+/// GitHub's API, which allows only 60 unsigned requests an hour for an address that many people can share, such as a
+/// VPN's or a mobile network's.
 ///
 /// # Errors
 ///
 /// A sentence for the person when GitHub cannot be reached, answers with an error, or there is no release yet.
 pub fn check() -> Result<UpdateDto, String> {
-    let agent: Agent = Agent::config_builder().timeout_global(Some(Duration::from_secs(15))).http_status_as_error(false).build().new_agent();
-    let mut response = agent
-        .get(&format!("https://api.github.com/repos/{RELEASES_REPO}/releases/latest"))
-        .header("Accept", "application/vnd.github+json")
+    let agent: Agent = Agent::config_builder().timeout_global(Some(Duration::from_secs(15))).http_status_as_error(false).max_redirects(0).build().new_agent();
+    let response = agent
+        .get(&format!("https://github.com/{RELEASES_REPO}/releases/latest"))
         .header("User-Agent", &format!("Buun-Mail/{CURRENT}"))
         .call()
         .map_err(|error| format!("GitHub could not be reached: {error}"))?;
-    match response.status().as_u16() {
-        200 => {}
-        404 => return Err("No release has been published yet.".to_owned()),
-        403 | 429 => return Err("GitHub asked to wait before checking again. Try later.".to_owned()),
-        status => return Err(format!("GitHub answered HTTP {status}.")),
+    let status = response.status().as_u16();
+    if !(300..400).contains(&status) {
+        return Err(if status == 404 { "No release has been published yet.".to_owned() } else { format!("GitHub answered HTTP {status}.") });
     }
-    let text = response.body_mut().read_to_string().map_err(|error| format!("GitHub's answer could not be read: {error}"))?;
-    compare(&text, CURRENT)
+    let location = response.headers().get("location").and_then(|value| value.to_str().ok()).unwrap_or_default();
+    compare(location, CURRENT)
 }
 
-/// Reads a release from GitHub's JSON and compares it with `current`.
-fn compare(json: &str, current: &str) -> Result<UpdateDto, String> {
-    let release: Release = serde_json::from_str(json).map_err(|error| format!("GitHub's answer could not be read: {error}"))?;
-    let latest = release.tag_name.trim().trim_start_matches('v').to_owned();
-    Ok(UpdateDto { newer: is_newer(&latest, current), current: current.to_owned(), latest, url: release.html_url, published_at: release.published_at })
+/// Reads the release's tag from where `/releases/latest` sends the browser, and compares it with `current`.
+fn compare(location: &str, current: &str) -> Result<UpdateDto, String> {
+    let tag = location.split_once("/releases/tag/").map(|(_, tag)| tag.trim_end_matches('/')).filter(|tag| !tag.is_empty());
+    let Some(tag) = tag else {
+        return Err("No release has been published yet.".to_owned());
+    };
+    let latest = tag.trim_start_matches('v').to_owned();
+    let url = if location.starts_with("https://") { location.to_owned() } else { format!("https://github.com{location}") };
+    Ok(UpdateDto { newer: is_newer(&latest, current), current: current.to_owned(), latest, url, published_at: None })
 }
 
 /// True when `candidate` is a later `major.minor.patch` than `current`, or the same one released after `current` was a
@@ -108,13 +105,18 @@ mod tests {
     }
 
     #[test]
-    fn reads_the_latest_release_from_github() {
-        let json = r#"{"tag_name":"v0.5.0","html_url":"https://github.com/buun-group/buun-mail/releases/tag/v0.5.0","published_at":"2026-12-01T10:00:00Z","draft":false,"assets":[]}"#;
-        let found = compare(json, "0.4.0").unwrap_or_else(|error| unreachable!("{error}"));
-        assert_eq!(found.latest, "0.5.0");
-        assert!(found.newer);
+    fn reads_the_latest_release_from_where_the_page_redirects() {
+        let found = compare("https://github.com/buun-group/buun-mail/releases/tag/v0.5.0", "0.4.0").unwrap_or_else(|error| unreachable!("{error}"));
+        assert_eq!((found.latest.as_str(), found.newer), ("0.5.0", true));
         assert_eq!(found.url, "https://github.com/buun-group/buun-mail/releases/tag/v0.5.0");
-        assert!(!compare(json, "0.5.0").is_ok_and(|same| same.newer));
-        assert!(compare("{}", "0.4.0").is_err());
+        assert!(compare("/buun-group/buun-mail/releases/tag/v0.5.0", "0.5.0").is_ok_and(|same| !same.newer && same.url.starts_with("https://github.com/")));
+        assert!(compare("https://github.com/buun-group/buun-mail/releases", "0.4.0").is_err(), "no release yet");
+    }
+
+    #[test]
+    #[ignore = "reaches github.com; run with --ignored"]
+    fn asks_github_for_real() {
+        let found = check().unwrap_or_else(|error| unreachable!("{error}"));
+        assert!(found.url.contains("/releases/tag/v"), "{found:?}");
     }
 }
