@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import type { KeyboardEvent, MouseEvent, ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -6,6 +6,7 @@ import type { MailView, Place, Workspace } from '../../api/types'
 import { BRAND_ICONS, isBrandIcon } from '../../constants/products'
 import { INBOX_LABEL, UNSORTED_WORKSPACE } from '../../constants/ui'
 import type { Theme } from '../../constants/ui'
+import { useLeaving } from '../../hooks/useLeaving'
 import { usePeek } from '../../hooks/usePeek'
 import type { WorkspaceLooks } from '../../hooks/useWorkspaceLooks'
 import {
@@ -31,6 +32,7 @@ import { copyWithToast } from '../../lib/copy'
 import { ContextMenu, isMenuKey, menuPoint } from '../ContextMenu/ContextMenu'
 import type { MenuItem, MenuRequest } from '../ContextMenu/ContextMenu'
 import { BuunFooter } from '../BuunFooter/BuunFooter'
+import { DissolveOut } from '../Motion/DissolveOut'
 import { TipButton } from '../Tooltip/TipButton'
 import { WorkspaceIcon } from '../WorkspaceIcon/WorkspaceIcon'
 
@@ -78,6 +80,9 @@ export function Sidebar({ workspaces, place, view, theme, looks, folded, collaps
   const needsEditor = t('menu.needsEditor')
   const nav = useRef<HTMLElement | null>(null)
   const [peek] = usePeek(nav, collapsed)
+  // A folder that goes (an inbox that ended or was burned) dissolves away where it was.
+  const allFolders = useMemo(() => workspaces.flatMap((workspace) => workspace.folders.map((folder) => ({ workspaceId: workspace.id, folder }))), [workspaces])
+  const { list: keptFolders, gone: folderGone } = useLeaving(allFolders, (entry) => `${entry.workspaceId}\u0001${entry.folder.name ?? ''}`, 'sidebar')
   const rail = collapsed && !peek
   const [menu, setMenu] = useState<MenuRequest | null>(null)
   const closeMenu = useCallback(() => setMenu(null), [])
@@ -150,14 +155,14 @@ export function Sidebar({ workspaces, place, view, theme, looks, folded, collaps
                 </TipButton>
               </h2>
               <ul hidden={folded.has(workspace.id)}>
-                {workspace.folders.map((folder) => {
+                {keptFolders.filter((kept) => kept.item.workspaceId === workspace.id).map(({ item: { folder }, key, leaving }) => {
                   const current = view === null && place?.workspace === workspace.id && place.folder === folder.name
                   const Glyph = folder.name === null ? IconInbox : isWorkspaceGlyph(folder.icon) ? WORKSPACE_GLYPHS[folder.icon] : IconFolder
                   const brand = folder.name !== null && isBrandIcon(folder.icon) ? BRAND_ICONS[folder.icon].mark[theme] : null
                   const label = folder.name ?? t(INBOX_LABEL)
                   const where = t('nav.folder', { workspace: workspace.name, folder: label })
                   return (
-                    <li key={label}>
+                    <DissolveOut as="li" key={key} out={leaving} onDone={() => folderGone(key)}>
                       <TipButton
                         tip={rail ? where : null}
                         side="right"
@@ -180,7 +185,7 @@ export function Sidebar({ workspaces, place, view, theme, looks, folded, collaps
                           </span>
                         )}
                       </TipButton>
-                    </li>
+                    </DissolveOut>
                   )
                 })}
               </ul>

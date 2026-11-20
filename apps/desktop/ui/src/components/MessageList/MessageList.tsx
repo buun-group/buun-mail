@@ -18,6 +18,8 @@ import type { MessageActions } from '../../hooks/useMessageActions'
 import { ListHeader } from './ListHeader'
 import { SelectionBar } from './SelectionBar'
 import { QuickActions } from './QuickActions'
+import { useLeaving } from '../../hooks/useLeaving'
+import { DissolveOut } from '../Motion/DissolveOut'
 import { RowDetails, rowDetailsLabel } from './RowDetails'
 import { TagChips } from '../Tags/Tags'
 
@@ -70,6 +72,8 @@ export function MessageList({ workspace, place, view, messages, selectedId, onSe
   const [menu, setMenu] = useState<MenuRequest | null>(null)
   const closeMenu = useCallback(() => setMenu(null), [])
   const unread = messages.filter((message) => message.unread).length
+  // A message that leaves the list while it is open (deleted, archived, moved, or gone with its inbox) dissolves away.
+  const { list: keptMessages, gone: messageGone } = useLeaving(messages, (message) => message.id, `${place?.workspace ?? ''}|${place?.folder ?? ''}|${view ?? ''}|${query}|${scope}|${filter}`)
   const folderIcon = workspace?.folders.find((folder) => folder.name === place?.folder)?.icon
   const TitleGlyph = view !== null ? VIEW_GLYPHS[view] : (place?.folder ?? null) === null ? IconInbox : isWorkspaceGlyph(folderIcon) ? WORKSPACE_GLYPHS[folderIcon] : IconFolder
   const rows = useRef<HTMLUListElement | null>(null)
@@ -206,23 +210,23 @@ export function MessageList({ workspace, place, view, messages, selectedId, onSe
         )}
       </header>
       {banner}
-      {messages.length === 0 && total > 0 && query.trim() !== '' ? (
+      {keptMessages.length === 0 && total > 0 && query.trim() !== '' ? (
         <div className="message-list__empty">
           <p>{t('list.searchMiss', { query: query.trim() })}</p>
           <button type="button" className="message-list__clear" onClick={() => onQuery('')}>
             {t('list.clearSearch')}
           </button>
         </div>
-      ) : messages.length === 0 && total > 0 ? (
+      ) : keptMessages.length === 0 && total > 0 ? (
         <div className="message-list__empty">
           <p>{t('list.filter.empty', { filter: t(`list.filter.${filter}`).toLowerCase() })}</p>
           <button type="button" className="message-list__clear" onClick={() => onFilter('all')}>
             {t('list.filter.clear')}
           </button>
         </div>
-      ) : messages.length === 0 && emptyState !== undefined ? (
+      ) : keptMessages.length === 0 && emptyState !== undefined ? (
         emptyState
-      ) : messages.length === 0 ? (
+      ) : keptMessages.length === 0 ? (
         <p className="message-list__empty">
           {view === null ? <Trans t={t} i18nKey="list.empty" components={{ addresses: <code>{workspace?.addresses.join(', ') ?? t('list.thisWorkspace')}</code> }} /> : t(`list.emptyView.${view}`)}
         </p>
@@ -230,8 +234,8 @@ export function MessageList({ workspace, place, view, messages, selectedId, onSe
         <div className="message-list__body">
         <ListHeader sort={sort} onSort={onSort} details={details} />
         <ul ref={attachRows} className="message-list__rows" data-selecting={selected.length > 0}>
-          {messages.map((message) => (
-            <li key={message.id} data-id={message.id} data-picked={picked.has(message.id)}>
+          {keptMessages.map(({ item: message, leaving }) => (
+            <DissolveOut as="li" key={message.id} out={leaving} onDone={() => messageGone(message.id)} data-id={leaving ? undefined : message.id} data-picked={picked.has(message.id)}>
               <input
                 type="checkbox"
                 className="row-check row-check--row"
@@ -287,7 +291,7 @@ export function MessageList({ workspace, place, view, messages, selectedId, onSe
                 )}
               </button>
               <QuickActions message={message} actions={actions} />
-            </li>
+            </DissolveOut>
           ))}
         </ul>
         </div>

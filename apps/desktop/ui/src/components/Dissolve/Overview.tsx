@@ -11,6 +11,8 @@ import { toast } from '../../lib/feedback'
 import { Confirm } from '../Confirm/Confirm'
 import type { Confirmation } from '../Confirm/Confirm'
 import { TipButton } from '../Tooltip/TipButton'
+import { useLeaving } from '../../hooks/useLeaving'
+import { DissolveOut } from '../Motion/DissolveOut'
 
 /** How often the time left is redrawn. */
 const TICK_MS = 30_000
@@ -40,10 +42,12 @@ export function Overview({ workspace, onOpen }: { workspace: Workspace | undefin
     }
   }, [])
 
+  // An inbox that ends or is burned dissolves out of the list.
+  const { list: kept, gone } = useLeaving(status?.inboxes ?? [], (inbox) => inbox.id, 'overview')
   if (status === null) return null
   const unreadOf = (address: string): number => workspace?.folders.find((folder) => folder.name === address)?.unread ?? 0
-  const live = status.inboxes.filter((inbox) => !inbox.ended)
-  const ended = status.inboxes.filter((inbox) => inbox.ended)
+  const live = kept.filter((entry) => !entry.item.ended)
+  const ended = kept.filter((entry) => entry.item.ended)
 
   const extend = (inbox: DissolveInbox): void => {
     extendDissolveInbox(inbox.id)
@@ -68,12 +72,13 @@ export function Overview({ workspace, onOpen }: { workspace: Workspace | undefin
       },
     })
 
-  const row = (inbox: DissolveInbox): ReactNode => {
+  const row = ({ item: inbox, leaving }: { item: DissolveInbox; leaving: boolean }): ReactNode => {
     const left = timeLeft(inbox.expiresAt, now)
     const unread = unreadOf(inbox.address)
     const blocked = inbox.extensions?.canExtend === false
     return (
-      <li key={inbox.id} className="overview__row">
+      <DissolveOut as="li" key={inbox.id} out={leaving} onDone={() => gone(inbox.id)}>
+      <div className="overview__row">
         <button type="button" className="overview__open" onClick={() => onOpen({ workspace: DISSOLVE_WORKSPACE, folder: inbox.address })}>
           <IconFolder aria-hidden="true" className="overview__glyph" />
           <span className="overview__who">
@@ -113,7 +118,8 @@ export function Overview({ workspace, onOpen }: { workspace: Workspace | undefin
             <IconBurn aria-hidden="true" />
           </TipButton>
         </span>
-      </li>
+      </div>
+      </DissolveOut>
     )
   }
 
