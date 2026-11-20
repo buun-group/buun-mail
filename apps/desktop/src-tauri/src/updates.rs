@@ -67,13 +67,18 @@ fn compare(json: &str, current: &str) -> Result<UpdateDto, String> {
     Ok(UpdateDto { newer: is_newer(&latest, current), current: current.to_owned(), latest, url: release.html_url, published_at: release.published_at })
 }
 
-/// True when `candidate` is a later `major.minor.patch` than `current`. Anything after a `-` or `+` is ignored, and a
-/// version that cannot be read is never newer.
+/// True when `candidate` is a later `major.minor.patch` than `current`, or the same one released after `current` was a
+/// beta of it (`0.6.0` after `0.6.0-beta.2`). Build metadata after `+` is ignored, and a version that cannot be read is
+/// never newer.
 fn is_newer(candidate: &str, current: &str) -> bool {
     match (parts(candidate), parts(current)) {
-        (Some(candidate), Some(current)) => candidate > current,
+        (Some(found), Some(running)) => found > running || (found == running && is_beta(current) && !is_beta(candidate)),
         _ => false,
     }
+}
+
+fn is_beta(version: &str) -> bool {
+    version.split('+').next().is_some_and(|core| core.contains('-'))
 }
 
 fn parts(version: &str) -> Option<(u64, u64, u64)> {
@@ -96,7 +101,9 @@ mod tests {
         assert!(is_newer("0.4.1", "0.4.0"));
         assert!(!is_newer("0.4.0", "0.4.0"));
         assert!(!is_newer("0.3.9", "0.4.0"));
-        assert!(!is_newer("0.5.0-beta.1", "0.5.0"), "a pre-release suffix is ignored");
+        assert!(!is_newer("0.5.0-beta.1", "0.5.0"), "a beta is never offered over its stable version");
+        assert!(is_newer("0.6.0", "0.6.0-beta.2"), "a beta tester is told when the stable version ships");
+        assert!(!is_newer("0.6.0-beta.3", "0.6.0-beta.2"), "betas are not offered through this check");
         assert!(!is_newer("nightly", "0.4.0"), "an unreadable tag is never newer");
     }
 
