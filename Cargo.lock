@@ -391,7 +391,7 @@ checksum = "87a0cf66fd1eb2fb7b822cb78370d82303750809bc6ba855f3f58e517d3238db"
 
 [[package]]
 name = "buun-mail-desktop"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "argon2",
  "base64 0.23.1",
@@ -421,7 +421,7 @@ dependencies = [
 
 [[package]]
 name = "buun-mail-message"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "base64 0.23.1",
  "mail-builder",
@@ -432,7 +432,7 @@ dependencies = [
 
 [[package]]
 name = "buun-mail-routing"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "serde",
  "thiserror 2.0.21",
@@ -441,7 +441,7 @@ dependencies = [
 
 [[package]]
 name = "buun-mail-rules"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "buun-mail-routing",
  "serde",
@@ -451,7 +451,7 @@ dependencies = [
 
 [[package]]
 name = "buun-mail-store"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "rusqlite",
  "tempfile",
