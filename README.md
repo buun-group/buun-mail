@@ -268,6 +268,9 @@ ever holds stable versions. They skip `.rpm` and `.msi`, which do not accept a p
 the latest release, and are never offered by the app's update check. Someone running a beta is told once the stable
 version ships. To build an existing release again, run Actions, Release, Run workflow with its tag.
 
+A watchdog workflow re-runs a failed CI, Beta or Release run on `main` or `dev` once, opens an issue labelled
+`ci-failure` when it fails again, and closes that issue when the workflow passes.
+
 ## Next
 
 | Coming | Waiting on |
