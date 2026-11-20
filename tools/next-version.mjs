@@ -6,7 +6,8 @@
  *   node tools/next-version.mjs     prints {"release":true,"version":"0.6.0-beta.2","tag":"v0.6.0-beta.2","base":"v0.5.0"}
  *
  * Before 1.0 a breaking change or a feat raises the minor version and a fix or perf the patch; from 1.0 a breaking
- * change raises the major. With no feat, fix, perf or breaking change since the stable tag, `release` is false.
+ * change raises the major. `release` is false unless a feat, fix, perf or breaking change came after the nearest tag
+ * (the last beta or stable release this commit already contains), so a push of only docs, CI or chores makes no beta.
  */
 import { execFileSync } from 'node:child_process'
 import { pathToFileURL } from 'node:url'
@@ -53,10 +54,16 @@ export function plan(git) {
   const tags = git('tag', '--list', 'v*').split('\n').filter(Boolean)
   const stable = newestStable(tags) ?? [0, 0, 0]
   const base = `v${stable.join('.')}`
-  const range = tags.includes(base) ? `${base}..HEAD` : 'HEAD'
-  const messages = git('log', '--format=%B%x00', range).split('\0').map((message) => message.trim()).filter(Boolean)
-  const bump = bumpFor(messages)
+  const log = (range) => git('log', '--format=%B%x00', range).split('\0').map((message) => message.trim()).filter(Boolean)
+  const bump = bumpFor(log(tags.includes(base) ? `${base}..HEAD` : 'HEAD'))
   if (bump === null) return { release: false, base }
+  let nearest = null
+  try {
+    nearest = git('describe', '--tags', '--abbrev=0', '--match', 'v*') || null
+  } catch {
+    // No tag behind this commit yet: everything since the start counts.
+  }
+  if (nearest !== null && nearest !== base && bumpFor(log(`${nearest}..HEAD`)) === null) return { release: false, base }
   const version = nextStable(stable, bump)
   const beta = `${version}-beta.${nextBeta(version, tags)}`
   return { release: true, version: beta, tag: `v${beta}`, base }

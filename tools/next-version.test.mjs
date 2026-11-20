@@ -26,7 +26,15 @@ test('betas count up from the tags already made', () => {
 })
 
 test('plans the next beta from the history, or nothing when nothing would be released', () => {
-  const git = (tags, log) => (...args) => (args[0] === 'tag' ? tags.join('\n') : log.map((message) => `${message}\0`).join('\n'))
-  assert.deepEqual(plan(git(['v0.5.0', 'v0.6.0-beta.1'], ['feat(updates): beta channel', 'fix: typo'])), { release: true, version: '0.6.0-beta.2', tag: 'v0.6.0-beta.2', base: 'v0.5.0' })
-  assert.deepEqual(plan(git(['v0.5.0'], ['docs: readme', 'ci: workflow'])), { release: false, base: 'v0.5.0' })
+  // `history` maps a log range to its commit messages; `nearest` is the last tag behind HEAD.
+  const git = (tags, history, nearest) => (...args) => {
+    if (args[0] === 'tag') return tags.join('\n')
+    if (args[0] === 'describe') return nearest
+    return (history[args.at(-1)] ?? []).map((message) => `${message}\0`).join('\n')
+  }
+  const sinceBeta1 = { 'v0.5.0..HEAD': ['feat(updates): beta channel', 'fix: typo'], 'v0.6.0-beta.1..HEAD': ['fix: typo'] }
+  assert.deepEqual(plan(git(['v0.5.0', 'v0.6.0-beta.1'], sinceBeta1, 'v0.6.0-beta.1')), { release: true, version: '0.6.0-beta.2', tag: 'v0.6.0-beta.2', base: 'v0.5.0' })
+  assert.deepEqual(plan(git(['v0.5.0'], { 'v0.5.0..HEAD': ['docs: readme', 'ci: workflow'] }, 'v0.5.0')), { release: false, base: 'v0.5.0' })
+  const onlyCiSinceBeta = { 'v0.5.0..HEAD': ['feat: a', 'ci: watchdog'], 'v0.6.0-beta.3..HEAD': ['ci: watchdog'] }
+  assert.deepEqual(plan(git(['v0.5.0', 'v0.6.0-beta.3'], onlyCiSinceBeta, 'v0.6.0-beta.3')), { release: false, base: 'v0.5.0' }, 'a push of only CI after a beta makes no new beta')
 })
