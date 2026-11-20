@@ -232,7 +232,17 @@ const writing = {
   },
 }
 
+const NOTES = new Map<string, string>()
+const notes = {
+  get: (id: string): string | null => NOTES.get(id) ?? null,
+  set: (id: string, text: string): void => {
+    if (text.trim() === '') NOTES.delete(id)
+    else NOTES.set(id, text)
+  },
+}
+
 export const preview = {
+  notes,
   writing,
   later,
   dissolve,

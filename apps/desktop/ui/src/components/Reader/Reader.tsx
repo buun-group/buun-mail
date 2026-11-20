@@ -5,6 +5,7 @@ import { Trans, useTranslation } from 'react-i18next'
 import type { Contact, Message, MessageDetail, Recipients, Workspace } from '../../api/types'
 import { Attachments } from './Attachments'
 import { Conversation } from './Conversation'
+import { ConversationNote } from './ConversationNote'
 import { SenderCheck } from './SenderCheck'
 import { UnsubscribeButton } from './UnsubscribeButton'
 import type { HtmlMenu } from './MessageHtml'
@@ -325,6 +326,7 @@ export function Reader({ grain, message, body, recipients, detail, workspace, th
           </time>
         </div>
         <Fields message={message} recipients={recipients} />
+        <ConversationNote key={message.id} messageId={message.id} />
         <div className="reader__tags">
           <TagEditor tags={message.tags} suggestions={tagSuggestions} onAdd={(tag) => onAddTag(message.id, tag)} onRemove={(tag) => onRemoveTag(message.id, tag)} />
         </div>

@@ -256,3 +256,15 @@ describe('scheduled and follow-ups', () => {
     expect(await screen.findByText(/Nothing scheduled/)).toBeTruthy()
   })
 })
+
+describe('conversation notes', () => {
+  it('adds a private note and shows it again', async () => {
+    const { ConversationNote } = await import('../components/Reader/ConversationNote')
+    render(<ConversationNote messageId="p2" />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Add a note' }))
+    const box = await screen.findByLabelText('Note')
+    fireEvent.change(box, { target: { value: 'Refunded in Stripe' } })
+    fireEvent.blur(box)
+    expect(await screen.findByText('Refunded in Stripe')).toBeTruthy()
+  })
+})

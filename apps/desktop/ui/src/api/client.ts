@@ -463,3 +463,13 @@ export async function deleteTemplate(id: string): Promise<Writing> {
 export async function saveProfile(workspace: string, profile: Profile): Promise<Writing> {
   return isTauri() ? invoke<Writing>(COMMANDS.saveProfile, { workspace, profile }) : preview.writing.saveProfile(workspace, profile)
 }
+
+/** The private note on a message's conversation, or null. */
+export async function messageNote(id: string): Promise<string | null> {
+  return isTauri() ? invoke<string | null>(COMMANDS.messageNote, { id }) : preview.notes.get(id)
+}
+
+/** Keeps a private note on a message's conversation; an empty note is removed. */
+export async function setMessageNote(id: string, text: string): Promise<void> {
+  return isTauri() ? invoke<void>(COMMANDS.setMessageNote, { id, text }) : preview.notes.set(id, text)
+}

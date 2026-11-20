@@ -329,6 +329,32 @@ impl Store {
         Ok(ids)
     }
 
+    /// The note kept on a conversation (a thread id, or a message id for a message on its own), if any.
+    ///
+    /// # Errors
+    ///
+    /// [`StoreError`] when the index cannot be read.
+    pub fn note(&self, conversation: &str) -> Result<Option<String>, StoreError> {
+        Ok(self.index.query_row("SELECT text FROM notes WHERE conversation = ?1", [conversation], |row| row.get(0)).optional()?)
+    }
+
+    /// Keeps a note on a conversation; an empty one is removed.
+    ///
+    /// # Errors
+    ///
+    /// [`StoreError`] when the index cannot be written.
+    pub fn set_note(&self, conversation: &str, text: &str, at: i64) -> Result<(), StoreError> {
+        if text.trim().is_empty() {
+            self.index.execute("DELETE FROM notes WHERE conversation = ?1", [conversation])?;
+        } else {
+            self.index.execute(
+                "INSERT INTO notes (conversation, text, updated_at) VALUES (?1, ?2, ?3) ON CONFLICT (conversation) DO UPDATE SET text = excluded.text, updated_at = excluded.updated_at",
+                params![conversation, text, at],
+            )?;
+        }
+        Ok(())
+    }
+
     /// Up to `limit` messages stored before sizes and sender checks were kept, for catching up.
     ///
     /// # Errors

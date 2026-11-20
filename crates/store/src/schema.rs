@@ -57,6 +57,11 @@ const MIGRATIONS: &[&str] = &[
     CREATE INDEX messages_by_snooze ON messages (snoozed_until) WHERE snoozed_until IS NOT NULL;",
     "ALTER TABLE messages ADD COLUMN size INTEGER;
     ALTER TABLE messages ADD COLUMN checks TEXT;",
+    "CREATE TABLE notes (
+        conversation TEXT PRIMARY KEY,
+        text         TEXT NOT NULL,
+        updated_at   INTEGER NOT NULL
+    ) STRICT;",
 ];
 
 /// Brings the database up to the latest version, one migration at a time, each in its own transaction.

@@ -60,6 +60,8 @@ export const COMMANDS = {
   saveTemplate: 'save_template',
   deleteTemplate: 'delete_template',
   saveProfile: 'save_profile',
+  messageNote: 'message_note',
+  setMessageNote: 'set_message_note',
   openMessage: 'open_message',
   markAllRead: 'mark_all_read',
   importFiles: 'import_files',

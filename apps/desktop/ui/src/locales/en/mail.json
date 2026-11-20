@@ -423,5 +423,14 @@
     "scheduledFor": "Scheduled for {{when}}",
     "dueTitle": "No reply yet",
     "dueDetail": "{{to}} has not answered \"{{subject}}\"."
+  },
+  "note": {
+    "add": "Add a note",
+    "edit": "Edit the note",
+    "label": "Note",
+    "placeholder": "Refunded in Stripe on the 20th",
+    "hint": "Only on this computer, never sent. Saves when you click away, or with Ctrl and Enter.",
+    "saved": "Note saved",
+    "removed": "Note removed"
   }
 }

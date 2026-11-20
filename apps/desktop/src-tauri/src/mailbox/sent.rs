@@ -102,6 +102,29 @@ impl Mailbox {
             .collect())
     }
 
+    /// The note on a message's conversation, if any.
+    ///
+    /// # Errors
+    ///
+    /// [`AppError`] for an unknown id, or when the store cannot be read.
+    pub fn note(&self, id: &str) -> Result<Option<String>, AppError> {
+        let store = self.store.lock()?;
+        let message = store.get(id)?;
+        Ok(store.note(message.thread_id.as_deref().unwrap_or(id))?)
+    }
+
+    /// Keeps a note on a message's conversation, private to this computer; an empty note is removed.
+    ///
+    /// # Errors
+    ///
+    /// [`AppError`] for an unknown id, or when the store cannot be written.
+    pub fn set_note(&self, id: &str, text: &str) -> Result<(), AppError> {
+        let store = self.store.lock()?;
+        let message = store.get(id)?;
+        store.set_note(message.thread_id.as_deref().unwrap_or(id), text, unix_now())?;
+        Ok(())
+    }
+
     /// One message's summary.
     ///
     /// # Errors

@@ -283,3 +283,15 @@ fn all_mail_is_every_workspace_newest_first_without_sent_copies() -> Result<(), 
     assert_eq!(ids, ["b", "a"]);
     Ok(())
 }
+
+#[test]
+fn keeps_a_note_on_a_conversation_and_drops_an_empty_one() -> Result<(), StoreError> {
+    let (_folder, store) = store()?;
+    assert_eq!(store.note("t1")?, None);
+    store.set_note("t1", "Refunded in Stripe", 10)?;
+    store.set_note("t1", "Refunded in Stripe on the 20th", 20)?;
+    assert_eq!(store.note("t1")?.as_deref(), Some("Refunded in Stripe on the 20th"));
+    store.set_note("t1", "  ", 30)?;
+    assert_eq!(store.note("t1")?, None);
+    Ok(())
+}

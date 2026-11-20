@@ -625,3 +625,15 @@ pub fn delete_template(writing: State<'_, WritingStore>, id: String) -> Result<W
 pub fn save_profile(writing: State<'_, WritingStore>, workspace: String, profile: Profile) -> Result<Writing, String> {
     writing.save_profile(&workspace, &profile)
 }
+
+/// The note on a message's conversation, if any.
+#[tauri::command]
+pub fn message_note(mailbox: State<'_, Arc<Mailbox>>, id: String) -> Result<Option<String>, AppError> {
+    mailbox.note(&id)
+}
+
+/// Keeps a private note on a message's conversation; an empty note is removed.
+#[tauri::command]
+pub fn set_message_note(mailbox: State<'_, Arc<Mailbox>>, id: String, text: String) -> Result<(), AppError> {
+    mailbox.set_note(&id, &text)
+}
