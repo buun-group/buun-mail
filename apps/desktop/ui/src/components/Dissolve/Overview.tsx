@@ -13,6 +13,7 @@ import type { Confirmation } from '../Confirm/Confirm'
 import { TipButton } from '../Tooltip/TipButton'
 import { useLeaving } from '../../hooks/useLeaving'
 import { DissolveOut } from '../Motion/DissolveOut'
+import { Skeleton } from '../Busy/Skeleton'
 
 /** How often the time left is redrawn. */
 const TICK_MS = 30_000
@@ -44,7 +45,7 @@ export function Overview({ workspace, onOpen }: { workspace: Workspace | undefin
 
   // An inbox that ends or is burned dissolves out of the list.
   const { list: kept, gone } = useLeaving(status?.inboxes ?? [], (inbox) => inbox.id, 'overview')
-  if (status === null) return null
+  if (status === null) return <div className="overview"><Skeleton rows={3} label={t('overview.loading')} /></div>
   const unreadOf = (address: string): number => workspace?.folders.find((folder) => folder.name === address)?.unread ?? 0
   const live = kept.filter((entry) => !entry.item.ended)
   const ended = kept.filter((entry) => entry.item.ended)

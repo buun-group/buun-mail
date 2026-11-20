@@ -6,6 +6,7 @@ import { addResendSender, listSenders } from '../../api/client'
 import type { Sender } from '../../api/types'
 import { toast } from '../../lib/feedback'
 import { reason, SenderCard } from './SenderCard'
+import { Skeleton } from '../Busy/Skeleton'
 
 /**
  * Resend: each connected key with its domains and their state, its signature, Refresh and Remove; and a form to connect
@@ -61,7 +62,7 @@ export function ResendConnect({ onChanged, onCount }: { onChanged: () => void; o
       .finally(() => setBusy(false))
   }
 
-  if (senders === null) return null
+  if (senders === null) return <Skeleton label={t('loading')} />
 
   return (
     <div className="senders">

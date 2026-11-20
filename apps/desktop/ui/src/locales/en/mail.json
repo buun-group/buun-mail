@@ -390,7 +390,8 @@
     "unread_other": "{{count}} unread",
     "ended": "Ended",
     "none": "No inboxes yet. New address makes one.",
-    "noneLive": "No live inboxes. New address makes one."
+    "noneLive": "No live inboxes. New address makes one.",
+    "loading": "Loading inboxes"
   },
   "unsubscribe": {
     "label": "Unsubscribe",
@@ -422,7 +423,8 @@
     "notSent": "Not sent",
     "scheduledFor": "Scheduled for {{when}}",
     "dueTitle": "No reply yet",
-    "dueDetail": "{{to}} has not answered \"{{subject}}\"."
+    "dueDetail": "{{to}} has not answered \"{{subject}}\".",
+    "loading": "Loading what is scheduled"
   },
   "note": {
     "add": "Add a note",

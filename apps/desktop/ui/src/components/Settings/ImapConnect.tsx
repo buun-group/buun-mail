@@ -12,6 +12,8 @@ import { formatFull } from '../../lib/time'
 import { Select } from '../Select/Select'
 import { SecretField } from './SecretField'
 import { reason } from './SenderCard'
+import { BusyButton } from '../Busy/BusyButton'
+import { Skeleton } from '../Busy/Skeleton'
 
 /**
  * Mailboxes collected over IMAP, each with how its checks are going, Check now and Remove; and a form to add one with a
@@ -59,7 +61,7 @@ export function ImapConnect({ preset: initial, onChanged }: { preset: MailPreset
       .finally(() => setBusy(false))
   }
 
-  if (accounts === null) return null
+  if (accounts === null) return <Skeleton label={t('loading')} />
   return (
     <div className="senders">
       {accounts.map((account) => (
@@ -82,11 +84,12 @@ export function ImapConnect({ preset: initial, onChanged }: { preset: MailPreset
             </p>
           )}
           <div className="settings__actions settings__actions--tight">
-            <button
-              type="button"
+            <BusyButton
               className="settings__button"
-              onClick={() =>
-                void checkImapAccounts()
+              glyph={IconRegenerate}
+              busyLabel={t('gateway.checking')}
+              run={() =>
+                checkImapAccounts()
                   .then((arrived) => {
                     toast({ text: t('imap.checked'), detail: arrived > 0 ? t('gateway.arrived', { count: arrived }) : t('gateway.nothingNew'), tone: 'done' })
                     onChanged()
@@ -95,9 +98,8 @@ export function ImapConnect({ preset: initial, onChanged }: { preset: MailPreset
                   .catch((cause: unknown) => toast({ text: t('imap.checkFailed'), detail: reason(cause), tone: 'problem' }))
               }
             >
-              <IconRegenerate aria-hidden="true" />
               {t('gateway.checkNow')}
-            </button>
+            </BusyButton>
             <button
               type="button"
               className="settings__button settings__button--danger"

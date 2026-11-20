@@ -843,27 +843,6 @@ label.settings__label {
   color: var(--text-secondary);
 }
 
-.settings__spin {
-  display: none;
-}
-
-.settings__button[data-busy='true'] .settings__spin {
-  display: block;
-  animation: settings-spin 0.9s linear infinite;
-}
-
-@keyframes settings-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .settings__button[data-busy='true'] .settings__spin {
-    animation: none;
-  }
-}
-
 .connect__field textarea {
   min-height: 4.5rem;
   padding: var(--space-2) var(--space-3);

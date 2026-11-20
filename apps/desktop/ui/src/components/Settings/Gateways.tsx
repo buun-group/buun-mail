@@ -12,6 +12,8 @@ import { IconRegenerate } from '../../icons'
 import { toast } from '../../lib/feedback'
 import { formatFull } from '../../lib/time'
 import { GatewayDomains } from './GatewayDomains'
+import { BusyButton } from '../Busy/BusyButton'
+import { Skeleton } from '../Busy/Skeleton'
 
 /** How often the list refreshes while open, so each gateway's last check and count stay current. */
 const REFRESH_MS = 5_000
@@ -33,7 +35,6 @@ export function Gateways({ onChanged, onCount }: GatewaysProps): ReactNode {
   const { t } = useTranslation('integrations')
   const [gateways, setGateways] = useState<GatewayStatus[] | null>(null)
   const [removing, setRemoving] = useState<string | null>(null)
-  const [checking, setChecking] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const show = useCallback(
@@ -56,8 +57,7 @@ export function Gateways({ onChanged, onCount }: GatewaysProps): ReactNode {
     return () => window.clearInterval(timer)
   }, [load])
 
-  const checkNow = (): void => {
-    setChecking(true)
+  const checkNow = (): Promise<unknown> =>
     checkGateways()
       .then((report) => {
         show(report.gateways)
@@ -67,10 +67,8 @@ export function Gateways({ onChanged, onCount }: GatewaysProps): ReactNode {
         if (report.arrived > 0) onChanged()
       })
       .catch((cause: unknown) => toast({ text: t('domains.failedToast'), detail: reason(cause), tone: 'problem' }))
-      .finally(() => setChecking(false))
-  }
 
-  if (gateways === null) return null
+  if (gateways === null) return <Skeleton label={t('loading')} />
 
   return (
     <div className="gateways">
@@ -91,10 +89,9 @@ export function Gateways({ onChanged, onCount }: GatewaysProps): ReactNode {
             </p>
           )}
           <div className="settings__actions settings__actions--tight">
-            <button type="button" className="settings__button" data-busy={checking} disabled={checking} onClick={checkNow}>
-              <IconRegenerate aria-hidden="true" className="settings__spin" />
-              {checking ? t('gateway.checking') : t('gateway.checkNow')}
-            </button>
+            <BusyButton className="settings__button" glyph={IconRegenerate} run={checkNow} busyLabel={t('gateway.checking')}>
+              {t('gateway.checkNow')}
+            </BusyButton>
             {removing === gateway.id ? (
               <>
                 <span className="settings__hint">{t('gateway.confirmRemove', { name: gateway.name })}</span>

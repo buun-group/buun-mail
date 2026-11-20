@@ -282,3 +282,31 @@ describe('backup', () => {
     expect(await screen.findByText('The two passphrases are not the same.')).toBeTruthy()
   })
 })
+
+describe('busy buttons and skeletons', () => {
+  it('shows a button working until its work is done, and refuses a second press', async () => {
+    const { BusyButton } = await import('../components/Busy/BusyButton')
+    const { IconRegenerate } = await import('../icons')
+    let finish = (): void => {}
+    let runs = 0
+    render(
+      <BusyButton glyph={IconRegenerate} busyLabel="Checking..." run={() => new Promise<void>((resolve) => { runs += 1; finish = resolve })}>
+        Check now
+      </BusyButton>,
+    )
+    const button = screen.getByRole('button', { name: 'Check now' })
+    fireEvent.click(button)
+    expect(button.getAttribute('aria-busy')).toBe('true')
+    expect(button.textContent).toBe('Checking...')
+    fireEvent.click(button)
+    expect(runs).toBe(1)
+    finish()
+    await waitFor(() => expect(button.getAttribute('aria-busy')).toBe('false'), { timeout: 2000 })
+  })
+
+  it('holds a loading panel with placeholder rows', async () => {
+    const { Skeleton } = await import('../components/Busy/Skeleton')
+    render(<Skeleton rows={3} label="Loading" />)
+    expect(screen.getByRole('status', { name: 'Loading' }).querySelectorAll('.skeleton__row')).toHaveLength(3)
+  })
+})

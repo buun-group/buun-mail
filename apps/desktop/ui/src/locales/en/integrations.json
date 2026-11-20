@@ -234,7 +234,8 @@
     "removed": "{{name}} removed",
     "connected": "Resend connected",
     "domainsLabel": "Domains this key may send from",
-    "domainsHint": "This key may only send, so Resend will not list its domains. Separate them with commas."
+    "domainsHint": "This key may only send, so Resend will not list its domains. Separate them with commas.",
+    "refreshing": "Refreshing..."
   },
   "smtp": {
     "connectTitle": "Connect a mail server",
@@ -354,6 +355,8 @@
     "digestHint": "Optional. Once a day at this time: what arrived in each workspace over the last day. Leave empty for alerts from rules only.",
     "digestAt": "Daily digest at {{time}}.",
     "digestNow": "Send digest now",
-    "digestSent": "Digest sent"
-  }
+    "digestSent": "Digest sent",
+    "sending": "Sending..."
+  },
+  "loading": "Loading"
 }

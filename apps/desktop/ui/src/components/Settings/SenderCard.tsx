@@ -7,6 +7,7 @@ import { refreshSenders, removeSender, updateSender } from '../../api/client'
 import type { Sender, SenderDomain } from '../../api/types'
 import { IconDone, IconInfo, IconProblem, IconRegenerate } from '../../icons'
 import { toast } from '../../lib/feedback'
+import { BusyButton } from '../Busy/BusyButton'
 
 /** A refusal in words, whether it came as an Error or a plain string from the Rust side. */
 export const reason = (error: unknown): string => (error instanceof Error ? error.message : typeof error === 'string' ? error : String(error))
@@ -68,11 +69,12 @@ export function SenderCard({ sender, onList }: { sender: Sender; onList: (sender
       </div>
       <div className="settings__actions settings__actions--tight">
         {sender.kind === 'resend' && !sender.restricted && (
-          <button
-            type="button"
+          <BusyButton
             className="settings__button"
-            onClick={() =>
-              void refreshSenders()
+            glyph={IconRegenerate}
+            busyLabel={t('resend.refreshing')}
+            run={() =>
+              refreshSenders()
                 .then((list) => {
                   onList(list)
                   toast({ text: t('resend.refreshed'), tone: 'done' })
@@ -80,9 +82,8 @@ export function SenderCard({ sender, onList }: { sender: Sender; onList: (sender
                 .catch((cause: unknown) => toast({ text: t('resend.refreshFailed'), detail: reason(cause), tone: 'problem' }))
             }
           >
-            <IconRegenerate aria-hidden="true" />
             {t('resend.refresh')}
-          </button>
+          </BusyButton>
         )}
         <button
           type="button"

@@ -10,6 +10,7 @@ import { formatFull } from '../../lib/time'
 import { TipButton } from '../Tooltip/TipButton'
 
 import './Scheduled.css'
+import { Skeleton } from '../Busy/Skeleton'
 
 const reason = (cause: unknown): string => (cause instanceof Error ? cause.message : String(cause))
 
@@ -27,7 +28,7 @@ export function ScheduledList(): ReactNode {
     void listReminders().then(setReminders)
   }, [])
 
-  if (scheduled === null) return null
+  if (scheduled === null) return <section className="scheduled"><Skeleton rows={3} label={t('later.loading')} /></section>
   return (
     <section className="scheduled" aria-label={t('views.scheduled')}>
       <header className="scheduled__head">

@@ -12,6 +12,8 @@ import type { Confirmation } from '../Confirm/Confirm'
 import { Limits } from '../Dissolve/Limits'
 import { reason } from './SenderCard'
 import { Switch } from './Switch'
+import { BusyButton } from '../Busy/BusyButton'
+import { Skeleton } from '../Busy/Skeleton'
 
 /**
  * dissolve.email: Connect opens the browser to approve Buun Mail, then its inboxes become a workspace with a folder each.
@@ -59,7 +61,7 @@ export function DissolveConnect({ onChanged, onConnected }: { onChanged: () => v
     })
   }
 
-  if (status === null) return null
+  if (status === null) return <Skeleton label={t('loading')} />
   if (!status.connected) {
     return (
       <form className="connect" onSubmit={connect}>
@@ -112,11 +114,12 @@ export function DissolveConnect({ onChanged, onConnected }: { onChanged: () => v
           <Switch id="dissolve-keep" labelledBy="dissolve-keep-label" checked={status.keepAfterExpiry} onChange={(keep) => void setDissolveKeep(keep).then(setStatus)} />
         </div>
         <div className="settings__actions settings__actions--tight">
-          <button
-            type="button"
+          <BusyButton
             className="settings__button"
-            onClick={() =>
-              void checkDissolve()
+            glyph={IconRegenerate}
+            busyLabel={t('gateway.checking')}
+            run={() =>
+              checkDissolve()
                 .then(async (arrived) => {
                   toast({ text: t('dissolve.checked'), detail: arrived > 0 ? t('gateway.arrived', { count: arrived }) : t('gateway.nothingNew'), tone: 'done' })
                   onChanged()
@@ -125,9 +128,8 @@ export function DissolveConnect({ onChanged, onConnected }: { onChanged: () => v
                 .catch((cause: unknown) => toast({ text: t('dissolve.checkFailed'), detail: reason(cause), tone: 'problem' }))
             }
           >
-            <IconRegenerate aria-hidden="true" />
             {t('gateway.checkNow')}
-          </button>
+          </BusyButton>
           <button type="button" className="settings__button" onClick={() => disconnect(false)}>
             {t('dissolve.disconnect')}
           </button>

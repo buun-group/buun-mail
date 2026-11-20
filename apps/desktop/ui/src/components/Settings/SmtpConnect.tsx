@@ -9,6 +9,7 @@ import { Select } from '../Select/Select'
 import { MAIL_PRESET_IDS, MAIL_PRESETS } from '../../constants/mailServers'
 import type { MailPreset } from '../../constants/mailServers'
 import { reason, SenderCard } from './SenderCard'
+import { Skeleton } from '../Busy/Skeleton'
 
 
 /** Mail servers connected for sending, and a form to connect another with a preset or its own settings. */
@@ -65,7 +66,7 @@ export function SmtpConnect({ onChanged, onCount, preset: initial = 'gmail' }: {
       .finally(() => setBusy(false))
   }
 
-  if (senders === null) return null
+  if (senders === null) return <Skeleton label={t('loading')} />
   return (
     <div className="senders">
       {senders

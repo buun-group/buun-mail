@@ -1,0 +1,63 @@
+/* Work under way: the glyph turns while it runs. */
+.busy-button[data-busy='true'] {
+  cursor: progress;
+}
+.busy-button[data-busy='true'] .busy-button__glyph {
+  animation: busy-turn 0.8s linear infinite;
+  color: var(--brand-text);
+}
+@keyframes busy-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Placeholder rows while a panel loads: soft bars with a slow shimmer. */
+.skeleton {
+  display: grid;
+  gap: var(--space-2);
+}
+.skeleton__row {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  box-shadow: inset 0 0 0 1px var(--border-faint);
+}
+.skeleton__line {
+  display: block;
+  height: 0.6rem;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--alpha-6) 0%, var(--alpha-12) 50%, var(--alpha-6) 100%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+.skeleton__line--title {
+  width: 40%;
+  height: 0.75rem;
+}
+.skeleton__line--short {
+  width: 60%;
+}
+@keyframes skeleton-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .busy-button[data-busy='true'] .busy-button__glyph {
+    animation: busy-pulse 1.2s ease-in-out infinite;
+  }
+  .skeleton__line {
+    animation: none;
+  }
+  @keyframes busy-pulse {
+    50% {
+      opacity: 0.4;
+    }
+  }
+}

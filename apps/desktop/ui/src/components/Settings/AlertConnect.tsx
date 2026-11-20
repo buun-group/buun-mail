@@ -9,6 +9,8 @@ import { toast } from '../../lib/feedback'
 import { formatFull } from '../../lib/time'
 import { reason } from './SenderCard'
 import { SecretField } from './SecretField'
+import { BusyButton } from '../Busy/BusyButton'
+import { Skeleton } from '../Busy/Skeleton'
 
 /** The fields each kind asks for: the non-secret ones by name, and what its secret is called. */
 type FieldId = 'server' | 'chatId' | 'from' | 'to' | 'accountSid'
@@ -68,7 +70,7 @@ export function AlertConnect({ kind, onCount }: { kind: AlertKind; onCount: (cou
       .catch((cause: unknown) => setError(reason(cause)))
   }
 
-  if (channels === null) return null
+  if (channels === null) return <Skeleton label={t('loading')} />
   return (
     <div className="senders">
       {channels.map((channel) => (
@@ -89,31 +91,32 @@ export function AlertConnect({ kind, onCount }: { kind: AlertKind; onCount: (cou
           )}
           {channel.hasSecret && form.secret !== null && <SecretField kind="alert" id={channel.id} label={t(`alerts.secret.${form.secret}`)} />}
           <div className="settings__actions settings__actions--tight">
-            <button
-              type="button"
+            <BusyButton
               className="settings__button"
-              onClick={() =>
-                void testAlert(channel.id)
+              glyph={IconSend}
+              busyLabel={t('alerts.sending')}
+              run={() =>
+                testAlert(channel.id)
                   .then(() => toast({ text: t('alerts.tested'), detail: channel.name, tone: 'done', glyph: IconSend }))
                   .catch((cause: unknown) => toast({ text: t('alerts.testFailed'), detail: reason(cause), tone: 'problem' }))
                   .finally(() => void listAlerts().then(take))
               }
             >
-              <IconSend aria-hidden="true" />
               {t('alerts.test')}
-            </button>
+            </BusyButton>
             {channel.fields['digestAt'] !== undefined && (
-              <button
-                type="button"
+              <BusyButton
                 className="settings__button"
-                onClick={() =>
-                  void sendDigestNow(channel.id)
+                glyph={IconSend}
+                busyLabel={t('alerts.sending')}
+                run={() =>
+                  sendDigestNow(channel.id)
                     .then(() => toast({ text: t('alerts.digestSent'), detail: channel.name, tone: 'done', glyph: IconSend }))
                     .catch((cause: unknown) => toast({ text: t('alerts.testFailed'), detail: reason(cause), tone: 'problem' }))
                 }
               >
                 {t('alerts.digestNow')}
-              </button>
+              </BusyButton>
             )}
             <button type="button" className="settings__button settings__button--danger" onClick={() => void removeAlert(channel.id).then(take)}>
               {t('resend.remove')}
