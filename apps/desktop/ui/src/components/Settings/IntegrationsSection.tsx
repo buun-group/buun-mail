@@ -1,5 +1,5 @@
 import { isTauri } from '@tauri-apps/api/core'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -9,9 +9,10 @@ import { DIRECTIONS, INTEGRATIONS, NOT_WIRED_NOTE } from '../../constants/integr
 import type { Direction, Integration } from '../../constants/integrations'
 import { BUUN_GROUP } from '../../constants/products'
 import type { Theme } from '../../constants/ui'
-import { IconCaret, IconReceive, IconSend, INTEGRATION_GLYPHS } from '../../icons'
+import { IconCaret, IconReceive, IconSend, INTEGRATION_GLYPHS, IconBellRinging } from '../../icons'
 import { Gateways } from './Gateways'
 import { ResendConnect } from './ResendConnect'
+import { AlertConnect } from './AlertConnect'
 import { DissolveConnect } from './DissolveConnect'
 import { ImapConnect } from './ImapConnect'
 import { SmtpConnect } from './SmtpConnect'
@@ -19,6 +20,7 @@ import { SmtpConnect } from './SmtpConnect'
 const DIRECTION_WORDS = {
   receive: { title: 'directions.receive', glyph: IconReceive },
   send: { title: 'directions.send', glyph: IconSend },
+  alert: { title: 'directions.alert', glyph: IconBellRinging },
 } as const satisfies Record<Direction, { title: string; glyph: typeof IconSend }>
 
 /** Where mail comes from and how it goes out, in two lists. Each row opens its own connect form; one is open at a time. */
@@ -28,6 +30,8 @@ export function IntegrationsSection({ onImported, onSendersChanged, theme }: { o
   const [gatewayCount, setGatewayCount] = useState(0)
   const [senders, setSenders] = useState<Sender[]>([])
   const [dissolveConnected, setDissolveConnected] = useState(false)
+  const [alertCounts, setAlertCounts] = useState<Record<string, number>>({})
+  const onAlertCount = useCallback((id: string, count: number) => setAlertCounts((counts) => (counts[id] === count ? counts : { ...counts, [id]: count })), [])
   useEffect(() => {
     dissolveStatus()
       .then((status) => setDissolveConnected(status.connected))
@@ -57,7 +61,7 @@ export function IntegrationsSection({ onImported, onSendersChanged, theme }: { o
             <ul className="settings__list">
               {INTEGRATIONS.filter((integration) => integration.directions.includes(direction)).map((integration) => {
                 const key = `${direction}-${integration.id}`
-                return <IntegrationRow key={key} rowKey={key} direction={direction} integration={integration} open={open === key} onToggle={() => setOpen(open === key ? null : key)} onImported={onImported} gatewayCount={gatewayCount} onGatewayCount={setGatewayCount} senders={senders} onSenders={setSenders} onSendersChanged={onSendersChanged} theme={theme} dissolveConnected={dissolveConnected} onDissolveConnected={setDissolveConnected} />
+                return <IntegrationRow key={key} rowKey={key} direction={direction} integration={integration} open={open === key} onToggle={() => setOpen(open === key ? null : key)} onImported={onImported} gatewayCount={gatewayCount} onGatewayCount={setGatewayCount} senders={senders} onSenders={setSenders} onSendersChanged={onSendersChanged} theme={theme} dissolveConnected={dissolveConnected} onDissolveConnected={setDissolveConnected} alertCounts={alertCounts} onAlertCount={onAlertCount} />
               })}
             </ul>
           </section>
@@ -79,6 +83,9 @@ interface RowProps {
   /** Whether a dissolve.email account is signed in, for its row's state. */
   dissolveConnected: boolean
   onDissolveConnected: (connected: boolean) => void
+  /** Saved alert channels per row, for each row's state. */
+  alertCounts: Record<string, number>
+  onAlertCount: (id: string, count: number) => void
   onGatewayCount: (count: number) => void
   senders: Sender[]
   onSenders: (senders: Sender[]) => void
@@ -89,7 +96,7 @@ interface RowProps {
 /** How many senders of one kind are connected. */
 const senderCountOf = (senders: Sender[], kind: 'resend' | 'smtp'): number => senders.filter((sender) => sender.kind === kind).length
 
-function IntegrationRow({ rowKey, direction, integration, open, onToggle, onImported, gatewayCount, onGatewayCount, senders, onSenders, onSendersChanged, theme, dissolveConnected, onDissolveConnected }: RowProps): ReactNode {
+function IntegrationRow({ rowKey, direction, integration, open, onToggle, onImported, gatewayCount, onGatewayCount, senders, onSenders, onSendersChanged, theme, dissolveConnected, onDissolveConnected, alertCounts, onAlertCount }: RowProps): ReactNode {
   const { t } = useTranslation('integrations')
   const Glyph = INTEGRATION_GLYPHS[integration.id]
   const panel = `integration-${rowKey}`
@@ -103,12 +110,12 @@ function IntegrationRow({ rowKey, direction, integration, open, onToggle, onImpo
           <span className="settings__label">{t(integration.name)}</span>
           <span className="settings__hint">{t(integration.summary)}</span>
         </span>
-        <span className="integration__state">{integration.method.kind === 'file' ? t('state.ready') : integration.method.kind === 'gateway' ? (gatewayCount > 0 ? t('state.gateways', { count: gatewayCount }) : t('state.connectHere')) : integration.method.kind === 'dissolve' ? (dissolveConnected ? t('state.connected') : t('state.connectHere')) : integration.method.kind === 'mailbox' ? t('state.connectHere') : integration.method.kind === 'resend' || integration.method.kind === 'smtp' ? (senderCountOf(senders, integration.method.kind) > 0 ? t('state.senders', { count: senderCountOf(senders, integration.method.kind) }) : t('state.connectHere')) : t('state.notConnected')}</span>
+        <span className="integration__state">{integration.method.kind === 'file' ? t('state.ready') : integration.method.kind === 'gateway' ? (gatewayCount > 0 ? t('state.gateways', { count: gatewayCount }) : t('state.connectHere')) : integration.method.kind === 'alert' ? ((alertCounts[integration.id] ?? 0) > 0 ? t('state.alerts', { count: alertCounts[integration.id] ?? 0 }) : t('state.connectHere')) : integration.method.kind === 'dissolve' ? (dissolveConnected ? t('state.connected') : t('state.connectHere')) : integration.method.kind === 'mailbox' ? t('state.connectHere') : integration.method.kind === 'resend' || integration.method.kind === 'smtp' ? (senderCountOf(senders, integration.method.kind) > 0 ? t('state.senders', { count: senderCountOf(senders, integration.method.kind) }) : t('state.connectHere')) : t('state.notConnected')}</span>
         <IconCaret aria-hidden="true" className="integration__caret" />
       </button>
       {open && (
         <div id={panel} className="integration__panel">
-          {integration.method.kind === 'file' ? <FileImport onImported={onImported} /> : integration.method.kind === 'gateway' ? <Gateways onChanged={onImported} onCount={onGatewayCount} /> : integration.method.kind === 'resend' ? <ResendConnect onChanged={onSendersChanged} onCount={onSenders} /> : integration.method.kind === 'smtp' ? <SmtpConnect onChanged={onSendersChanged} onCount={onSenders} /> : integration.method.kind === 'dissolve' ? <DissolveConnect onChanged={onImported} onConnected={onDissolveConnected} /> : integration.method.kind === 'mailbox' ? direction === 'receive' ? <ImapConnect preset={integration.method.preset} onChanged={onImported} /> : <SmtpConnect preset={integration.method.preset} onChanged={onSendersChanged} onCount={onSenders} /> : <ConnectForm integration={integration} idPrefix={rowKey} />}
+          {integration.method.kind === 'file' ? <FileImport onImported={onImported} /> : integration.method.kind === 'gateway' ? <Gateways onChanged={onImported} onCount={onGatewayCount} /> : integration.method.kind === 'resend' ? <ResendConnect onChanged={onSendersChanged} onCount={onSenders} /> : integration.method.kind === 'smtp' ? <SmtpConnect onChanged={onSendersChanged} onCount={onSenders} /> : integration.method.kind === 'alert' ? <AlertConnect kind={integration.method.alert} onCount={(count) => onAlertCount(integration.id, count)} /> : integration.method.kind === 'dissolve' ? <DissolveConnect onChanged={onImported} onConnected={onDissolveConnected} /> : integration.method.kind === 'mailbox' ? direction === 'receive' ? <ImapConnect preset={integration.method.preset} onChanged={onImported} /> : <SmtpConnect preset={integration.method.preset} onChanged={onSendersChanged} onCount={onSenders} /> : <ConnectForm integration={integration} idPrefix={rowKey} />}
         </div>
       )}
     </li>

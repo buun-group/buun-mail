@@ -128,7 +128,7 @@ export interface RuleWhen {
 }
 
 /** What a rule does. */
-export type RuleAction = { type: 'tag'; tag: string } | { type: 'move'; workspace?: string; folder?: string } | { type: 'markRead' } | { type: 'quiet' }
+export type RuleAction = { type: 'tag'; tag: string } | { type: 'move'; workspace?: string; folder?: string } | { type: 'markRead' } | { type: 'quiet' } | { type: 'alert'; channel: string }
 
 /** A rule, as the app, the settings screen and agents all write it. */
 export interface Rule {
@@ -336,3 +336,27 @@ export interface DissolveStatus {
   problem: string | null
   limits: DissolveLimits
 }
+
+/** Whether a reveal code is set, and how many seconds reveals stay open. Mirrors `RevealStatusDto`. */
+export interface RevealStatus {
+  codeSet: boolean
+  openFor: number
+}
+
+/** Where an alert goes. Mirrors `AlertKind`. */
+export type AlertKind = 'slack' | 'discord' | 'ntfy' | 'telegram' | 'webhook' | 'email' | 'sms'
+
+/** One alert channel, never its secret. Mirrors `AlertChannelDto`. */
+export interface AlertChannel {
+  id: string
+  name: string
+  kind: AlertKind
+  fields: Record<string, string>
+  hasSecret: boolean
+  lastSent: string | null
+  sent: number
+  problem: string | null
+}
+
+/** Which saved secret to show: a gateway's token, a mailbox's password, a sender's key, an alert's secret. */
+export type SecretKind = 'gateway' | 'imap' | 'sender' | 'alert'

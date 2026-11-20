@@ -31,6 +31,8 @@ function action(item: RuleAction, workspaceName: (id: string) => string): string
       return i18n.t('rules:describe.markRead')
     case 'quiet':
       return i18n.t('rules:describe.quiet')
+    case 'alert':
+      return i18n.t('rules:describe.alert')
   }
 }
 

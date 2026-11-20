@@ -5,7 +5,7 @@ import { openUrl } from '@tauri-apps/plugin-opener'
 import type { ExportFormat } from '../constants/ui'
 import { COMMANDS, IMPORT_EXTENSIONS } from './commands'
 import { preview, previewDetail, previewMessages, previewView, previewWorkspaces } from './preview'
-import type { Activity, AgentStatus, AvailableDomain, CheckReport, Contact, DissolveInbox, DissolveStatus, Draft, FileToSend, ImapAccount, KnownContact, SmtpSecurity, SmtpServer, Sendable, Sender, GatewayDomain, GatewayStatus, ImportReport, MailView, Message, MessageDetail, Place, Rule, Shelf, TagCount, Workspace } from './types'
+import type { Activity, AgentStatus, AlertChannel, AlertKind, AvailableDomain, CheckReport, Contact, RevealStatus, SecretKind, DissolveInbox, DissolveStatus, Draft, FileToSend, ImapAccount, KnownContact, SmtpSecurity, SmtpServer, Sendable, Sender, GatewayDomain, GatewayStatus, ImportReport, MailView, Message, MessageDetail, Place, Rule, Shelf, TagCount, Workspace } from './types'
 
 /**
  * The one door to the Rust side. In the desktop app every call is a Tauri command; in a plain browser (`pnpm dev:ui`)
@@ -361,4 +361,44 @@ export async function extendDissolveInbox(id: string): Promise<DissolveStatus> {
 /** Burns a dissolve.email inbox: ended there, its mail deleted here. */
 export async function burnDissolveInbox(id: string): Promise<DissolveStatus> {
   return isTauri() ? invoke<DissolveStatus>(COMMANDS.burnDissolveInbox, { id }) : preview.dissolve.burn(id)
+}
+
+/** Whether a reveal code is set, and how long reveals stay open. */
+export async function revealStatus(): Promise<RevealStatus> {
+  return isTauri() ? invoke<RevealStatus>(COMMANDS.revealStatus) : preview.security.status()
+}
+
+/** Sets, changes or removes the reveal code (`code` null removes it); changing or removing needs the current one. */
+export async function setRevealCode(current: string | null, code: string | null): Promise<RevealStatus> {
+  return isTauri() ? invoke<RevealStatus>(COMMANDS.setRevealCode, { current, code }) : preview.security.set(current, code)
+}
+
+/** Closes reveals now. */
+export async function lockReveals(): Promise<RevealStatus> {
+  return isTauri() ? invoke<RevealStatus>(COMMANDS.lockReveals) : preview.security.lock()
+}
+
+/** A saved secret shown again. Rejects with the reason, such as the reveal code being needed or wrong. */
+export async function revealSecret(kind: SecretKind, id: string, code: string | null): Promise<string> {
+  return isTauri() ? invoke<string>(COMMANDS.revealSecret, { kind, id, code }) : preview.security.reveal(kind, id, code)
+}
+
+/** Every alert channel. */
+export async function listAlerts(): Promise<AlertChannel[]> {
+  return isTauri() ? invoke<AlertChannel[]>(COMMANDS.listAlerts) : preview.alerts.list()
+}
+
+/** Adds an alert channel. Rejects with what is missing. */
+export async function addAlert(channel: { name: string; kind: AlertKind; fields: Record<string, string>; secret: string }): Promise<AlertChannel[]> {
+  return isTauri() ? invoke<AlertChannel[]>(COMMANDS.addAlert, channel) : preview.alerts.add(channel)
+}
+
+/** Forgets an alert channel. */
+export async function removeAlert(id: string): Promise<AlertChannel[]> {
+  return isTauri() ? invoke<AlertChannel[]>(COMMANDS.removeAlert, { id }) : preview.alerts.remove(id)
+}
+
+/** Sends a sample alert through a channel. */
+export async function testAlert(id: string): Promise<void> {
+  return isTauri() ? invoke<void>(COMMANDS.testAlert, { id }) : undefined
 }

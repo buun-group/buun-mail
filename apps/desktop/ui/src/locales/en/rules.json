@@ -28,7 +28,10 @@
     "markRead": "Mark it read",
     "quiet": "Keep it quiet (no pop-up or notification)",
     "add": "Add rule",
-    "save": "Save rule"
+    "save": "Save rule",
+    "alert": "Alert me through",
+    "noAlert": "No alert",
+    "alertHint": "Alert channels are set up in Integrations, Alert me. Only mail that arrives alerts."
   },
   "describe": {
     "sentence": "Mail {{conditions}}: {{actions}}.",
@@ -43,6 +46,7 @@
     "moveToWorkspace": "move to {{workspace}}, {{folder}}",
     "theInbox": "the inbox",
     "markRead": "mark read",
-    "quiet": "keep quiet"
+    "quiet": "keep quiet",
+    "alert": "alert me"
   }
 }

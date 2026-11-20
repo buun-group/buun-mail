@@ -10,6 +10,7 @@ import { IconRegenerate } from '../../icons'
 import { toast } from '../../lib/feedback'
 import { formatFull } from '../../lib/time'
 import { Select } from '../Select/Select'
+import { SecretField } from './SecretField'
 import { reason } from './SenderCard'
 
 /**
@@ -71,6 +72,7 @@ export function ImapConnect({ preset: initial, onChanged }: { preset: MailPreset
               {account.username} @ {account.host}:{account.port}
             </span>
           </div>
+          <SecretField kind="imap" id={account.id} label={t('secrets.password')} />
           <p className="settings__hint">
             {account.lastChecked === null ? t('gateway.neverChecked') : t('gateway.lastChecked', { time: formatFull(account.lastChecked) })} {t('gateway.received', { count: account.received })}
           </p>

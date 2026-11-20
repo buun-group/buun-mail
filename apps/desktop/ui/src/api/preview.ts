@@ -1,4 +1,4 @@
-import type { Activity, AgentStatus, Contact, DissolveInbox, DissolveStatus, Draft, ImapAccount, KnownContact, SmtpServer, MailView, Message, MessageDetail, Place, Rule, Sendable, Sender, TagCount, Workspace } from './types'
+import type { Activity, AgentStatus, AlertChannel, AlertKind, Contact, RevealStatus, DissolveInbox, DissolveStatus, Draft, ImapAccount, KnownContact, SmtpServer, MailView, Message, MessageDetail, Place, Rule, Sendable, Sender, TagCount, Workspace } from './types'
 
 /**
  * A small stand-in mailbox for `pnpm dev:ui`, where there is no Rust side, so the layout can be tuned in a plain
@@ -141,8 +141,55 @@ const dissolve = {
   },
 }
 
+/** The reveal code and alert channels the preview keeps in memory. Its pretend code is checked as plain text. */
+const SECURITY: { code: string | null; openUntil: number } = { code: null, openUntil: 0 }
+const securityStatus = (): RevealStatus => ({ codeSet: SECURITY.code !== null, openFor: SECURITY.code !== null && SECURITY.openUntil > Date.now() ? Math.round((SECURITY.openUntil - Date.now()) / 1000) : 0 })
+const ALERTS: AlertChannel[] = []
+const SECRETS = new Map<string, string>([['sender:preview-sender', 're_demo_key_1234']])
+const security = {
+  status: securityStatus,
+  set: (current: string | null, code: string | null): RevealStatus => {
+    if (SECURITY.code !== null && current !== SECURITY.code && SECURITY.openUntil <= Date.now()) throw new Error('That code is not right.')
+    if (code !== null && code.trim().length < 4) throw new Error('Use at least 4 characters.')
+    SECURITY.code = code
+    SECURITY.openUntil = 0
+    return securityStatus()
+  },
+  lock: (): RevealStatus => {
+    SECURITY.openUntil = 0
+    return securityStatus()
+  },
+  reveal: (kind: string, id: string, code: string | null): string => {
+    if (SECURITY.code !== null && SECURITY.openUntil <= Date.now()) {
+      if (code === null || code === '') throw new Error('Enter your reveal code.')
+      if (code !== SECURITY.code) throw new Error('That code is not right.')
+      SECURITY.openUntil = Date.now() + 5 * 60_000
+    }
+    const secret = SECRETS.get(`${kind}:${id}`)
+    if (secret === undefined) throw new Error('That secret is not saved here.')
+    return secret
+  },
+}
+const alerts = {
+  list: (): AlertChannel[] => ALERTS.map((channel) => ({ ...channel, fields: { ...channel.fields } })),
+  add: (channel: { name: string; kind: AlertKind; fields: Record<string, string>; secret: string }): AlertChannel[] => {
+    if (channel.kind !== 'email' && channel.secret.trim() === '') throw new Error('Fill in the secret.')
+    const id = `alert-${ALERTS.length + 1}`
+    ALERTS.push({ id, name: channel.name || `Alert ${ALERTS.length + 1}`, kind: channel.kind, fields: channel.fields, hasSecret: channel.secret !== '', lastSent: null, sent: 0, problem: null })
+    if (channel.secret !== '') SECRETS.set(`alert:${id}`, channel.secret)
+    return alerts.list()
+  },
+  remove: (id: string): AlertChannel[] => {
+    const at = ALERTS.findIndex((channel) => channel.id === id)
+    if (at !== -1) ALERTS.splice(at, 1)
+    return alerts.list()
+  },
+}
+
 export const preview = {
   dissolve,
+  security,
+  alerts,
   imapAccounts: (): ImapAccount[] => IMAP.map((account) => ({ ...account })),
   addImap: (account: { name: string; host: string; port: number; username: string; folder: string }): ImapAccount[] => {
     if (account.host.trim() === '') throw new Error('the mail server could not be reached: no server name')

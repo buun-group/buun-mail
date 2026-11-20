@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { SecretField } from './SecretField'
+
 import { refreshSenders, removeSender, updateSender } from '../../api/client'
 import type { Sender, SenderDomain } from '../../api/types'
 import { IconDone, IconInfo, IconProblem, IconRegenerate } from '../../icons'
@@ -38,6 +40,7 @@ export function SenderCard({ sender, onList }: { sender: Sender; onList: (sender
         </h5>
         <span className="settings__mono">{what}</span>
       </div>
+      <SecretField kind="sender" id={sender.id} label={sender.kind === 'smtp' ? t('secrets.password') : t('secrets.apiKey')} />
       <ul className="sender__domains" aria-label={t('resend.domains')}>
         {sender.domains.map((domain) => (
           <li key={domain.name} className="sender-domain">

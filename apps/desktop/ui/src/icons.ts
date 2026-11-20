@@ -52,11 +52,16 @@ import {
   PiCalendarLight,
   PiClockCounterClockwiseLight,
   PiAtLight,
+  PiSlackLogoLight,
+  PiWebhooksLogoLight,
+  PiChatTextLight,
+  PiEnvelopeLight,
+  PiShieldCheckLight,
   PiHourglassLight,
   PiRectangleLight,
   PiSquareSplitHorizontalLight,
 } from 'react-icons/pi'
-import { SiBrevo, SiClaude, SiCloudflare, SiCursor, SiGmail, SiIcloud, SiMailgun, SiModelcontextprotocol, SiProtonmail, SiResend, SiSparkpost, SiZoho } from 'react-icons/si'
+import { SiBrevo, SiClaude, SiCloudflare, SiCursor, SiDiscord, SiGmail, SiIcloud, SiMailgun, SiModelcontextprotocol, SiNtfy, SiProtonmail, SiResend, SiSparkpost, SiTelegram, SiZoho } from 'react-icons/si'
 
 import type { AgentClientId } from './constants/agents'
 import type { IntegrationId } from './constants/integrations'
@@ -133,6 +138,7 @@ export {
   PiKeyLight as IconCode,
   PiLinkSimpleLight as IconLink,
   PiGaugeLight as IconGauge,
+  PiLockKeyLight as IconLock,
   PiXLight as IconCheckFail,
   PiQuestionLight as IconCheckUnclear,
   PiMinusLight as IconCheckNone,
@@ -201,6 +207,13 @@ export const INTEGRATION_GLYPHS: Record<IntegrationId, IconType> = {
   sparkpost: SiSparkpost,
   smtp: PiPaperPlaneTiltLight,
   dissolve: PiAtLight,
+  slack: PiSlackLogoLight,
+  discord: SiDiscord,
+  ntfy: SiNtfy,
+  telegram: SiTelegram,
+  webhook: PiWebhooksLogoLight,
+  alertEmail: PiEnvelopeLight,
+  sms: PiChatTextLight,
 }
 
 export const THEME_GLYPHS: Record<ThemePreference, IconType> = { system: PiDesktopLight, light: PiSunLight, dark: PiMoonLight }
@@ -234,6 +247,7 @@ export const SECTION_GLYPHS: Record<SettingsSection, IconType> = {
   rules: PiFunnelLight,
   integrations: PiPlugsConnectedLight,
   agents: PiRobotLight,
+  security: PiShieldCheckLight,
 }
 
 /** Agent clients by their own logos. VS Code has no Simple Icons mark, so it takes the code glyph. */

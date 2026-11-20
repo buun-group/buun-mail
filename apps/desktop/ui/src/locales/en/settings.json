@@ -8,7 +8,8 @@
     "workspaces": "Workspaces",
     "rules": "Rules",
     "integrations": "Integrations",
-    "agents": "Agents"
+    "agents": "Agents",
+    "security": "Security"
   },
   "language": {
     "title": "Language",
@@ -84,5 +85,36 @@
   "senderChecks": {
     "title": "Sender checks and size in the list",
     "hint": "SPF, DKIM and DMARC for each message, as the receiving server found them, and its size. Point at one to see what it means."
+  },
+  "secret": {
+    "show": "Show",
+    "hide": "Hide",
+    "showLabel": "Show {{label}}",
+    "hideLabel": "Hide {{label}}",
+    "copy": "Copy",
+    "copyLabel": "Copy {{label}}",
+    "copied": "Secret copied",
+    "code": "Reveal code",
+    "unlock": "Show"
+  },
+  "security": {
+    "sealedTitle": "Secrets are encrypted",
+    "sealedHint": "Every API key, token and password Buun Mail keeps is encrypted on this computer with a key made for this install (vault.key in the config folder, readable only by you). Updates keep the key, so nothing needs entering again.",
+    "codeTitle": "Reveal code",
+    "codeHint": "Set a code to be asked before a saved key, token or password is shown again. Mail and alerts keep working without it.",
+    "codeSetHint": "A code is set. It is asked before a saved secret is shown, then not again for five minutes.",
+    "current": "Current code",
+    "code": "Code",
+    "newCode": "New code",
+    "again": "Code again",
+    "set": "Set code",
+    "change": "Change code",
+    "remove": "Remove code",
+    "lockNow": "Lock now",
+    "locked": "Locked",
+    "saved": "Reveal code saved",
+    "removed": "Reveal code removed",
+    "mismatch": "The two codes are not the same.",
+    "passkeyLater": "Unlocking with a passkey, Touch ID or Windows Hello is planned; it depends on what each system offers."
   }
 }

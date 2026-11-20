@@ -14,6 +14,7 @@ import { GeneralSection } from './GeneralSection'
 import { IntegrationsSection } from './IntegrationsSection'
 import { NotificationsSection } from './NotificationsSection'
 import { RulesSection } from './RulesSection'
+import { SecuritySection } from './SecuritySection'
 import { WorkspacesSection } from './WorkspacesSection'
 
 import './Settings.css'
@@ -25,6 +26,7 @@ const SECTION_LABELS = {
   workspaces: 'sections.workspaces',
   rules: 'sections.rules',
   integrations: 'sections.integrations',
+  security: 'sections.security',
   agents: 'sections.agents',
 } as const satisfies Record<SettingsSection, string>
 
@@ -86,6 +88,7 @@ export function Settings({ open, onClose, preferences, workspaces, looks, onLook
           {section === 'workspaces' && <WorkspacesSection workspaces={workspaces} looks={looks} onLook={onLook} editing={editing} onEditing={onEditing} theme={preferences.theme} />}
           {section === 'rules' && <RulesSection workspaces={workspaces} onChanged={onImported} />}
           {section === 'integrations' && <IntegrationsSection onImported={onImported} onSendersChanged={onSendersChanged} theme={preferences.theme} />}
+          {section === 'security' && <SecuritySection />}
           {section === 'agents' && <AgentsSection />}
         </div>
       </div>

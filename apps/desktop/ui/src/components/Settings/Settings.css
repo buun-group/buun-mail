@@ -946,3 +946,51 @@ label.settings__label {
 .connect__field--short input {
   width: 100%;
 }
+
+/* A saved secret: hidden behind asterisks until the eye shows it, with Copy, and the reveal code asked inline. */
+.secret-field {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-2) 0;
+}
+.secret-field__label {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+.secret-field__value {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+.secret-field__code {
+  display: flex;
+  flex-basis: 100%;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+}
+.secret-field__code input {
+  width: 10rem;
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--border-muted);
+  border-radius: var(--radius-sm);
+  background: var(--surface-card);
+  color: var(--text-primary);
+}
+.secret-field__error {
+  flex-basis: 100%;
+  margin: 0;
+}
+.security__intro {
+  display: grid;
+  gap: var(--space-1);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--border-faint);
+}

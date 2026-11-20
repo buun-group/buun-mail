@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { SecretField } from './SecretField'
+
 import { isTauri } from '@tauri-apps/api/core'
 
 import { addGateway, checkGateways, listGateways, removeGateway } from '../../api/client'
@@ -79,6 +81,7 @@ export function Gateways({ onChanged, onCount }: GatewaysProps): ReactNode {
             {gateway.name}
           </h5>
           <p className="settings__mono">{gateway.url}</p>
+          <SecretField kind="gateway" id={gateway.id} label={t('secrets.token')} />
           <p className="settings__hint">
             {gateway.lastChecked === null ? t('gateway.neverChecked') : t('gateway.lastChecked', { time: formatFull(gateway.lastChecked) })} {t('gateway.received', { count: gateway.received })}
           </p>

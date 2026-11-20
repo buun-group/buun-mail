@@ -2,7 +2,8 @@
   "intro": "Bring your domains in through Cloudflare or pull an existing mailbox, then pick how replies go out. Each reply leaves from the address the message was sent to.",
   "directions": {
     "receive": "Receive mail",
-    "send": "Send mail"
+    "send": "Send mail",
+    "alert": "Alert me"
   },
   "state": {
     "ready": "Ready",
@@ -12,7 +13,9 @@
     "gateways_other": "{{count}} gateways",
     "senders_one": "{{count}} key",
     "senders_other": "{{count}} keys",
-    "connected": "Connected"
+    "connected": "Connected",
+    "alerts_one": "{{count}} channel",
+    "alerts_other": "{{count}} channels"
   },
   "oauthNote": "Opens {{provider}} in your browser to sign in. Buun Mail never sees your password.",
   "signIn": "Sign in with {{provider}}",
@@ -91,6 +94,34 @@
     "dissolve": {
       "name": "dissolve.email",
       "summary": "Your disposable inboxes as a workspace, a folder each, after signing in to dissolve.email."
+    },
+    "slack": {
+      "name": "Slack",
+      "summary": "A message in a Slack channel when a rule matches, through an incoming webhook."
+    },
+    "discord": {
+      "name": "Discord",
+      "summary": "A message in a Discord channel when a rule matches, through a webhook."
+    },
+    "ntfy": {
+      "name": "ntfy",
+      "summary": "A push to your phone through ntfy, on ntfy.sh or your own server. Open source and free."
+    },
+    "telegram": {
+      "name": "Telegram",
+      "summary": "A message from your own Telegram bot."
+    },
+    "sms": {
+      "name": "Text message",
+      "summary": "An SMS to your phone through Twilio."
+    },
+    "alertEmail": {
+      "name": "Email",
+      "summary": "An email to any address, sent through one of your connected senders."
+    },
+    "webhook": {
+      "name": "Webhook",
+      "summary": "The message as JSON to any address: Zapier, n8n, Make, or your own server."
     }
   },
   "fields": {
@@ -276,5 +307,48 @@
     "deleteBody": "Buun Mail signs out of dissolve.email and deletes every message it collected from it on this computer. Your inboxes on dissolve.email are not touched.",
     "deleteAction": "Disconnect and delete",
     "cancel": "Cancel"
+  },
+  "secrets": {
+    "apiKey": "API key",
+    "password": "Password",
+    "token": "Mailbox token"
+  },
+  "alerts": {
+    "addTitle": "Add a channel",
+    "namePlaceholder": "GunSpec sales",
+    "add": "Add",
+    "added": "Alert channel added",
+    "addedDetail": "Pick it in a rule, under Then, Alert me through.",
+    "neverSent": "Nothing sent yet.",
+    "lastSent_one": "Last sent {{time}}. {{count}} sent.",
+    "lastSent_other": "Last sent {{time}}. {{count}} sent.",
+    "test": "Send a test",
+    "tested": "Test alert sent",
+    "testFailed": "The test alert was not sent",
+    "secretHint": "Kept encrypted on this computer. The eye shows it again later.",
+    "fields": {
+      "server": "Server",
+      "chatId": "Chat id",
+      "from": "From",
+      "to": "To",
+      "accountSid": "Account SID"
+    },
+    "secret": {
+      "slackHook": "Webhook address",
+      "discordHook": "Webhook address",
+      "ntfyTopic": "Topic",
+      "botToken": "Bot token",
+      "webhookUrl": "Address",
+      "authToken": "Auth token"
+    },
+    "hints": {
+      "slack": "In Slack, add the Incoming Webhooks app to a channel and copy its webhook address.",
+      "discord": "In Discord, open the channel's settings, Integrations, Webhooks, and copy a webhook's address.",
+      "ntfy": "Pick a hard-to-guess topic, subscribe to it in the ntfy app on your phone, and paste it here. Leave the server empty for ntfy.sh.",
+      "telegram": "Make a bot with @BotFather and paste its token; message the bot once, then use your chat id (from @userinfobot).",
+      "sms": "From your Twilio console: the account SID, the auth token, a Twilio number to send from, and your phone number.",
+      "email": "Sent from an address on a domain one of your senders can send from.",
+      "webhook": "Each alert is POSTed as JSON: the event, a title, the text, and the message's details."
+    }
   }
 }

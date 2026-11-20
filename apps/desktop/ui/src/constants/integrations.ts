@@ -24,10 +24,17 @@ export const INTEGRATION_IDS = [
   'brevo',
   'sparkpost',
   'smtp',
+  'slack',
+  'discord',
+  'ntfy',
+  'telegram',
+  'webhook',
+  'alertEmail',
+  'sms',
 ] as const
 export type IntegrationId = (typeof INTEGRATION_IDS)[number]
 
-export const DIRECTIONS = ['receive', 'send'] as const
+export const DIRECTIONS = ['receive', 'send', 'alert'] as const
 export type Direction = (typeof DIRECTIONS)[number]
 
 /** A key in the `integrations` strings. */
@@ -44,9 +51,10 @@ export interface IntegrationField {
   hint?: IntegrationKey
 }
 
+import type { AlertKind } from '../api/types'
 import type { MailPreset } from './mailServers'
 
-export type IntegrationMethod = { kind: 'form'; fields: readonly IntegrationField[] } | { kind: 'oauth'; provider: string } | { kind: 'file'; accept: string } | { kind: 'gateway' } | { kind: 'resend' } | { kind: 'smtp' } | { kind: 'mailbox'; preset: MailPreset } | { kind: 'dissolve' }
+export type IntegrationMethod = { kind: 'form'; fields: readonly IntegrationField[] } | { kind: 'oauth'; provider: string } | { kind: 'file'; accept: string } | { kind: 'gateway' } | { kind: 'resend' } | { kind: 'smtp' } | { kind: 'mailbox'; preset: MailPreset } | { kind: 'dissolve' } | { kind: 'alert'; alert: AlertKind }
 
 export interface Integration {
   id: IntegrationId
@@ -122,6 +130,13 @@ export const INTEGRATIONS: readonly Integration[] = [
     directions: ['send'],
     method: { kind: 'smtp' },
   },
+  { id: 'slack', name: 'providers.slack.name', summary: 'providers.slack.summary', directions: ['alert'], method: { kind: 'alert', alert: 'slack' } },
+  { id: 'discord', name: 'providers.discord.name', summary: 'providers.discord.summary', directions: ['alert'], method: { kind: 'alert', alert: 'discord' } },
+  { id: 'ntfy', name: 'providers.ntfy.name', summary: 'providers.ntfy.summary', directions: ['alert'], method: { kind: 'alert', alert: 'ntfy' } },
+  { id: 'telegram', name: 'providers.telegram.name', summary: 'providers.telegram.summary', directions: ['alert'], method: { kind: 'alert', alert: 'telegram' } },
+  { id: 'sms', name: 'providers.sms.name', summary: 'providers.sms.summary', directions: ['alert'], method: { kind: 'alert', alert: 'sms' } },
+  { id: 'alertEmail', name: 'providers.alertEmail.name', summary: 'providers.alertEmail.summary', directions: ['alert'], method: { kind: 'alert', alert: 'email' } },
+  { id: 'webhook', name: 'providers.webhook.name', summary: 'providers.webhook.summary', directions: ['alert'], method: { kind: 'alert', alert: 'webhook' } },
 ]
 
 /** What every connect form says until the Rust side can take it. */

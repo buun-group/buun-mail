@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import type { Rule, RuleAction, Workspace } from '../../api/types'
+import { listAlerts } from '../../api/client'
+import type { AlertChannel, Rule, RuleAction, Workspace } from '../../api/types'
 import { Select } from '../Select/Select'
 
 interface RuleEditorProps {
@@ -34,6 +35,13 @@ export function RuleEditor({ rule, workspaces, onSave, onCancel }: RuleEditorPro
   const [move, setMove] = useState(action('move') !== undefined)
   const [markRead, setMarkRead] = useState(action('markRead') !== undefined)
   const [quiet, setQuiet] = useState(action('quiet') !== undefined)
+  const [alert, setAlert] = useState(action('alert')?.channel ?? '')
+  const [channels, setChannels] = useState<AlertChannel[]>([])
+  useEffect(() => {
+    listAlerts()
+      .then(setChannels)
+      .catch(() => setChannels([]))
+  }, [])
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
@@ -44,6 +52,7 @@ export function RuleEditor({ rule, workspaces, onSave, onCancel }: RuleEditorPro
     if (move) actions.push({ type: 'move', ...(blank(moveWorkspace) === undefined ? {} : { workspace: moveWorkspace }), ...(blank(moveFolder) === undefined ? {} : { folder: moveFolder.trim() }) })
     if (markRead) actions.push({ type: 'markRead' })
     if (quiet) actions.push({ type: 'quiet' })
+    if (alert !== '') actions.push({ type: 'alert', channel: alert })
     const when = {
       ...(blank(workspace) === undefined ? {} : { workspace }),
       ...(blank(from) === undefined ? {} : { from: from.trim() }),
@@ -111,6 +120,11 @@ export function RuleEditor({ rule, workspaces, onSave, onCancel }: RuleEditorPro
           <input type="checkbox" id="rule-quiet" checked={quiet} onChange={(event) => setQuiet(event.target.checked)} />
           {t('editor.quiet')}
         </label>
+        <div className="connect__field">
+          <label htmlFor="rule-alert">{t('editor.alert')}</label>
+          <Select id="rule-alert" value={alert} onChange={setAlert} options={[{ value: '', label: t('editor.noAlert') }, ...channels.map((channel) => ({ value: channel.id, label: channel.name }))]} />
+          <small>{t('editor.alertHint')}</small>
+        </div>
       </fieldset>
 
       {error !== null && (
