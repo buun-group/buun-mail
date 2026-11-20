@@ -190,4 +190,4 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ needs.release-please.outputs.tag }}
-        run: gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --latest
+        run: gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --title "Buun Mail $TAG" --draft=false --latest
