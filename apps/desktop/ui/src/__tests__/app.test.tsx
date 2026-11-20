@@ -224,3 +224,21 @@ describe('secrets and alerts', () => {
     expect(screen.getByRole('button', { name: 'Show Webhook address' })).toBeTruthy()
   })
 })
+
+describe('unsubscribe and block', () => {
+  it('unsubscribes in one click where the list allows it', async () => {
+    render(<App />)
+    fireEvent.click(await screen.findByRole('button', { name: /Billing/ }))
+    fireEvent.click(await screen.findByText('Your invoice for November is ready'))
+    fireEvent.click(await screen.findByRole('button', { name: /Unsubscribe/ }))
+    expect(await screen.findByText('stripe.com should stop writing within a few days.')).toBeTruthy()
+  })
+
+  it('blocks a sender from the message menu', async () => {
+    render(<App />)
+    const row = await screen.findByText('Quote for the booking site')
+    fireEvent.contextMenu(row)
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Block projects@client.example' }))
+    expect(await screen.findByText('projects@client.example blocked')).toBeTruthy()
+  })
+})

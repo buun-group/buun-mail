@@ -2,7 +2,7 @@
 
 use buun_mail_routing::Address;
 use buun_mail_rules::{Facts, Rule, evaluate};
-use buun_mail_store::{Placement, StoredRule};
+use buun_mail_store::{Placement, Shelf, StoredRule};
 
 use super::{Actor, Mailbox, load_rules, log, unix_now};
 use crate::error::AppError;
@@ -83,7 +83,8 @@ impl Mailbox {
                 store.move_to(&message.id, placement)?;
             }
             let read = outcome.mark_read && message.unread && store.mark_read(&message.id)?;
-            if !new_tags.is_empty() || moved.is_some() || read {
+            let trashed = outcome.trash && message.shelf != Shelf::Trashed && store.set_shelf(&message.id, Shelf::Trashed, unix_now())?;
+            if !new_tags.is_empty() || moved.is_some() || read || trashed {
                 changed += 1;
             }
         }

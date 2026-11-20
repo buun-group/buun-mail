@@ -97,7 +97,7 @@ pub fn ingest(incoming: Incoming<'_>, router: &Router, rules: &[CheckedRule], st
         message_id: parsed.message_id,
         unread: !outcome.mark_read,
         starred: false,
-        shelf: Shelf::Active,
+        shelf: if outcome.trash { Shelf::Trashed } else { Shelf::Active },
         tags: outcome.tags.clone(),
         thread_id: None,
         thread_size: 1,
@@ -117,7 +117,8 @@ pub fn ingest(incoming: Incoming<'_>, router: &Router, rules: &[CheckedRule], st
             detail: format!("\"{}\"", record.subject),
         })?;
     }
-    Ok(Some(Arrived { record, quiet: outcome.quiet, alerts: outcome.alerts }))
+    // Mail a rule put in the trash (a blocked sender) is never announced.
+    Ok(Some(Arrived { record, quiet: outcome.quiet || outcome.trash, alerts: outcome.alerts }))
 }
 
 /// A file's messages: every message in an `.mbox`, or the file itself when it is one message.

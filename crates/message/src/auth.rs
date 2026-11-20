@@ -131,7 +131,7 @@ pub fn authentication(raw: &[u8]) -> Option<Authentication> {
 }
 
 /// The header block, unfolded: each header on one line.
-fn header_block(raw: &[u8]) -> Vec<String> {
+pub(crate) fn header_block(raw: &[u8]) -> Vec<String> {
     let text = String::from_utf8_lossy(raw);
     let end = text.find("\r\n\r\n").or_else(|| text.find("\n\n")).unwrap_or(text.len());
     let mut lines: Vec<String> = Vec::new();
@@ -149,7 +149,7 @@ fn header_block(raw: &[u8]) -> Vec<String> {
 }
 
 /// The value of the topmost header called `name`.
-fn first_header(lines: &[String], name: &str) -> Option<String> {
+pub(crate) fn first_header(lines: &[String], name: &str) -> Option<String> {
     lines.iter().find_map(|line| {
         let (key, value) = line.split_once(':')?;
         key.trim().eq_ignore_ascii_case(name).then(|| value.trim().to_owned())

@@ -213,6 +213,36 @@ pub struct MessageDetailDto {
     pub attachments: Vec<AttachmentDto>,
     /// What the receiving server found when it checked the sender, when the message says.
     pub authentication: Option<AuthenticationDto>,
+    /// How to leave the list it came from, when it says.
+    pub unsubscribe: Option<UnsubscribeDto>,
+}
+
+/// How to leave a mailing list: a web address (one-click or a page) and an email address.
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct UnsubscribeDto {
+    /// An https address.
+    pub web: Option<String>,
+    /// True when the app can unsubscribe for you with one POST, no page.
+    pub one_click: bool,
+    /// An address to email.
+    pub mail_to: Option<String>,
+    /// The subject that email should have.
+    pub mail_subject: Option<String>,
+    /// The body that email should have.
+    pub mail_body: Option<String>,
+}
+
+impl From<buun_mail_message::Unsubscribe> for UnsubscribeDto {
+    fn from(found: buun_mail_message::Unsubscribe) -> Self {
+        Self {
+            web: found.web,
+            one_click: found.one_click,
+            mail_to: found.mail.as_ref().map(|mail| mail.to.clone()),
+            mail_subject: found.mail.as_ref().map(|mail| mail.subject.clone()),
+            mail_body: found.mail.map(|mail| mail.body),
+        }
+    }
 }
 
 /// SPF, DKIM and DMARC as the receiving server found them, and the verdict, in plain words for the UI.

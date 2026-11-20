@@ -6,6 +6,7 @@ import type { Contact, Message, MessageDetail, Recipients, Workspace } from '../
 import { Attachments } from './Attachments'
 import { Conversation } from './Conversation'
 import { SenderCheck } from './SenderCheck'
+import { UnsubscribeButton } from './UnsubscribeButton'
 import type { HtmlMenu } from './MessageHtml'
 import { Verification } from './Verification'
 import { MessageHtml } from './MessageHtml'
@@ -315,6 +316,7 @@ export function Reader({ grain, message, body, recipients, detail, workspace, th
             <span className="reader__from">
               {message.fromName}
               <SenderCheck authentication={detail?.authentication ?? null} from={message.from} />
+              {detail?.unsubscribe != null && <UnsubscribeButton message={message} unsubscribe={detail.unsubscribe} canSend={canReply} />}
             </span>
             <Copyable text={message.from} kind="email" className="reader__address" />
           </div>

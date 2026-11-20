@@ -119,6 +119,7 @@ pub fn run() {
             commands::add_alert,
             commands::remove_alert,
             commands::test_alert,
+            commands::unsubscribe_one_click,
             commands::open_message,
             commands::mark_all_read,
             commands::tag_message,

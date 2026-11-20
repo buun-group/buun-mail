@@ -164,5 +164,6 @@ fn detail(message: MessageDto, raw: &[u8]) -> MessageDetailDto {
         html: html_view(raw).map(|view| HtmlDto { html: view.html, remote: view.remote }),
         attachments: attachments(raw).into_iter().map(Into::into).collect(),
         authentication: authentication(raw).map(Into::into),
+        unsubscribe: buun_mail_message::unsubscribe(raw).map(Into::into),
     }
 }

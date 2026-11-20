@@ -139,6 +139,8 @@ export {
   PiLinkSimpleLight as IconLink,
   PiGaugeLight as IconGauge,
   PiLockKeyLight as IconLock,
+  PiProhibitLight as IconBlock,
+  PiEnvelopeSimpleOpenLight as IconUnsubscribe,
   PiXLight as IconCheckFail,
   PiQuestionLight as IconCheckUnclear,
   PiMinusLight as IconCheckNone,

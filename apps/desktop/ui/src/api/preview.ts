@@ -74,7 +74,8 @@ export function previewDetail(id: string): MessageDetail {
   const plainHtml = message.id === 'p6' ? { html: '<div>Your verification code is <b>482913</b>. It expires in 10 minutes.</div><p>If you did not ask for this, ignore this email.</p>', remote: 0 } : null
   const attachments = message.id === 'p1' ? [{ index: 0, name: 'INV-2026-11.pdf', mime: 'application/pdf', size: 48_213, inline: false }] : []
   const authentication = message.id === 'p1' ? { verdict: 'verified' as const, by: 'mx.cloudflare.net', spf: 'pass' as const, dkim: 'pass' as const, dmarc: 'pass' as const } : message.id === 'p3' ? { verdict: 'failed' as const, by: 'mx.cloudflare.net', spf: 'fail' as const, dkim: 'fail' as const, dmarc: null } : null
-  return { message: { ...message }, body: message.preview, recipients: { to: [{ name: null, address: message.to }], cc, replyTo: [] }, html: html ?? plainHtml, attachments, authentication }
+  const unsubscribe = message.id === 'p1' ? { web: 'https://stripe.example/unsubscribe/abc', oneClick: true, mailTo: null, mailSubject: null, mailBody: null } : null
+  return { message: { ...message }, body: message.preview, recipients: { to: [{ name: null, address: message.to }], cc, replyTo: [] }, html: html ?? plainHtml, attachments, authentication, unsubscribe }
 }
 
 /** The rules, tags and agent status the preview keeps in memory, so those screens can be worked on in a browser. */

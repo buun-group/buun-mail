@@ -70,6 +70,8 @@ pub enum Action {
     MarkRead,
     /// Keeps it quiet: no toast, no desktop notification.
     Quiet,
+    /// Puts it straight in the trash: a blocked sender.
+    Trash,
     /// Sends an alert through one of the app's alert channels (Slack, a text, an email), by the channel's id. Only mail
     /// that arrives alerts; re-running rules over stored mail never does.
     Alert {

@@ -22,6 +22,7 @@ mod mbox;
 mod parse;
 mod recipient;
 mod time;
+mod unsubscribe;
 
 pub use auth::{Authentication, Check, Verdict, authentication};
 pub use compose::{Outgoing, OutgoingAttachment, ThreadIds, build, mime_for, new_message_id, reply_references, thread_ids};
@@ -31,3 +32,4 @@ pub use id::content_id;
 pub use mbox::{is_mbox, mbox_entry, split_mbox};
 pub use parse::{Contact, Parsed, Recipients, body_text, parse, recipients};
 pub use time::{rfc3339, unix_of};
+pub use unsubscribe::{MailUnsubscribe, Unsubscribe, unsubscribe};

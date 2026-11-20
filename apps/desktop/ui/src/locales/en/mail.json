@@ -150,7 +150,11 @@
     "movedMany_one": "Moved to {{folder}}",
     "movedMany_other": "{{count}} moved to {{folder}}",
     "confirmDeleteManyTitle_one": "Delete this message for good?",
-    "confirmDeleteManyTitle_other": "Delete {{count}} messages for good?"
+    "confirmDeleteManyTitle_other": "Delete {{count}} messages for good?",
+    "block": "Block {{sender}}",
+    "blockRule": "Block {{sender}}",
+    "blocked": "{{sender}} blocked",
+    "blockedDetail": "Their mail goes to the trash from now on. Remove the rule in Settings, Rules to undo."
   },
   "copy": {
     "copy": "Copy",
@@ -385,5 +389,15 @@
     "ended": "Ended",
     "none": "No inboxes yet. New address makes one.",
     "noneLive": "No live inboxes. New address makes one."
+  },
+  "unsubscribe": {
+    "label": "Unsubscribe",
+    "done": "Unsubscribed",
+    "doneDetail": "{{list}} should stop writing within a few days.",
+    "opened": "Unsubscribe page opened",
+    "openedDetail": "Finish there to leave {{list}}.",
+    "mailed": "Unsubscribe email sent",
+    "failed": "Could not unsubscribe",
+    "tip": "Stop mail from {{list}}"
   }
 }

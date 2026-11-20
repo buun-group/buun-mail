@@ -402,3 +402,8 @@ export async function removeAlert(id: string): Promise<AlertChannel[]> {
 export async function testAlert(id: string): Promise<void> {
   return isTauri() ? invoke<void>(COMMANDS.testAlert, { id }) : undefined
 }
+
+/** Unsubscribes from a message's list with one POST, when its list offers one-click unsubscribing. */
+export async function unsubscribeOneClick(id: string): Promise<void> {
+  return isTauri() ? invoke<void>(COMMANDS.unsubscribeOneClick, { id }) : undefined
+}

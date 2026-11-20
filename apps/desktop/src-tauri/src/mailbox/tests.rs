@@ -195,3 +195,15 @@ fn keeps_each_message_size_and_sender_checks_and_catches_up_older_mail() -> Resu
     assert_eq!((caught.size, caught.checks.as_deref()), (i64::try_from(raw.len()).ok(), Some("spf=pass dkim=pass dmarc=fail by=mx.example")));
     Ok(())
 }
+
+#[test]
+fn a_blocked_sender_goes_straight_to_the_trash_unannounced() -> Result<(), AppError> {
+    let (_folder, mailbox) = mailbox();
+    let block = Rule::new("Block spam", When { from: Some("*@spam.example".to_owned()), ..When::default() }, vec![Action::Trash]);
+    mailbox.save_rule(block, &Actor::You)?;
+    let raw = b"From: Deals <deals@spam.example>\r\nTo: hello@flung.dev\r\nSubject: Win\r\nMessage-ID: <w1@spam.example>\r\n\r\nWin big\r\n";
+    assert_eq!(mailbox.take_in(raw, "hello@flung.dev", 1_795_000_000)?, None, "not announced");
+    let trashed = mailbox.view(buun_mail_store::View::Trashed)?;
+    assert_eq!(trashed.iter().map(|message| message.subject.as_str()).collect::<Vec<_>>(), vec!["Win"]);
+    Ok(())
+}

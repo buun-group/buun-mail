@@ -37,6 +37,7 @@ export function RuleEditor({ rule, workspaces, onSave, onCancel }: RuleEditorPro
   const [move, setMove] = useState(action('move') !== undefined)
   const [markRead, setMarkRead] = useState(action('markRead') !== undefined)
   const [quiet, setQuiet] = useState(action('quiet') !== undefined)
+  const [toTrash, setToTrash] = useState(action('trash') !== undefined)
   const [alert, setAlert] = useState(action('alert')?.channel ?? '')
   const [channels, setChannels] = useState<AlertChannel[]>([])
   useEffect(() => {
@@ -54,6 +55,7 @@ export function RuleEditor({ rule, workspaces, onSave, onCancel }: RuleEditorPro
     if (move) actions.push({ type: 'move', ...(blank(moveWorkspace) === undefined ? {} : { workspace: moveWorkspace }), ...(blank(moveFolder) === undefined ? {} : { folder: moveFolder.trim() }) })
     if (markRead) actions.push({ type: 'markRead' })
     if (quiet) actions.push({ type: 'quiet' })
+    if (toTrash) actions.push({ type: 'trash' })
     if (alert !== '') actions.push({ type: 'alert', channel: alert })
     const when = {
       ...(blank(workspace) === undefined ? {} : { workspace }),
@@ -125,6 +127,10 @@ export function RuleEditor({ rule, workspaces, onSave, onCancel }: RuleEditorPro
         <label className="rule-editor__check">
           <input type="checkbox" id="rule-quiet" checked={quiet} onChange={(event) => setQuiet(event.target.checked)} />
           {t('editor.quiet')}
+        </label>
+        <label className="rule-editor__check">
+          <input type="checkbox" id="rule-trash" checked={toTrash} onChange={(event) => setToTrash(event.target.checked)} />
+          {t('editor.trash')}
         </label>
         <div className="connect__field">
           <label htmlFor="rule-alert">{t('editor.alert')}</label>

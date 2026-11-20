@@ -673,3 +673,15 @@
 .verification__button:hover {
   background: var(--alpha-6);
 }
+
+.unsubscribe {
+  cursor: pointer;
+}
+.unsubscribe:hover:not([aria-disabled='true']) {
+  background: var(--alpha-8);
+  color: var(--text-primary);
+}
+.unsubscribe[aria-disabled='true'] {
+  cursor: default;
+  color: var(--status-success-fg);
+}

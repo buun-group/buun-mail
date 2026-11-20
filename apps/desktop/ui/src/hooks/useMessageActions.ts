@@ -3,14 +3,14 @@ import type { IconType } from 'react-icons'
 import { useTranslation } from 'react-i18next'
 import { isTauri as isDesktop } from '@tauri-apps/api/core'
 
-import { deleteMessagesForever, emptyTrash, exportMessages, moveMessage, setMessagesStarred, setMessagesUnread, shelveMessages, snoozeMessages } from '../api/client'
+import { deleteMessagesForever, emptyTrash, exportMessages, moveMessage, setMessagesStarred, setMessagesUnread, shelveMessages, snoozeMessages, saveRule } from '../api/client'
 import type { Message, Place, Shelf } from '../api/types'
 import type { Confirmation } from '../components/Confirm/Confirm'
 import type { MenuItem } from '../components/ContextMenu/ContextMenu'
 import { INBOX_LABEL } from '../constants/ui'
 import type { ComposeMode } from '../lib/compose'
 import type { ExportFormat } from '../constants/ui'
-import { IconArchive, IconCopy, IconExport, IconSnooze, IconForward, IconReply, IconReplyAll, IconDelete, IconFolder, IconInbox, IconMarkRead, IconPutBack, IconStar, IconStarred } from '../icons'
+import { IconArchive, IconCopy, IconExport, IconSnooze, IconForward, IconReply, IconReplyAll, IconDelete, IconFolder, IconInbox, IconMarkRead, IconPutBack, IconStar, IconStarred, IconBlock } from '../icons'
 import { copyWithToast } from '../lib/copy'
 import { snoozeTime } from '../lib/snooze'
 import { formatFull } from '../lib/time'
@@ -87,6 +87,23 @@ export function useMessageActions(mailbox: Mailbox, workspaceName: (id: string) 
         say(done, glyph, () => {
           shelveMessages([message.id], was).then(mailbox.refresh).catch(fail)
         })
+      })
+      .catch(fail)
+  }
+
+  /** Blocks the sender: a rule puts their mail in the trash from now on, and this message goes there too. */
+  const block = (message: Message): void => {
+    saveRule({ id: '', name: t('actions.blockRule', { sender: message.from }), enabled: true, when: { from: message.from }, actions: [{ type: 'trash' }] })
+      .then(() => {
+        if (message.shelf !== 'trashed') {
+          mailbox.stepPast(message.id)
+          return shelveMessages([message.id], 'trashed')
+        }
+        return undefined
+      })
+      .then(() => {
+        mailbox.refresh()
+        toast({ text: t('actions.blocked', { sender: message.from }), detail: t('actions.blockedDetail'), tone: 'done', glyph: IconBlock })
       })
       .catch(fail)
   }
@@ -282,7 +299,8 @@ export function useMessageActions(mailbox: Mailbox, workspaceName: (id: string) 
         : [{ id: 'wake', label: t('snooze.wake'), glyph: IconSnooze, onSelect: () => snooze([message], null), separated: true }]),
     ]
     const copy: MenuItem[] = [
-      { id: 'copy-sender', label: t('actions.copySender'), glyph: IconCopy, onSelect: () => void copyWithToast(message.from), separated: true },
+      { id: 'block', label: t('actions.block', { sender: message.from }), glyph: IconBlock, onSelect: () => block(message), separated: true },
+      { id: 'copy-sender', label: t('actions.copySender'), glyph: IconCopy, onSelect: () => void copyWithToast(message.from) },
       { id: 'copy-subject', label: t('actions.copySubject'), glyph: IconCopy, onSelect: () => void copyWithToast(message.subject) },
     ]
     if (message.shelf === 'trashed') {

@@ -34,6 +34,8 @@ pub struct Outcome {
     pub mark_read: bool,
     /// True when a rule keeps it quiet.
     pub quiet: bool,
+    /// True when a rule puts it in the trash.
+    pub trash: bool,
     /// The alert channels to send to, by id, in rule order, without repeats.
     pub alerts: Vec<String>,
     /// The names of the rules that ran, for the activity log.
@@ -66,6 +68,7 @@ pub fn evaluate(rules: &[CheckedRule], facts: &Facts<'_>) -> Outcome {
                 }
                 Action::MarkRead => outcome.mark_read = true,
                 Action::Quiet => outcome.quiet = true,
+                Action::Trash => outcome.trash = true,
                 Action::Alert { channel } => {
                     if !outcome.alerts.contains(channel) {
                         outcome.alerts.push(channel.clone());

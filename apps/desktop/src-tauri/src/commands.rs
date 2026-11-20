@@ -538,3 +538,21 @@ pub async fn test_alert(alerts: State<'_, AlertService>, id: String) -> Result<(
     let service = alerts.inner().clone();
     tauri::async_runtime::spawn_blocking(move || service.test(&id)).await.map_err(|error| error.to_string())?
 }
+
+/// Unsubscribes from the list a message came from with one POST (RFC 8058), away from the window's thread. Only for
+/// a message whose list offers one-click unsubscribing at an https address.
+#[tauri::command]
+pub async fn unsubscribe_one_click(mailbox: State<'_, Arc<Mailbox>>, id: String) -> Result<(), String> {
+    let raw = mailbox.raw_of(&id).map_err(|error| error.to_string())?;
+    let found = buun_mail_message::unsubscribe(&raw)
+        .filter(|found| found.one_click)
+        .and_then(|found| found.web)
+        .ok_or_else(|| "This list does not offer one-click unsubscribing.".to_owned())?;
+    tauri::async_runtime::spawn_blocking(move || {
+        let agent = ureq::Agent::config_builder().timeout_global(Some(std::time::Duration::from_secs(20))).http_status_as_error(false).build().new_agent();
+        let response = agent.post(&found).send_form([("List-Unsubscribe", "One-Click")]).map_err(|error| format!("The list could not be reached: {error}"))?;
+        if response.status().is_success() { Ok(()) } else { Err(format!("The list answered HTTP {}", response.status().as_u16())) }
+    })
+    .await
+    .map_err(|error| error.to_string())?
+}

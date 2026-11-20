@@ -48,6 +48,7 @@ export const COMMANDS = {
   addAlert: 'add_alert',
   removeAlert: 'remove_alert',
   testAlert: 'test_alert',
+  unsubscribeOneClick: 'unsubscribe_one_click',
   openMessage: 'open_message',
   markAllRead: 'mark_all_read',
   importFiles: 'import_files',

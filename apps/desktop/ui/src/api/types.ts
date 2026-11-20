@@ -72,6 +72,17 @@ export interface MessageDetail {
   attachments: Attachment[]
   /** SPF, DKIM and DMARC as the receiving server found them, or null when the message does not say. */
   authentication: Authentication | null
+  /** How to leave the list it came from, or null when it does not say. */
+  unsubscribe: Unsubscribe | null
+}
+
+/** How to leave a mailing list. Mirrors `UnsubscribeDto`. */
+export interface Unsubscribe {
+  web: string | null
+  oneClick: boolean
+  mailTo: string | null
+  mailSubject: string | null
+  mailBody: string | null
 }
 
 /** Mirrors `AuthenticationDto`. */
@@ -132,7 +143,7 @@ export interface RuleWhen {
 }
 
 /** What a rule does. */
-export type RuleAction = { type: 'tag'; tag: string } | { type: 'move'; workspace?: string; folder?: string } | { type: 'markRead' } | { type: 'quiet' } | { type: 'alert'; channel: string }
+export type RuleAction = { type: 'tag'; tag: string } | { type: 'move'; workspace?: string; folder?: string } | { type: 'markRead' } | { type: 'quiet' } | { type: 'trash' } | { type: 'alert'; channel: string }
 
 /** A rule, as the app, the settings screen and agents all write it. */
 export interface Rule {

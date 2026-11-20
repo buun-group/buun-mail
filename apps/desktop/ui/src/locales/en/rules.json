@@ -35,7 +35,8 @@
     "body": "Its words contain",
     "bodyPlaceholder": "new subscription",
     "tagged": "Has the tag",
-    "taggedPlaceholder": "sale"
+    "taggedPlaceholder": "sale",
+    "trash": "Move to trash"
   },
   "describe": {
     "sentence": "Mail {{conditions}}: {{actions}}.",
@@ -53,6 +54,7 @@
     "quiet": "keep quiet",
     "alert": "alert me",
     "body": "with \"{{text}}\" in its words",
-    "tagged": "tagged {{tag}}"
+    "tagged": "tagged {{tag}}",
+    "trash": "move to trash"
   }
 }
