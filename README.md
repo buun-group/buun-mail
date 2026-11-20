@@ -53,8 +53,8 @@ Settings, General can check that page once a day and say when a newer version is
 | macOS, Apple silicon | `Buun.Mail_<version>_aarch64.dmg` | Unsigned for now: right-click the app, then Open |
 | macOS, Intel | `Buun.Mail_<version>_x64.dmg` | As above |
 
-A release built by hand carries a `SHA256SUMS` file. [packaging/README.md](packaging/README.md) has more on which file
-to pick.
+[packaging/README.md](packaging/README.md) has more on which file to pick, and [CHANGELOG.md](CHANGELOG.md) what
+each release changed.
 
 ## Features
 
@@ -186,6 +186,32 @@ folders = [{ name = "Receipts", from = "*@stripe.com", icon = "receipt" }]
 A fresh install starts with one example workspace, Personal. [config/workspaces.example.toml](config/workspaces.example.toml)
 lists every field and icon.
 
+## Built with
+
+| | Technology | Where it runs | What it does here |
+|:---:|---|---|---|
+| <picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/tech/rust-dark.svg"><img alt="" src=".github/assets/readme/tech/rust-light.svg" height="20"></picture> | **Rust** 1.99, edition 2024 | `crates/*`, `apps/desktop/src-tauri` | Parsing, routing, rules, the store, every mail source, the MCP server |
+| <picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/tech/tauri-dark.svg"><img alt="" src=".github/assets/readme/tech/tauri-light.svg" height="20"></picture> | **Tauri** 2 | `apps/desktop/src-tauri` | The native window and installers, on the system's own web view |
+| <picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/tech/react-dark.svg"><img alt="" src=".github/assets/readme/tech/react-light.svg" height="20"></picture> | **React** 19 | `apps/desktop/ui` | The interface |
+| <picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/tech/typescript-dark.svg"><img alt="" src=".github/assets/readme/tech/typescript-light.svg" height="20"></picture> | **TypeScript** 7 | `apps/desktop/ui` | Every line of the interface, strict |
+| <picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/tech/sqlite-dark.svg"><img alt="" src=".github/assets/readme/tech/sqlite-light.svg" height="20"></picture> | **SQLite** with FTS5 | `crates/store` | The message index and full-text search, built into the app (no server) |
+| <picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/tech/vite-dark.svg"><img alt="" src=".github/assets/readme/tech/vite-light.svg" height="20"></picture> | **Vite** 8 | `apps/desktop/ui` | Builds the interface, and runs it alone in a browser with `pnpm dev:ui` |
+| <picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/readme/tech/vitest-dark.svg"><img alt="" src=".github/assets/readme/tech/vitest-light.svg" height="20"></picture> | **Vitest** 5 | `apps/desktop/ui` | The interface tests, beside more than 140 Rust tests |
+
+### Why Rust
+
+A mail client spends its day parsing text that strangers on the internet wrote, so the code that reads it should not be
+able to corrupt memory. Rust gives that by construction, and this workspace goes further: `unsafe` code is forbidden in
+every crate and clippy runs at pedantic with warnings as errors. The result is one native binary with no runtime to
+install, that starts quickly and stays small in memory.
+
+The logic lives in plain crates that know nothing about the window: `routing` and `message` do no I/O at all, `rules`
+is pure, and `store` is tested against a real folder. Each is tested on its own, so the interface can change without
+touching how mail is filed. Tauri then wraps it with the web view the system already has instead of shipping a browser:
+the Linux `.deb` is about 7 MB and the Windows setup about 5 MB, where an Electron app carries its own Chromium and
+usually passes 100 MB. (The AppImage is larger, about 80 MB, because it bundles WebKitGTK for distributions that lack
+it.)
+
 ## Build from source
 
 You need Node 22 or newer with pnpm, and Rust through rustup (the pinned 1.99 comes from `rust-toolchain.toml`; keep
@@ -206,7 +232,6 @@ pnpm build      # this machine's installers, into target/release/bundle/
 | `pnpm dev:ui` | The UI alone in a browser on a preview mailbox, no Rust build; the fastest way to tune the look |
 | `pnpm check` | `cargo fmt --check`, oxlint, clippy (pedantic, warnings fail), `tsc`, vitest, `cargo test`; CI runs the same |
 | `pnpm build` | This machine's installers, into `target/release/bundle/` |
-| `pnpm release <version>` | Sets the version everywhere, commits and tags; pushing the tag builds every installer into a draft release |
 | `pnpm dev:brand` | The brand preview on http://localhost:28610 |
 | `pnpm brand:build` | Rebuilds the brand kit from the mark's geometry |
 
@@ -223,6 +248,16 @@ pnpm build      # this machine's installers, into target/release/bundle/
 | [`packaging`](packaging/README.md) | Arch PKGBUILD, the Linux desktop entry, which installer to pick |
 | [`config/workspaces.example.toml`](config/workspaces.example.toml) | The routing file a fresh install starts from, with comments |
 | `.github/assets/readme` | The pictures on this page; `how-it-works.diagram` is the diagram's [Plotwork](https://plotwork.dev) source |
+
+## Releases
+
+Releases make themselves. Every push to `main` updates a release pull request that
+[release-please](https://github.com/googleapis/release-please) keeps from the commit messages, which follow
+[Conventional Commits](https://www.conventionalcommits.org): a `feat` raises the minor version while Buun Mail is
+below 1.0, a `fix` the patch, and [CHANGELOG.md](CHANGELOG.md) is written to match. Merging that pull request tags a
+draft release; GitHub Actions builds Linux (`.deb`, `.rpm`, `.AppImage`), macOS (Apple silicon and Intel `.dmg`) and
+Windows (`.msi`, setup `.exe`) into it, and publishes it once every build has passed. To build an existing release
+again, run Actions, Release, Run workflow with its tag.
 
 ## Next
 
