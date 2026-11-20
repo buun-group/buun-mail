@@ -1,0 +1,81 @@
+name: Watchdog
+
+# Keeps an eye on the workflows that matter on main and dev, with no service and no cost beyond Actions minutes:
+#
+#   a failed run    re-runs its failed jobs once, since many failures are a network blip
+#   failed again    opens an issue labelled ci-failure for that workflow and branch (or comments on the open one) with
+#                   the failed jobs, their error lines and a link; GitHub emails the repository's watchers
+#   a passing run   closes that workflow and branch's open issue, saying which run fixed it
+
+on:
+  workflow_run:
+    workflows: [CI, Beta, Release]
+    types: [completed]
+    branches: [main, dev]
+
+permissions:
+  actions: write
+  issues: write
+  contents: read
+
+concurrency:
+  group: watchdog-${{ github.event.workflow_run.name }}-${{ github.event.workflow_run.head_branch }}
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: github.event.workflow_run.conclusion == 'success' || github.event.workflow_run.conclusion == 'failure'
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RUN_ID: ${{ github.event.workflow_run.id }}
+      ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+      WORKFLOW: ${{ github.event.workflow_run.name }}
+      BRANCH: ${{ github.event.workflow_run.head_branch }}
+      SHA: ${{ github.event.workflow_run.head_sha }}
+      URL: ${{ github.event.workflow_run.html_url }}
+      CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+    steps:
+      - name: Re-run a first failure once
+        id: retry
+        if: env.CONCLUSION == 'failure' && env.ATTEMPT == '1'
+        run: |
+          gh run rerun "$RUN_ID" --failed
+          echo "retried=true" >> "$GITHUB_OUTPUT"
+
+      - name: Open or update the issue for a failure that stayed
+        if: env.CONCLUSION == 'failure' && steps.retry.outputs.retried != 'true'
+        run: |
+          title="CI failing: $WORKFLOW on $BRANCH"
+          gh label create ci-failure --color B60205 --description "A workflow on main or dev is failing" 2>/dev/null || true
+          {
+            echo "**$WORKFLOW** failed on \`$BRANCH\` at ${SHA:0:7} (attempt $ATTEMPT): $URL"
+            echo
+            echo "| Job | Result |"
+            echo "|---|---|"
+            gh run view "$RUN_ID" --json jobs --jq '.jobs[] | select(.conclusion == "failure") | "| \(.name) | failed |"'
+            echo
+            echo "<details><summary>Error lines</summary>"
+            echo
+            echo '```'
+            gh run view "$RUN_ID" --log-failed 2>/dev/null | grep -iE "error|failed|panicked|##\[error\]" | grep -v "^\s*$" | tail -n 40 | cut -c1-300
+            echo '```'
+            echo
+            echo "</details>"
+          } > body.md
+          number=$(gh issue list --label ci-failure --state open --search "\"$title\" in:title" --json number,title --jq ".[] | select(.title == \"$title\") | .number" | head -n1)
+          if [ -n "$number" ]; then
+            gh issue comment "$number" --body-file body.md
+          else
+            gh issue create --title "$title" --label ci-failure --body-file body.md
+          fi
+
+      - name: Close the issue once it passes
+        if: env.CONCLUSION == 'success'
+        run: |
+          title="CI failing: $WORKFLOW on $BRANCH"
+          for number in $(gh issue list --label ci-failure --state open --search "\"$title\" in:title" --json number,title --jq ".[] | select(.title == \"$title\") | .number"); do
+            gh issue close "$number" --comment "Passing again at ${SHA:0:7}: $URL"
+          done
