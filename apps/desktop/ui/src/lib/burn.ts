@@ -1,6 +1,7 @@
 /**
  * The dissolve.email burn: a noise front burns across an element with a hot edge in the brand's glow and accent, shedding
- * embers, the element breaking into dust of its own colours as it goes. Ported from dissolve.email's motion package
+ * embers, the element breaking into dust of its own colours as it goes. Scaled for list rows here: the embers and dust
+ * are small and short-lived, and drawing is clipped to the item, so the burn stays on what is going. Ported from dissolve.email's motion package
  * (`dissolveOut` in `@dissolve/motion/dissolve`, the portal's inbox burn), so an inbox going here looks as it does there.
  *
  * One shared, fixed canvas over the window draws every running burn in its element's box: a single WebGL2 context
@@ -100,7 +101,7 @@ float sdRound(vec2 p,vec2 b,float r){vec2 q=abs(p)-b+r;return length(max(q,0.0))
 float sparks(vec2 p,float front,float span,float cell,float share,float life,float wob,float lift,float liftK,float sizeK,float salt){
 float acc=0.0;
 vec2 c0=floor(p/cell);
-for(int k=0;k<6;k++){
+for(int k=0;k<4;k++){
 for(int j=-1;j<=1;j++){
 vec2 cc=c0+vec2(float(j),float(k));
 float h=hash12(cc+uSeed*13.0+salt);
@@ -145,14 +146,14 @@ float core=1.0-smoothstep(0.0,w*0.22,abs(g));
 vec3 hot=mix(uMid,uHot,smoothstep(w,0.0,abs(g)));
 hot=mix(hot,mix(uHot,uCool,0.55),core*0.6);
 float flick=0.85+0.15*snoise(vec3(p/14.0,uTime*3.0));
-col+=hot*e*1.4*flick;
+col+=hot*e*1.1*flick;
 a=max(a,e*flick);
 float fade=1.0-smoothstep(0.85,1.0,uT);
-float ember=sparks(p,front,span,9.0,0.2,0.16,5.0,30.0,120.0,9.0,0.0)*fade;
+float ember=sparks(p,front,span,6.0,0.16,0.14,2.0,6.0,14.0,2.2,0.0)*fade;
 col+=mix(uHot,uMid,0.3)*ember;
 a=max(a,min(1.0,ember));
 if(uDust>0.0){
-float dust=sparks(p,front,span,4.0,0.5*uDust,0.22,2.5,8.0,28.0,1.6,7.0)*fade;
+float dust=sparks(p,front,span,3.0,0.45*uDust,0.2,1.2,3.0,8.0,0.9,7.0)*fade;
 vec3 tint=mix(uDustA,uDustB,hash12(floor(p/4.0)+uSeed));
 col+=mix(tint,uHot,0.25)*dust*1.2;
 a=max(a,min(1.0,dust));
@@ -283,7 +284,8 @@ function softwareGpu(gl: GL): boolean {
 
 function size(o: Overlay): void {
   const ratio = Number.isFinite(window.devicePixelRatio) && window.devicePixelRatio > 0 ? window.devicePixelRatio : 1
-  const dpr = Math.min(ratio, 2)
+  // At most 1.5 device pixels a CSS pixel: the burn is soft by nature, and fewer pixels keep every frame on time.
+  const dpr = Math.min(ratio, 1.5)
   o.canvas.width = Math.round(window.innerWidth * dpr)
   o.canvas.height = Math.round(window.innerHeight * dpr)
 }
@@ -364,6 +366,7 @@ function loop(now: number): void {
   if (!o) return
   const { gl, u } = o
   gl.viewport(0, 0, o.canvas.width, o.canvas.height)
+  gl.disable(gl.SCISSOR_TEST)
   gl.clearColor(0, 0, 0, 0)
   gl.clear(gl.COLOR_BUFFER_BIT)
   if (effects.size === 0) {
@@ -372,6 +375,7 @@ function loop(now: number): void {
   }
   o.canvas.dataset['on'] = 'true'
   gl.enable(gl.BLEND)
+  gl.enable(gl.SCISSOR_TEST)
   gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA)
   gl.useProgram(o.prog)
   gl.bindVertexArray(o.vao)
@@ -387,7 +391,8 @@ function loop(now: number): void {
   for (const effect of effects) {
     const raw = effect.duration > 0 ? Math.min(1, (now - effect.start) / effect.duration) : 1
     const box = effect.el.getBoundingClientRect()
-    const margin = 64
+    // A thin margin only, and drawing clipped to it, so the burn stays on the item rather than spilling round it.
+    const margin = 6
     if (box.bottom + margin > 0 && box.top - margin < h && box.width > 0) {
       gl.uniform2f(u['uPos'] ?? null, box.left, box.top)
       gl.uniform2f(u['uSize'] ?? null, box.width, box.height)
@@ -399,6 +404,8 @@ function loop(now: number): void {
       gl.uniform1f(u['uSeed'] ?? null, effect.seed)
       gl.uniform3fv(u['uGround'] ?? null, effect.ground)
       gl.uniform1f(u['uDust'] ?? null, effect.dust)
+      const scale = o.canvas.width / w
+      gl.scissor(Math.floor((box.left - margin) * scale), Math.floor((h - box.bottom - margin) * scale), Math.ceil((box.width + margin * 2) * scale), Math.ceil((box.height + margin * 2) * scale))
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
     }
     if (raw >= 1) {
