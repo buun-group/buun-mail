@@ -1,0 +1,87 @@
+name: Beta
+
+# A beta for every merge into dev that carries a feat, fix, perf or breaking change: the version is the next stable
+# version with a beta number (0.6.0-beta.1, 0.6.0-beta.2, ...), worked out by tools/next-version.mjs from the newest
+# stable tag and the commits since it. The version is never committed; it is stamped into the build's checkout.
+#
+#   1. tags the commit and opens a draft pre-release, its notes the pull requests since the last tag
+#   2. builds the installers on every platform and attaches them (build.yml)
+#   3. publishes the pre-release once every build has passed. It is never marked latest, and the app's update check
+#      never offers a beta.
+#
+# Merging dev into main (with a merge commit, so the stable release can tell what dev already released) is what
+# release.yml turns into the stable release.
+
+on:
+  push:
+    branches: [dev]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: beta
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    name: Plan the beta
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      release: ${{ steps.plan.outputs.release }}
+      tag: ${{ steps.plan.outputs.tag }}
+      base: ${{ steps.plan.outputs.base }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: The next beta's version
+        id: plan
+        run: |
+          plan=$(node tools/next-version.mjs)
+          echo "$plan"
+          {
+            echo "release=$(echo "$plan" | jq -r .release)"
+            echo "tag=$(echo "$plan" | jq -r '.tag // empty')"
+            echo "base=$(echo "$plan" | jq -r .base)"
+          } >> "$GITHUB_OUTPUT"
+
+  draft:
+    name: Tag and draft the pre-release
+    needs: plan
+    if: needs.plan.outputs.release == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Tag this commit and draft its pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.plan.outputs.tag }}
+          BASE: ${{ needs.plan.outputs.base }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/tags/$TAG" -f sha="$GITHUB_SHA" >/dev/null
+          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --verify-tag --draft --prerelease \
+            --title "Buun Mail $TAG" --generate-notes --notes-start-tag "$BASE"
+
+  build:
+    name: Installers
+    needs: [plan, draft]
+    uses: ./.github/workflows/build.yml
+    with:
+      tag: ${{ needs.plan.outputs.tag }}
+      beta: true
+
+  publish:
+    name: Publish the beta
+    needs: [plan, build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Publish the draft as a pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.plan.outputs.tag }}
+        run: gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --prerelease --latest=false

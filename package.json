@@ -14,7 +14,7 @@
     "lint": "oxlint --deny-warnings && node tools/with-rustup.mjs cargo clippy --workspace --all-targets -- -D warnings",
     "format": "node tools/with-rustup.mjs cargo fmt --all",
     "typecheck": "pnpm -r typecheck",
-    "test": "pnpm -r test && node tools/with-rustup.mjs cargo test --workspace",
+    "test": "pnpm -r test && node --test tools/*.test.mjs && node tools/with-rustup.mjs cargo test --workspace",
     "check": "node tools/with-rustup.mjs cargo fmt --all --check && pnpm lint && pnpm typecheck && pnpm test",
     "dev:brand": "pnpm --filter @buun-mail/brand preview",
     "brand:build": "pnpm --filter @buun-mail/brand build"

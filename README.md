@@ -251,13 +251,22 @@ pnpm build      # this machine's installers, into target/release/bundle/
 
 ## Releases
 
-Releases make themselves. Every push to `main` updates a release pull request that
-[release-please](https://github.com/googleapis/release-please) keeps from the commit messages, which follow
-[Conventional Commits](https://www.conventionalcommits.org): a `feat` raises the minor version while Buun Mail is
-below 1.0, a `fix` the patch, and [CHANGELOG.md](CHANGELOG.md) is written to match. Merging that pull request tags a
-draft release; GitHub Actions builds Linux (`.deb`, `.rpm`, `.AppImage`), macOS (Apple silicon and Intel `.dmg`) and
-Windows (`.msi`, setup `.exe`) into it, and publishes it once every build has passed. To build an existing release
-again, run Actions, Release, Run workflow with its tag.
+| Branch | What happens there |
+|---|---|
+| `feature/...` | Your work. Open a pull request into `dev`; CI must pass before it merges. |
+| `dev` | Every merge that carries a `feat`, `fix` or `perf` publishes a **beta** pre-release, such as `v0.6.0-beta.2`, with installers for every system. |
+| `main` | `dev` merges here (with a merge commit). That updates the release pull request; merging it publishes the **stable** release. |
+
+Commit messages follow [Conventional Commits](https://www.conventionalcommits.org): a `feat` raises the minor version
+while Buun Mail is below 1.0, a `fix` the patch. On `main`, [release-please](https://github.com/googleapis/release-please)
+keeps one release pull request with the next version and [CHANGELOG.md](CHANGELOG.md); merging it tags a draft release,
+GitHub Actions builds Linux (`.deb`, `.rpm`, `.AppImage`), macOS (Apple silicon and Intel `.dmg`) and Windows (`.msi`,
+setup `.exe`) into it, and publishes it once every build has passed.
+
+Betas are built the same way from `dev` but never committed: the version is stamped in for the build, so `main` only
+ever holds stable versions. They skip `.rpm` and `.msi`, which do not accept a pre-release version, are never marked as
+the latest release, and are never offered by the app's update check. Someone running a beta is told once the stable
+version ships. To build an existing release again, run Actions, Release, Run workflow with its tag.
 
 ## Next
 

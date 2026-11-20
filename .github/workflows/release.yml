@@ -5,18 +5,13 @@ name: Release
 # Cargo.lock, and writes CHANGELOG.md (feat is a minor version before 1.0, fix a patch). Merging that pull request:
 #
 #   1. tags the release and opens it as a draft with the changelog as its notes
-#   2. builds the installers on every platform and attaches them
+#   2. builds the installers on every platform and attaches them (build.yml)
 #   3. publishes the release once every build has passed; a failed build leaves the draft for a look
 #
-#   Linux x86_64  .deb (Debian, Ubuntu), .rpm (Fedora, openSUSE), .AppImage (any distribution, Arch included)
-#   macOS Apple silicon and Intel  .dmg and .app
-#   Windows x86_64  .msi and the NSIS setup .exe
+# Branches: feature branches merge into dev, where every merge with a feat or fix publishes a beta (beta.yml); dev
+# merges into main with a merge commit, which is what this workflow releases.
 #
 # Run it by hand with a tag (Actions, Release, Run workflow) to build and attach installers to an existing release again.
-#
-# Signing is optional and off until the secrets exist: APPLE_CERTIFICATE, APPLE_CERTIFICATE_PASSWORD, APPLE_SIGNING_IDENTITY,
-# APPLE_ID, APPLE_PASSWORD and APPLE_TEAM_ID for macOS notarisation. Unsigned builds run, but macOS and Windows warn on
-# first open.
 
 on:
   push:
@@ -38,7 +33,7 @@ concurrency:
 jobs:
   release-please:
     name: Release pull request
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     outputs:
@@ -50,6 +45,7 @@ jobs:
       - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
         id: release
         with:
+          target-branch: main
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
@@ -76,108 +72,13 @@ jobs:
           git push
 
   build:
-    name: ${{ matrix.name }}
+    name: Installers
     needs: release-please
     if: always() && (needs.release-please.outputs.created == 'true' || github.event_name == 'workflow_dispatch')
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: Linux x86_64
-            runner: ubuntu-22.04
-            args: ''
-          - name: macOS Apple silicon
-            runner: macos-latest
-            args: --target aarch64-apple-darwin
-            target: aarch64-apple-darwin
-          - name: macOS Intel
-            runner: macos-latest
-            args: --target x86_64-apple-darwin
-            target: x86_64-apple-darwin
-          - name: Windows x86_64
-            runner: windows-latest
-            args: ''
-    runs-on: ${{ matrix.runner }}
-    timeout-minutes: 60
-    env:
-      TAG: ${{ needs.release-please.outputs.tag || inputs.tag }}
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ env.TAG }}
-          persist-credentials: false
-
-      - name: The tag matches the app version
-        shell: bash
-        run: |
-          version=$(node -p "require('./apps/desktop/src-tauri/tauri.conf.json').version")
-          if [ "v$version" != "$TAG" ]; then
-            echo "::error::The tag $TAG does not match the app version $version."
-            exit 1
-          fi
-
-      # The release is a draft until every build is attached, and a draft is not found by its tag, so it is found by id.
-      - name: Find the release
-        id: find
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          id=$(gh api "repos/$GITHUB_REPOSITORY/releases?per_page=30" --jq ".[] | select(.tag_name == \"$TAG\") | .id" | head -n1)
-          if [ -z "$id" ]; then echo "::error::No release for $TAG."; exit 1; fi
-          echo "id=$id" >> "$GITHUB_OUTPUT"
-
-      - name: Linux system libraries
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends libwebkit2gtk-4.1-dev libgtk-3-dev librsvg2-dev libayatana-appindicator3-dev libxdo-dev libssl-dev patchelf rpm
-
-      - name: Rust toolchain from rust-toolchain.toml
-        shell: bash
-        run: |
-          rustup show active-toolchain || rustup toolchain install
-          if [ -n "${{ matrix.target }}" ]; then rustup target add "${{ matrix.target }}"; fi
-
-      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
-        with:
-          key: ${{ matrix.runner }}-${{ matrix.target }}
-
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: 22
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile --ignore-scripts
-
-      # A missing secret arrives as an empty value, and Tauri would try to sign with it. Only the secrets that exist are
-      # passed on; without them the app is ad-hoc signed (tauri.macos.conf.json), which Apple silicon needs to run it.
-      - name: Apple signing, when its secrets exist
-        if: runner.os == 'macOS'
-        shell: bash
-        env:
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: |
-          for name in APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID; do
-            if [ -n "${!name}" ]; then
-              delimiter="EOF_$(openssl rand -hex 8)"
-              printf '%s<<%s\n%s\n%s\n' "$name" "$delimiter" "${!name}" "$delimiter" >> "$GITHUB_ENV"
-            fi
-          done
-
-      - uses: tauri-apps/tauri-action@1deb371b0cd8bd54025b384f1cd735e725c4060f # action-v1.0.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          projectPath: apps/desktop
-          tauriScript: pnpm exec tauri
-          args: ${{ matrix.args }}
-          releaseId: ${{ steps.find.outputs.id }}
+    uses: ./.github/workflows/build.yml
+    with:
+      tag: ${{ needs.release-please.outputs.tag || inputs.tag }}
+      beta: ${{ contains(needs.release-please.outputs.tag || inputs.tag, '-') }}
 
   publish:
     name: Publish the release
