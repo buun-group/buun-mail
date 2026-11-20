@@ -18,6 +18,8 @@ export const STORAGE_KEYS = {
   checkUpdates: 'buun-mail:check-updates',
   updateChannel: 'buun-mail:update-channel',
   updateChecked: 'buun-mail:update-checked',
+  identityDrawer: 'buun-mail:identity-drawer',
+  identityTab: 'buun-mail:identity-tab',
 } as const
 
 /** A workspace image is drawn at this many pixels square before it is kept, so storage stays small. */

@@ -8,7 +8,7 @@ import { IconIdentity } from '../../icons'
 import { BusyButton } from '../Busy/BusyButton'
 import { Popover } from '../Popover/Popover'
 import { Select } from '../Select/Select'
-import { allowIdentities } from './IdentityCard'
+import { allowIdentities } from './IdentityDrawer'
 
 const reason = (cause: unknown): string => (cause instanceof Error ? cause.message : String(cause))
 

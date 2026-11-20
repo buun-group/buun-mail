@@ -319,7 +319,6 @@
   "identity": {
     "button": "Identity",
     "title": "Agent identity",
-    "close": "Close the identity",
     "loading": "Reading the identity",
     "email": "Email",
     "password": "Password",
@@ -330,7 +329,7 @@
     "address": "Address",
     "copyField": "Copy the {{field}}",
     "copied": "{{field}} copied",
-    "madeUp": "Everything but the email is made up, for one sign-up. The password is read from dissolve.email when shown and never kept on this computer.",
+    "madeUp": "Made up for one sign-up, apart from the email. The password stays on dissolve.email and is never saved here.",
     "noPassword": "dissolve.email could not open this identity's password just now. Regenerate gives it a new one.",
     "none": "This address has no agent identity.",
     "notOnPlan": "Agent identities come with dissolve.email Pro and Business.",
@@ -353,7 +352,16 @@
     "regenerateTitle": "Regenerate this identity?",
     "regenerateBody": "A new name, address, phone and password replace these, and the address stays. The old password cannot be read again, so change it on any site you used it on first.",
     "regenerated": "New identity made",
-    "regenerateFailed": "The identity was not regenerated"
+    "regenerateFailed": "The identity was not regenerated",
+    "show": "Show",
+    "hide": "Hide",
+    "showPassword": "Show the password",
+    "hidePassword": "Hide the password",
+    "copyPassword": "Copy the password",
+    "revealCode": "Reveal code",
+    "unlock": "Show",
+    "collapse": "Tuck the identity away",
+    "expand": "Show the agent identity"
   },
   "verification": {
     "label": "Found in this message",
