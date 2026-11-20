@@ -19,6 +19,7 @@ import { RecipientField } from './RecipientField'
 import { TemplatesMenu } from './TemplatesMenu'
 
 import './Compose.css'
+import { leaveBehind } from '../../lib/motion'
 
 /** The From choice that lets the person type any address on a sendable domain. */
 const OTHER = '__other__'
@@ -72,7 +73,11 @@ export function Compose({ compose, workspaces, sendable }: ComposeProps): ReactN
       }
     }
     element.addEventListener('keydown', onKey)
-    return () => element.removeEventListener('keydown', onKey)
+    return () => {
+      element.removeEventListener('keydown', onKey)
+      // Closing or minimising, the panel slides away where it was instead of vanishing.
+      leaveBehind(element, 'leave-down')
+    }
   }, [])
 
   useLayoutEffect(() => {

@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
@@ -11,6 +11,7 @@ import { formatReceived } from '../../lib/time'
 import { TipButton } from '../Tooltip/TipButton'
 
 import './NotificationBell.css'
+import { holdAndLeave } from '../../lib/motion'
 
 interface NotificationBellProps {
   feed: Arrival[]
@@ -103,6 +104,7 @@ export function NotificationBell({ feed, unseen, quiet, workspaceName, onOpenMes
 function Panel({ anchor, onClose, children }: { anchor: DOMRect; onClose: () => void; children: ReactNode }): ReactNode {
   const { t } = useTranslation(['notifications', 'common'])
   const panel = useRef<HTMLDivElement | null>(null)
+  const panelRef = useCallback((element: HTMLDivElement | null) => holdAndLeave(panel, element), [])
   const [place, setPlace] = useState<{ left: number; top: number } | null>(null)
 
   useLayoutEffect(() => {
@@ -125,7 +127,7 @@ function Panel({ anchor, onClose, children }: { anchor: DOMRect; onClose: () => 
   }, [onClose])
 
   return (
-    <div ref={panel} role="dialog" aria-label={t('common:notifications')} className="notification-panel" style={place === null ? { visibility: 'hidden' } : place}>
+    <div ref={panelRef} role="dialog" aria-label={t('common:notifications')} className="notification-panel" style={place === null ? { visibility: 'hidden' } : place}>
       {children}
     </div>
   )

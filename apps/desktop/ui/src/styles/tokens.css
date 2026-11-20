@@ -151,6 +151,8 @@
 
   --duration-fast: 120ms;
   --duration-normal: 200ms;
+  /* Leaving is quicker than arriving, so closing never feels like waiting (LEAVE_MS in lib/motion.ts). */
+  --leave-duration: 150ms;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 }
 

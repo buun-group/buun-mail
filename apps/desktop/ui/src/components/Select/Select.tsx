@@ -6,6 +6,7 @@ import { IconCaretDown, IconCheck } from '../../icons'
 import { placeNear } from '../../lib/place'
 
 import './Select.css'
+import { holdAndLeave } from '../../lib/motion'
 
 export interface SelectOption<V extends string> {
   value: V
@@ -42,6 +43,7 @@ export function Select<V extends string>({ id, value, options, onChange, placeho
   const listId = useId()
   const trigger = useRef<HTMLButtonElement | null>(null)
   const list = useRef<HTMLDivElement | null>(null)
+  const listRef = useCallback((element: HTMLDivElement | null) => holdAndLeave(list, element), [])
   const [open, setOpen] = useState(false)
   const [active, setActive] = useState(0)
   const [place, setPlace] = useState<{ left: number; top: number } | null>(null)
@@ -157,7 +159,7 @@ export function Select<V extends string>({ id, value, options, onChange, placeho
         host !== null &&
         createPortal(
           <div
-            ref={list}
+            ref={listRef}
             id={listId}
             role="listbox"
             aria-labelledby={id}

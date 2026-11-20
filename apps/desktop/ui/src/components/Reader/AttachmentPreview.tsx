@@ -8,6 +8,7 @@ import { IconClose, IconExternal } from '../../icons'
 import { canOpen, previewKind } from '../../lib/attachments'
 import { toast } from '../../lib/feedback'
 import { readableSize } from '../../lib/size'
+import { cancelSmoothly, closeDialog } from '../../lib/motion'
 
 interface AttachmentPreviewProps {
   messageId: string
@@ -50,13 +51,13 @@ export function AttachmentPreview({ messageId, file, onSave, onClose }: Attachme
 
   const openable = canOpen(file.name)
   return (
-    <dialog ref={dialog} className="preview" aria-labelledby="preview-title" onClose={onClose}>
+    <dialog ref={dialog} className="preview" aria-labelledby="preview-title" onClose={onClose} onCancel={cancelSmoothly}>
       <header className="preview__head">
         <div className="preview__title">
           <h2 id="preview-title">{file.name}</h2>
           <span>{readableSize(file.size)}</span>
         </div>
-        <button type="button" className="preview__close" aria-label={t('attachments.close')} onClick={onClose}>
+        <button type="button" className="preview__close" aria-label={t('attachments.close')} onClick={() => closeDialog(dialog.current)}>
           <IconClose aria-hidden="true" />
         </button>
       </header>

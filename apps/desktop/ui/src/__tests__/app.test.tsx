@@ -348,7 +348,41 @@ describe('closing settings', () => {
     expect(dialog.open).toBe(true)
     closeOnBackdrop.onPointerDown(press(20, 20))
     closeOnBackdrop.onClick(press(20, 20))
-    expect(dialog.open).toBe(false)
+    // It fades out first, then closes.
+    expect(dialog.dataset['closing']).toBe('true')
+    await waitFor(() => expect(dialog.open).toBe(false))
     dialog.remove()
+  })
+})
+
+describe('opening and closing smoothly', () => {
+  it('leaves a fading copy of a menu where it was, then removes it', async () => {
+    const { holdAndLeave } = await import('../lib/motion')
+    const ref: { current: HTMLDivElement | null } = { current: null }
+    const menu = document.createElement('div')
+    menu.className = 'context-menu'
+    menu.textContent = 'Archive'
+    document.body.append(menu)
+    menu.getBoundingClientRect = () => ({ left: 10, top: 20, right: 110, bottom: 80, width: 100, height: 60, x: 10, y: 20, toJSON: () => ({}) })
+    const release = holdAndLeave(ref, menu)
+    expect(ref.current).toBe(menu)
+    release?.()
+    menu.remove()
+    await Promise.resolve()
+    const ghost = document.querySelector<HTMLElement>('.context-menu[aria-hidden="true"]')
+    expect(ghost?.style.left).toBe('10px')
+    expect(ghost?.inert).toBe(true)
+    await waitFor(() => expect(document.querySelector('.context-menu')).toBeNull())
+  })
+
+  it('folds a part open and shut, keeping it while it closes', async () => {
+    const { Fold } = await import('../components/Motion/Fold')
+    const { rerender } = render(<Fold open>Inside</Fold>)
+    expect(screen.getByText('Inside').closest('.fold')?.getAttribute('data-phase')).toBe('open')
+    rerender(<Fold open={false}>Inside</Fold>)
+    expect(screen.getByText('Inside').closest('.fold')?.getAttribute('data-phase')).toBe('closing')
+    await waitFor(() => expect(screen.queryByText('Inside')).toBeNull())
+    rerender(<Fold open>Inside</Fold>)
+    expect(screen.getByText('Inside').closest('.fold')?.getAttribute('data-phase')).toBe('opening')
   })
 })

@@ -16,6 +16,7 @@ import { AlertConnect } from './AlertConnect'
 import { DissolveConnect } from './DissolveConnect'
 import { ImapConnect } from './ImapConnect'
 import { SmtpConnect } from './SmtpConnect'
+import { Fold } from '../Motion/Fold'
 
 const DIRECTION_WORDS = {
   receive: { title: 'directions.receive', glyph: IconReceive },
@@ -113,11 +114,11 @@ function IntegrationRow({ rowKey, direction, integration, open, onToggle, onImpo
         <span className="integration__state">{integration.method.kind === 'file' ? t('state.ready') : integration.method.kind === 'gateway' ? (gatewayCount > 0 ? t('state.gateways', { count: gatewayCount }) : t('state.connectHere')) : integration.method.kind === 'alert' ? ((alertCounts[integration.id] ?? 0) > 0 ? t('state.alerts', { count: alertCounts[integration.id] ?? 0 }) : t('state.connectHere')) : integration.method.kind === 'dissolve' ? (dissolveConnected ? t('state.connected') : t('state.connectHere')) : integration.method.kind === 'mailbox' ? t('state.connectHere') : integration.method.kind === 'resend' || integration.method.kind === 'smtp' ? (senderCountOf(senders, integration.method.kind) > 0 ? t('state.senders', { count: senderCountOf(senders, integration.method.kind) }) : t('state.connectHere')) : t('state.notConnected')}</span>
         <IconCaret aria-hidden="true" className="integration__caret" />
       </button>
-      {open && (
-        <div id={panel} className="integration__panel">
+      <Fold open={open} id={panel} className="integration__panel">
+        <div>
           {integration.method.kind === 'file' ? <FileImport onImported={onImported} /> : integration.method.kind === 'gateway' ? <Gateways onChanged={onImported} onCount={onGatewayCount} /> : integration.method.kind === 'resend' ? <ResendConnect onChanged={onSendersChanged} onCount={onSenders} /> : integration.method.kind === 'smtp' ? <SmtpConnect onChanged={onSendersChanged} onCount={onSenders} /> : integration.method.kind === 'alert' ? <AlertConnect kind={integration.method.alert} onCount={(count) => onAlertCount(integration.id, count)} /> : integration.method.kind === 'dissolve' ? <DissolveConnect onChanged={onImported} onConnected={onDissolveConnected} /> : integration.method.kind === 'mailbox' ? direction === 'receive' ? <ImapConnect preset={integration.method.preset} onChanged={onImported} /> : <SmtpConnect preset={integration.method.preset} onChanged={onSendersChanged} onCount={onSenders} /> : <ConnectForm integration={integration} idPrefix={rowKey} />}
         </div>
-      )}
+      </Fold>
     </li>
   )
 }

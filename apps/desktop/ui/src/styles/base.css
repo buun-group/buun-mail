@@ -99,3 +99,52 @@ button:not(:disabled):not([aria-disabled='true']):active {
     filter: brightness(0.9);
   }
 }
+
+/* Opening and closing. Every modal dialog's backdrop fades in; closing (lib/motion.ts closeDialog) fades the dialog
+   and its backdrop out before it goes. Menus and panels leave as a fading copy (leaveBehind) with `leave`. */
+dialog[open]::backdrop {
+  animation: backdrop-in var(--duration-normal) var(--ease-out);
+}
+dialog[open][data-closing='true'] {
+  animation: dialog-out var(--leave-duration) cubic-bezier(0.4, 0, 1, 1) forwards;
+  pointer-events: none;
+}
+dialog[open][data-closing='true']::backdrop {
+  animation: backdrop-out var(--leave-duration) cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+@keyframes backdrop-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes backdrop-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes dialog-out {
+  to {
+    opacity: 0;
+    transform: translateY(4px) scale(0.985);
+  }
+}
+@keyframes leave {
+  to {
+    opacity: 0;
+    transform: translateY(-3px) scale(0.97);
+  }
+}
+@keyframes leave-down {
+  to {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  dialog[open]::backdrop,
+  dialog[open][data-closing='true'],
+  dialog[open][data-closing='true']::backdrop,
+  .fold {
+    animation: none !important;
+  }
+}

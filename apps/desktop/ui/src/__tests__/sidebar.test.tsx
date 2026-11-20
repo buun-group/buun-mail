@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, within, waitFor } from '@testing-library/react'
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import { App } from '../App'
@@ -85,7 +85,8 @@ describe('the views section', () => {
     expect(screen.getByRole('button', { name: /^All mail/ })).toBeTruthy()
     fireEvent.click(views)
     expect(views.getAttribute('aria-expanded')).toBe('false')
-    expect(screen.queryByRole('button', { name: /^All mail/ })).toBeNull()
+    // It folds shut with a short animation, then is gone.
+    await waitFor(() => expect(screen.queryByRole('button', { name: /^All mail/ })).toBeNull())
     fireEvent.click(views)
     expect(await screen.findByRole('button', { name: /^All mail/ })).toBeTruthy()
   })

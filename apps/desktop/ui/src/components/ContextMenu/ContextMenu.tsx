@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { KeyboardEvent, MouseEvent, ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { IconType } from 'react-icons'
@@ -6,6 +6,7 @@ import type { IconType } from 'react-icons'
 import { IconCheck } from '../../icons'
 
 import './ContextMenu.css'
+import { holdAndLeave } from '../../lib/motion'
 
 export interface MenuItem {
   id: string
@@ -49,6 +50,7 @@ const EDGE = 8
 export function ContextMenu({ request, onClose }: { request: MenuRequest; onClose: () => void }): ReactNode {
   const { t } = useTranslation('sidebar')
   const menu = useRef<HTMLDivElement | null>(null)
+  const menuRef = useCallback((element: HTMLDivElement | null) => holdAndLeave(menu, element), [])
   const [place, setPlace] = useState({ left: request.x, top: request.y })
   const enabled = request.items.filter((item) => item.disabledReason === undefined)
 
@@ -101,7 +103,7 @@ export function ContextMenu({ request, onClose }: { request: MenuRequest; onClos
   }
 
   return (
-    <div ref={menu} className="context-menu" role="menu" aria-label={request.label} tabIndex={-1} style={{ left: place.left, top: place.top }} onKeyDown={onKey}>
+    <div ref={menuRef} className="context-menu" role="menu" aria-label={request.label} tabIndex={-1} style={{ left: place.left, top: place.top }} onKeyDown={onKey}>
       {request.items.map((item) => {
         const off = item.disabledReason !== undefined
         const Glyph = item.glyph

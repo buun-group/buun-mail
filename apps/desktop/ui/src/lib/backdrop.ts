@@ -1,4 +1,5 @@
 import type { MouseEvent, PointerEvent } from 'react'
+import { closeDialog } from './motion'
 
 /** True when a point lies outside the dialog's own box, so on its backdrop. */
 function outside(element: HTMLDialogElement, x: number, y: number): boolean {
@@ -20,6 +21,6 @@ export const closeOnBackdrop = {
     const element = event.currentTarget
     const started = element.dataset['pressedOutside'] === 'true'
     delete element.dataset['pressedOutside']
-    if (started && event.target === element && outside(element, event.clientX, event.clientY)) element.close()
+    if (started && event.target === element && outside(element, event.clientX, event.clientY)) closeDialog(element)
   },
 }

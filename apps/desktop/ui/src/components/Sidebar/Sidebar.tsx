@@ -38,6 +38,7 @@ import { TipButton } from '../Tooltip/TipButton'
 import { WorkspaceIcon } from '../WorkspaceIcon/WorkspaceIcon'
 
 import './Sidebar.css'
+import { Fold } from '../Motion/Fold'
 
 interface SidebarProps {
   workspaces: Workspace[]
@@ -162,7 +163,8 @@ export function Sidebar({ workspaces, place, view, theme, looks, folded, collaps
                   <IconCaretDown aria-hidden="true" className="sidebar__fold sidebar__text" />
                 </TipButton>
               </h2>
-              <ul hidden={folded.has(workspace.id)}>
+              <Fold open={!folded.has(workspace.id)}>
+<ul>
                 {keptFolders.filter((kept) => kept.item.workspaceId === workspace.id).map(({ item: { folder }, key, leaving }) => {
                   const current = view === null && place?.workspace === workspace.id && place.folder === folder.name
                   const Glyph = folder.name === null ? IconInbox : isWorkspaceGlyph(folder.icon) ? WORKSPACE_GLYPHS[folder.icon] : IconFolder
@@ -197,6 +199,7 @@ export function Sidebar({ workspaces, place, view, theme, looks, folded, collaps
                   )
                 })}
               </ul>
+</Fold>
             </section>
           ))}
           <section className="sidebar__workspace sidebar__views" aria-labelledby="sidebar-views">
@@ -207,7 +210,8 @@ export function Sidebar({ workspaces, place, view, theme, looks, folded, collaps
                 <IconCaretDown aria-hidden="true" className="sidebar__fold sidebar__text" />
               </TipButton>
             </h2>
-            <ul hidden={folded.has(VIEWS_FOLD)}>
+            <Fold open={!folded.has(VIEWS_FOLD)}>
+<ul>
               {VIEWS.map((item) => {
                 const label = t(`mail:views.${item.id}`)
                 return (
@@ -222,6 +226,7 @@ export function Sidebar({ workspaces, place, view, theme, looks, folded, collaps
                 )
               })}
             </ul>
+</Fold>
           </section>
         </div>
 

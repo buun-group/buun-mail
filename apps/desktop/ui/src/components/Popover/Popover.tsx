@@ -1,10 +1,11 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 
 import { placeNear } from '../../lib/place'
 
 import './Popover.css'
+import { holdAndLeave } from '../../lib/motion'
 
 /** The gap between the button and the box under it. */
 const GAP = 6
@@ -15,6 +16,7 @@ const GAP = 6
  */
 export function Popover({ anchor, label, onClose, children }: { anchor: HTMLElement; label: string; onClose: () => void; children: ReactNode }): ReactNode {
   const box = useRef<HTMLDivElement | null>(null)
+  const boxRef = useCallback((element: HTMLDivElement | null) => holdAndLeave(box, element), [])
   const [place, setPlace] = useState<{ left: number; top: number } | null>(null)
 
   useLayoutEffect(() => {
@@ -47,7 +49,7 @@ export function Popover({ anchor, label, onClose, children }: { anchor: HTMLElem
   }, [anchor, onClose])
 
   return createPortal(
-    <div ref={box} className="popover" role="dialog" aria-label={label} style={place === null ? { visibility: 'hidden' } : { left: place.left, top: place.top }}>
+    <div ref={boxRef} className="popover" role="dialog" aria-label={label} style={place === null ? { visibility: 'hidden' } : { left: place.left, top: place.top }}>
       {children}
     </div>,
     document.body,

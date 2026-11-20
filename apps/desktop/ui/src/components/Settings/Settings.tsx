@@ -19,6 +19,7 @@ import { WorkspacesSection } from './WorkspacesSection'
 
 import './Settings.css'
 import { closeOnBackdrop } from '../../lib/backdrop'
+import { cancelSmoothly, closeDialog } from '../../lib/motion'
 
 /** Each section's name, as keys for `t()`. */
 const SECTION_LABELS = {
@@ -63,12 +64,12 @@ export function Settings({ open, onClose, preferences, workspaces, looks, onLook
       // The dialog itself takes focus, not its first tab, so opening it with the mouse shows no focus ring.
       element.focus()
     }
-    if (!open && element.open) element.close()
+    if (!open && element.open) closeDialog(element)
   }, [open])
 
   // A click on the dimmed page around Settings closes it, as pressing the X does.
   return (
-    <dialog ref={dialog} className="settings" aria-labelledby="settings-title" tabIndex={-1} onClose={onClose} {...closeOnBackdrop}>
+    <dialog ref={dialog} className="settings" aria-labelledby="settings-title" tabIndex={-1} onClose={onClose} onCancel={cancelSmoothly} {...closeOnBackdrop}>
       <nav className="settings__nav" aria-label={t('sectionsLabel')}>
         <h2 id="settings-title">{t('title')}</h2>
         {SETTINGS_SECTIONS.map((id) => {
@@ -84,7 +85,7 @@ export function Settings({ open, onClose, preferences, workspaces, looks, onLook
       <div className="settings__panel">
         <header className="settings__head">
           <h3>{t(SECTION_LABELS[section])}</h3>
-          <button type="button" className="settings__close" onClick={onClose} aria-label={t('close')}>
+          <button type="button" className="settings__close" onClick={() => closeDialog(dialog.current)} aria-label={t('close')}>
             <IconClose aria-hidden="true" />
           </button>
         </header>

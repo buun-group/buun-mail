@@ -1,0 +1,30 @@
+/* A part folding open or shut: the row it sits in grows from 0fr to 1fr, so its height follows its content. */
+.fold {
+  display: grid;
+  grid-template-rows: 1fr;
+}
+.fold__inner {
+  min-height: 0;
+}
+/* Clipped only while moving, so focus rings and tooltips are never cut off once it is open. */
+.fold:is([data-phase='opening'], [data-phase='closing']) > .fold__inner {
+  overflow: hidden;
+}
+.fold[data-phase='opening'] {
+  animation: fold-open var(--duration-normal) var(--ease-out);
+}
+.fold[data-phase='closing'] {
+  animation: fold-close var(--leave-duration) cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+@keyframes fold-open {
+  from {
+    grid-template-rows: 0fr;
+    opacity: 0;
+  }
+}
+@keyframes fold-close {
+  to {
+    grid-template-rows: 0fr;
+    opacity: 0;
+  }
+}
