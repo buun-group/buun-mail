@@ -15,6 +15,7 @@ import { Overview } from './components/Dissolve/Overview'
 import { DISSOLVE_WORKSPACE } from './lib/dissolve'
 
 import { Confirm } from './components/Confirm/Confirm'
+import { UpdatePrompt } from './components/Toasts/UpdatePrompt'
 import { Grain } from './components/Grain/Grain'
 import { NotificationBell } from './components/NotificationBell/NotificationBell'
 import { TitleBar } from './components/TitleBar/TitleBar'
@@ -101,7 +102,7 @@ export function App(): ReactNode {
     [setLook, allWorkspaces, currentPlace, openPlace, refreshMailbox],
   )
   const workspaceDeletion = useWorkspaceDeletion(deletedWorkspace)
-  const updates = useUpdateCheck(preferences.checkUpdates)
+  const updates = useUpdateCheck(preferences.checkUpdates, preferences.updateChannel)
   useShortcut(SETTINGS_SHORTCUT, openSettings)
   useShortcut('f', focusSearch)
   const selectedId = mailbox.selected?.message.id ?? null
@@ -293,7 +294,7 @@ export function App(): ReactNode {
         updates={updates}
       />
       <Compose compose={compose} workspaces={mailbox.workspaces} sendable={sending.sendable} />
-      <Toasts toasts={notifications.toasts} workspaceName={workspaceName} onOpen={(message) => (notifications.isTest(message.id) ? undefined : mailbox.reveal(message))} onDismiss={notifications.dismissToast} />
+      <Toasts toasts={notifications.toasts} workspaceName={workspaceName} onOpen={(message) => (notifications.isTest(message.id) ? undefined : mailbox.reveal(message))} onDismiss={notifications.dismissToast} pinned={<UpdatePrompt updates={updates} />} />
       <Confirm request={actions.confirmation} cancelLabel={t('actions.cancel')} onClose={actions.closeConfirmation} />
       <Confirm request={workspaceDeletion.confirmation} cancelLabel={t('actions.cancel')} onClose={workspaceDeletion.close} />
       {preferences.grain && <Grain />}

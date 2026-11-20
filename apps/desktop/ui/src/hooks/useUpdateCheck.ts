@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { checkForUpdate } from '../api/client'
+import { checkForUpdate, installUpdate } from '../api/client'
 import type { UpdateInfo } from '../api/types'
 import { STORAGE_KEYS, UPDATE_CHECK_DELAY_MS, UPDATE_CHECK_EVERY_MS } from '../constants/ui'
+import type { UpdateChannel } from '../constants/ui'
 import { IconRegenerate } from '../icons'
 import { toast } from '../lib/feedback'
 
@@ -14,9 +15,15 @@ export interface UpdateCheck {
   problem: string | null
   /** Checks now; rejects with the reason, so a button can show it failed. */
   checkNow: () => Promise<UpdateInfo>
+  /** Downloads the found release's installer and opens it; rejects with the reason. */
+  install: () => Promise<void>
+  /** True while a newer release is found and the person has not dismissed it: the pop-up shows. */
+  prompting: boolean
+  /** Hides the pop-up for this version; the next version asks again. */
+  dismiss: () => void
 }
 
-/** When the last check ran, and the newest version the person was already told about. */
+/** When the last check ran, and the version whose pop-up the person dismissed. */
 interface Checked {
   at: number
   told: string | null
@@ -43,38 +50,37 @@ function writeChecked(checked: Checked): void {
 }
 
 /**
- * Looks for a newer Buun Mail on the project's releases page: shortly after starting and then once a day while turned
- * on, plus whenever the person asks. A newer release is announced with a toast once per version.
+ * Looks for a newer Buun Mail on the project's releases pages, on the chosen channel (stable, or early releases with
+ * betas): shortly after starting and then once a day while turned on, plus whenever the person asks or changes the
+ * channel. A newer release shows a pop-up until it is installed or dismissed (once per version), and can be downloaded
+ * and opened from here.
  */
-export function useUpdateCheck(enabled: boolean): UpdateCheck {
+export function useUpdateCheck(enabled: boolean, channel: UpdateChannel): UpdateCheck {
   const { t } = useTranslation('settings')
   const [found, setFound] = useState<UpdateInfo | null>(null)
   const [problem, setProblem] = useState<string | null>(null)
+  const [dismissed, setDismissed] = useState<string | null>(() => readChecked().told)
 
   const run = useCallback(
-    async (announce: boolean): Promise<UpdateInfo> => {
+    async (): Promise<UpdateInfo> => {
       try {
-        const latest = await checkForUpdate()
+        const latest = await checkForUpdate(channel === 'early')
         setFound(latest)
         setProblem(null)
-        const before = readChecked()
-        writeChecked({ at: Date.now(), told: latest.newer ? latest.latest : before.told })
-        if (announce && latest.newer && before.told !== latest.latest) {
-          toast({ text: t('updates.available', { version: latest.latest }), detail: t('updates.availableDetail'), tone: 'info', glyph: IconRegenerate })
-        }
+        writeChecked({ at: Date.now(), told: readChecked().told })
         return latest
       } catch (reason) {
         setProblem(reason instanceof Error ? reason.message : String(reason))
         throw reason
       }
     },
-    [t],
+    [channel],
   )
 
   useEffect(() => {
     if (!enabled) return
     const due = (): void => {
-      if (Date.now() - readChecked().at >= UPDATE_CHECK_EVERY_MS) void run(true).catch(() => undefined)
+      if (Date.now() - readChecked().at >= UPDATE_CHECK_EVERY_MS) void run().catch(() => undefined)
     }
     const first = window.setTimeout(due, UPDATE_CHECK_DELAY_MS)
     // Hourly is enough to notice a day has passed while the app stays open.
@@ -85,6 +91,33 @@ export function useUpdateCheck(enabled: boolean): UpdateCheck {
     }
   }, [enabled, run])
 
-  const checkNow = useCallback(() => run(false), [run])
-  return { found, problem, checkNow }
+  // Switching channel looks again at once, so the newest beta (or the way back to stable) shows straight away.
+  const lastChannel = useRef(channel)
+  useEffect(() => {
+    if (lastChannel.current === channel) return
+    lastChannel.current = channel
+    void run().catch(() => undefined)
+  }, [channel, run])
+
+  const checkNow = useCallback(() => run(), [run])
+  const dismiss = useCallback(() => {
+    if (found === null) return
+    setDismissed(found.latest)
+    writeChecked({ at: readChecked().at, told: found.latest })
+  }, [found])
+  const install = useCallback(async () => {
+    if (found === null || !found.newer) return
+    try {
+      const saved = await installUpdate(found.latest)
+      setDismissed(found.latest)
+      writeChecked({ at: readChecked().at, told: found.latest })
+      toast({ text: t(saved.opens ? 'updates.opened' : 'updates.saved', { version: found.latest }), detail: saved.path, tone: 'done', glyph: IconRegenerate })
+    } catch (reason) {
+      const message = reason instanceof Error ? reason.message : String(reason)
+      toast({ text: t('updates.installFailed', { version: found.latest }), detail: message, tone: 'problem' })
+      throw reason
+    }
+  }, [found, t])
+  const prompting = found !== null && found.newer && dismissed !== found.latest
+  return { found, problem, checkNow, install, prompting, dismiss }
 }

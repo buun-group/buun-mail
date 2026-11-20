@@ -42,6 +42,8 @@ interface ToastsProps {
   workspaceName: (id: string) => string
   onOpen: (message: Message) => void
   onDismiss: (id: string) => void
+  /** Shown first and kept until it goes on its own terms, such as the pop-up for a newer version. */
+  pinned?: ReactNode
 }
 
 /**
@@ -49,7 +51,7 @@ interface ToastsProps {
  * checked). Each leaves on its own with a short animation. While a dialog such as Settings is open the stack renders
  * inside it, so it shows above the dialog and can be clicked, in every engine.
  */
-export function Toasts({ toasts, workspaceName, onOpen, onDismiss }: ToastsProps): ReactNode {
+export function Toasts({ toasts, workspaceName, onOpen, onDismiss, pinned }: ToastsProps): ReactNode {
   const { t } = useTranslation('notifications')
   const feedback = useFeedback()
   const [host, setHost] = useState<HTMLElement>(topmost)
@@ -64,6 +66,7 @@ export function Toasts({ toasts, workspaceName, onOpen, onDismiss }: ToastsProps
 
   return createPortal(
     <section ref={lift} className="toasts" aria-live="polite" aria-label={t('toasts.label')} popover={POPOVERS ? 'manual' : undefined}>
+      {pinned}
       {toasts.map((message) => (
         <div key={message.id} className="toast">
           <button

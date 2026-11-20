@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 
-import { DENSITIES, READING_PANES, STORAGE_KEYS, THEME_PREFERENCES } from '../constants/ui'
+import { DENSITIES, READING_PANES, STORAGE_KEYS, THEME_PREFERENCES, UPDATE_CHANNELS } from '../constants/ui'
 import { applyLanguage, storedLanguage } from '../i18n'
 import { resolveLanguage } from '../i18n/languages'
 import type { LanguagePreference } from '../i18n/languages'
-import type { Density, ReadingPane, Theme, ThemePreference } from '../constants/ui'
+import type { Density, ReadingPane, Theme, ThemePreference, UpdateChannel } from '../constants/ui'
 
 function read<T extends string>(key: string, allowed: readonly T[], fallback: T): T {
   try {
@@ -53,6 +53,8 @@ export interface Preferences {
   language: LanguagePreference
   /** Look for a newer release once a day. */
   checkUpdates: boolean
+  /** Stable releases only, or betas too. */
+  updateChannel: UpdateChannel
   setThemePreference: (value: ThemePreference) => void
   setDensity: (value: Density) => void
   setReadingPane: (value: ReadingPane) => void
@@ -63,6 +65,7 @@ export interface Preferences {
   setSidebarCollapsed: (value: boolean) => void
   setLanguage: (value: LanguagePreference) => void
   setCheckUpdates: (value: boolean) => void
+  setUpdateChannel: (value: UpdateChannel) => void
 }
 
 const ON_OFF = ['on', 'off'] as const
@@ -79,6 +82,7 @@ export function usePreferences(): Preferences {
   const [sidebarCollapsed, setSidebarState] = useState<boolean>(() => read(STORAGE_KEYS.sidebar, ['open', 'collapsed'] as const, 'open') === 'collapsed')
   const [language, setLanguageState] = useState<LanguagePreference>(storedLanguage)
   const [checkUpdates, setCheckUpdatesState] = useState<boolean>(() => read(STORAGE_KEYS.checkUpdates, ON_OFF, 'on') === 'on')
+  const [updateChannel, setUpdateChannelState] = useState<UpdateChannel>(() => read(STORAGE_KEYS.updateChannel, UPDATE_CHANNELS, 'stable'))
   const system = useSystemTheme()
   const theme = themePreference === 'system' ? system : themePreference
 
@@ -99,6 +103,7 @@ export function usePreferences(): Preferences {
     sidebarCollapsed,
     language,
     checkUpdates,
+    updateChannel,
     setThemePreference: (value) => {
       setThemePreferenceState(value)
       write(STORAGE_KEYS.theme, value)
@@ -139,6 +144,10 @@ export function usePreferences(): Preferences {
     setCheckUpdates: (value) => {
       setCheckUpdatesState(value)
       write(STORAGE_KEYS.checkUpdates, value ? 'on' : 'off')
+    },
+    setUpdateChannel: (value) => {
+      setUpdateChannelState(value)
+      write(STORAGE_KEYS.updateChannel, value)
     },
   }
 }

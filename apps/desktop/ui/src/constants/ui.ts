@@ -16,6 +16,7 @@ export const STORAGE_KEYS = {
   outbox: 'buun-mail:outbox',
   looks: 'buun-mail:workspace-looks',
   checkUpdates: 'buun-mail:check-updates',
+  updateChannel: 'buun-mail:update-channel',
   updateChecked: 'buun-mail:update-checked',
 } as const
 
@@ -96,3 +97,7 @@ export const UPDATE_CHECK_EVERY_MS = 24 * 60 * 60 * 1000
 
 /** How long after starting the first check waits, so it never slows opening the app. */
 export const UPDATE_CHECK_DELAY_MS = 8000
+
+/** Which releases the update check offers: stable ones only, or betas too. */
+export const UPDATE_CHANNELS = ['stable', 'early'] as const
+export type UpdateChannel = (typeof UPDATE_CHANNELS)[number]

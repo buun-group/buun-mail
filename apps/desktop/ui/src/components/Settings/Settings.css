@@ -149,6 +149,18 @@
   padding-top: 0;
 }
 
+/* The words take the room and wrap; the control stays on the right of them, dropping below only when narrow. */
+.settings__row > div:first-child {
+  flex: 1 1 16rem;
+  min-width: 0;
+}
+
+/* A row whose own controls continue below it, inside the same setting. */
+.settings__row--joined {
+  border-bottom: 0;
+  padding-bottom: var(--space-2);
+}
+
 .settings__label {
   display: block;
   margin: 0;
@@ -1051,16 +1063,24 @@ label.settings__label {
   padding: var(--space-3) 0;
 }
 
-/* Under the update switch: what the last check found, Check now, and the download when one is out. */
+/* Under the update switch: the channel, what the last check found, Check now, and the install when one is out. */
 .settings__update {
+  display: grid;
+  gap: var(--space-3);
+  padding: 0 0 var(--space-4);
+  border-bottom: 1px solid var(--border-faint);
+}
+
+.settings__update-line {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-2);
-  padding: 0 0 var(--space-3);
+  gap: var(--space-2) var(--space-4);
 }
 
-.settings__update .settings__hint {
+.settings__update-line > :first-child {
+  flex: 1 1 14rem;
+  min-width: 0;
   margin: 0;
 }
