@@ -270,3 +270,16 @@ fn counts_people_written_to_from_sent_as_contacts() -> Result<(), StoreError> {
     assert_eq!(found.iter().find(|(_, address, _, _)| address == "new@client.example").map(|(_, _, _, latest)| *latest), Some(50));
     Ok(())
 }
+
+#[test]
+fn all_mail_is_every_workspace_newest_first_without_sent_copies() -> Result<(), StoreError> {
+    let (_folder, store) = store()?;
+    store.insert(&record("a", "acme", None, 10), b"a")?;
+    store.insert(&record("b", "globex", Some("Receipts"), 30), b"b")?;
+    store.insert(&record("c", "acme", Some("Sent"), 40), b"c")?;
+    store.insert(&record("d", "globex", None, 20), b"d")?;
+    store.set_shelf("d", Shelf::Archived, 50)?;
+    let ids: Vec<String> = store.view(View::All)?.into_iter().map(|message| message.id).collect();
+    assert_eq!(ids, ["b", "a"]);
+    Ok(())
+}

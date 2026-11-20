@@ -62,6 +62,7 @@ interface SidebarProps {
 
 /** The lists across every workspace, in sidebar order. */
 const VIEWS = [
+  { id: 'all', glyph: IconUnsorted },
   { id: 'drafts', glyph: IconRename },
   { id: 'starred', glyph: IconStar },
   { id: 'snoozed', glyph: IconSnooze },
@@ -80,6 +81,8 @@ export function Sidebar({ workspaces, place, view, theme, looks, folded, collaps
   const needsEditor = t('menu.needsEditor')
   const nav = useRef<HTMLElement | null>(null)
   const [peek] = usePeek(nav, collapsed)
+  // Unread across every workspace, for All mail: the sum of the workspaces' own counts.
+  const allUnread = workspaces.reduce((sum, workspace) => sum + workspace.unread, 0)
   // A folder that goes (an inbox that ended or was burned) dissolves away where it was.
   const allFolders = useMemo(() => workspaces.flatMap((workspace) => workspace.folders.map((folder) => ({ workspaceId: workspace.id, folder }))), [workspaces])
   const { list: keptFolders, gone: folderGone } = useLeaving(allFolders, (entry) => `${entry.workspaceId}\u0001${entry.folder.name ?? ''}`, 'sidebar')
@@ -201,6 +204,7 @@ export function Sidebar({ workspaces, place, view, theme, looks, folded, collaps
                       <item.glyph aria-hidden="true" />
                       <span className="sidebar__folder-name sidebar__text">{label}</span>
                       {item.id === 'drafts' && draftCount > 0 && <span className="sidebar__count">{draftCount}</span>}
+                      {item.id === 'all' && allUnread > 0 && <span className="sidebar__count">{allUnread}</span>}
                     </TipButton>
                   </li>
                 )

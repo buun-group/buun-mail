@@ -125,6 +125,8 @@ pub enum ViewDto {
     Trash,
     /// Snoozed messages.
     Snoozed,
+    /// Every workspace's mail together.
+    All,
 }
 
 impl From<ViewDto> for View {
@@ -134,6 +136,7 @@ impl From<ViewDto> for View {
             ViewDto::Archive => Self::Archived,
             ViewDto::Trash => Self::Trashed,
             ViewDto::Snoozed => Self::Snoozed,
+            ViewDto::All => Self::All,
         }
     }
 }

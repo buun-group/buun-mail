@@ -269,6 +269,7 @@ impl Store {
             View::Archived => "shelf = 'archived' ORDER BY shelved_at DESC, sent_at DESC",
             View::Trashed => "shelf = 'trashed' ORDER BY shelved_at DESC, sent_at DESC",
             View::Snoozed => "snoozed_until IS NOT NULL AND shelf != 'trashed' ORDER BY snoozed_until",
+            View::All => "shelf = 'active' AND snoozed_until IS NULL AND folder IS NOT 'Sent' ORDER BY sent_at DESC",
         };
         let mut statement = self.index.prepare_cached(&format!("SELECT {COLUMNS} FROM messages WHERE {filter}"))?;
         let rows = statement.query_map([], record_from_row)?;

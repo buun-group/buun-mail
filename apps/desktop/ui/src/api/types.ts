@@ -54,7 +54,7 @@ export interface Message {
 export type Shelf = 'active' | 'archived' | 'trashed'
 
 /** A list across every workspace. Drafts live on this computer only, so the Rust side never sees that view. */
-export type MailView = 'starred' | 'snoozed' | 'archive' | 'trash' | 'drafts' | 'contacts'
+export type MailView = 'all' | 'starred' | 'snoozed' | 'archive' | 'trash' | 'drafts' | 'contacts'
 
 /** Where the list is pointed: one folder of one workspace. */
 export interface Place {

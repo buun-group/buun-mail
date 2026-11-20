@@ -15,7 +15,8 @@
       "trash": "The trash is empty. Mail here goes for good after 30 days.",
       "drafts": "",
       "snoozed": "Nothing snoozed. Snooze a message to hide it until a time you choose; it comes back unread.",
-      "contacts": ""
+      "contacts": "",
+      "all": "Nothing here yet. Mail from every workspace shows here, newest first."
     },
     "starredMark": "Starred",
     "emptyTrash": "Empty trash",
@@ -105,7 +106,8 @@
     "trash": "Trash",
     "drafts": "Drafts",
     "snoozed": "Snoozed",
-    "contacts": "Contacts"
+    "contacts": "Contacts",
+    "all": "All mail"
   },
   "actions": {
     "menuLabel": "Actions for {{subject}}",

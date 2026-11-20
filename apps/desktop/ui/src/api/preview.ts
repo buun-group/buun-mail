@@ -58,7 +58,7 @@ export function previewMessages(place: Place): Message[] {
 }
 
 export function previewView(view: MailView): Message[] {
-  const keep = { starred: (message: Message) => message.starred && message.shelf !== 'trashed', archive: (message: Message) => message.shelf === 'archived', trash: (message: Message) => message.shelf === 'trashed', snoozed: (message: Message) => message.snoozedUntil !== null, drafts: () => false, contacts: () => false }[view]
+  const keep = { all: (message: Message) => message.shelf === 'active' && message.snoozedUntil === null && message.folder !== 'Sent', starred: (message: Message) => message.starred && message.shelf !== 'trashed', archive: (message: Message) => message.shelf === 'archived', trash: (message: Message) => message.shelf === 'trashed', snoozed: (message: Message) => message.snoozedUntil !== null, drafts: () => false, contacts: () => false }[view]
   return MESSAGES.filter(keep).map((message) => ({ ...message }))
 }
 

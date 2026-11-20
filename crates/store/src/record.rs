@@ -102,6 +102,9 @@ pub enum View {
     Trashed,
     /// Snoozed messages, soonest back first.
     Snoozed,
+    /// Every workspace's mail in its folders, newest first: one inbox for every business. Sent copies and snoozed
+    /// mail are left out.
+    All,
 }
 
 /// How many unread messages one folder holds.
