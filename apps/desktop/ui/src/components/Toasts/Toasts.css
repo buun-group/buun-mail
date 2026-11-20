@@ -1,7 +1,9 @@
 .toasts {
   /* A popover in the top layer where the engine has them (Toasts.tsx); these rules undo the browser's popover box. */
-  /* Every side is set on its own, and rows are only as tall as their toast and gather at the bottom, so nothing can
-     stretch a toast to the window's height, inside a dialog or out. */
+  /* Every side is set on its own and rows are only as tall as their toast, so nothing can stretch a toast to the
+     window's height. Pinned to the bottom with its height from its content, it needs no end alignment: WebKit lays a
+     grid with align-content: end and height: fit-content out as if it were the window's height, and put the toasts
+     below the bottom edge, out of sight. */
   position: fixed;
   top: auto;
   right: var(--space-4);
@@ -10,11 +12,11 @@
   z-index: 240;
   display: grid;
   grid-auto-rows: max-content;
-  align-content: end;
+  align-content: start;
   align-items: start;
   gap: var(--space-2);
   width: min(22rem, calc(100vw - 2rem));
-  height: fit-content;
+  height: auto;
   max-height: calc(100vh - 2 * var(--space-4));
   margin: 0;
   padding: 0;
