@@ -57,6 +57,12 @@
   --status-danger-fg: #b3261e;
   --status-success-fg: #1f7a3d;
   --status-success-bg: #e3f4e8;
+  /* dissolve.email's own palette, for its burn (lib/burn.ts): the same in both themes, as in the product. */
+  --dissolve-glow: #bd34fe;
+  --dissolve-accent: #8b5cf6;
+  --dissolve-accent-light: #a78bfa;
+  --dissolve-primary: #646cff;
+  --dissolve-cyan: #41d1ff;
   --mail-paper: #ffffff;
   --mail-ink: #1a1a1a;
   --mail-link: #2453c7;
