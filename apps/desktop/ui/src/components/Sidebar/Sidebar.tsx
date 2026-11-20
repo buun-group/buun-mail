@@ -73,6 +73,9 @@ const VIEWS = [
   { id: 'contacts', glyph: IconContacts },
 ] as const satisfies readonly { id: MailView; glyph: unknown }[]
 
+/** The fold key for the views section; a colon keeps it apart from any workspace id. */
+const VIEWS_FOLD = ':views'
+
 /**
  * Every workspace and its folders, the open one marked. Collapsed, it is a rail of icons; pointing at it, scrolling
  * over it or tabbing into it slides it open over the list, and it folds back when the pointer and focus leave.
@@ -196,8 +199,15 @@ export function Sidebar({ workspaces, place, view, theme, looks, folded, collaps
               </ul>
             </section>
           ))}
-          <section className="sidebar__workspace sidebar__views" aria-label={t('mail:views.label')}>
-            <ul>
+          <section className="sidebar__workspace sidebar__views" aria-labelledby="sidebar-views">
+            <h2 id="sidebar-views" className="sidebar__heading">
+              <TipButton tip={rail ? t('mail:views.label') : null} side="right" className="sidebar__workspace-name" aria-expanded={!folded.has(VIEWS_FOLD)} aria-label={rail ? t('mail:views.label') : undefined} onClick={() => onFold(VIEWS_FOLD)}>
+                <IconUnsorted aria-hidden="true" className="sidebar__unsorted" />
+                <span className="sidebar__text sidebar__workspace-label">{t('mail:views.label')}</span>
+                <IconCaretDown aria-hidden="true" className="sidebar__fold sidebar__text" />
+              </TipButton>
+            </h2>
+            <ul hidden={folded.has(VIEWS_FOLD)}>
               {VIEWS.map((item) => {
                 const label = t(`mail:views.${item.id}`)
                 return (

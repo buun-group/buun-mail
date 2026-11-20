@@ -77,3 +77,16 @@ describe('general settings', () => {
     expect(localStorage.getItem('buun-mail:grain')).toBe('off')
   })
 })
+
+describe('the views section', () => {
+  it('folds away and comes back', async () => {
+    render(<App />)
+    const views = await screen.findByRole('button', { name: /^Views/ })
+    expect(screen.getByRole('button', { name: /^All mail/ })).toBeTruthy()
+    fireEvent.click(views)
+    expect(views.getAttribute('aria-expanded')).toBe('false')
+    expect(screen.queryByRole('button', { name: /^All mail/ })).toBeNull()
+    fireEvent.click(views)
+    expect(await screen.findByRole('button', { name: /^All mail/ })).toBeTruthy()
+  })
+})
