@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeAll, describe, expect, it } from 'vitest'
 
 import { App } from '../App'
@@ -155,5 +155,17 @@ describe('sender checks in the list', () => {
     const { rowDetailsLabel } = await import('../components/MessageList/RowDetails')
     const message = { id: 'x', workspace: 'dissolve', folder: 'a@dissolve.email', fromName: 'Shop', from: 'no-reply@shop.example', to: 'a@dissolve.email', matched: null, folderMatched: null, subject: 'Code', preview: '', receivedAt: '2026-11-20T10:00:00Z', unread: true, starred: false, shelf: 'active' as const, tags: [], threadId: null, threadSize: 1, snoozedUntil: null, size: 6_214, checks: { verdict: 'unclear' as const, by: null, spf: 'pass' as const, dkim: 'fail' as const, dmarc: null } }
     expect(rowDetailsLabel(message)).toBe('SPF pass, DKIM fail, DMARC none, 6 KB')
+  })
+})
+
+describe('sender checks setting', () => {
+  it('shows checks in any workspace and hides them when switched off', async () => {
+    render(<App />)
+    fireEvent.click(await screen.findByRole('button', { name: /Billing/ }))
+    expect(await screen.findByText('SPF pass, DKIM pass, DMARC pass, 63 KB')).toBeTruthy()
+    fireEvent.keyDown(window, { key: ',', ctrlKey: true })
+    fireEvent.click(screen.getByRole('switch', { name: 'Sender checks and size in the list' }))
+    fireEvent.keyDown(window, { key: 'Escape' })
+    await waitFor(() => expect(screen.queryByText('SPF pass, DKIM pass, DMARC pass, 63 KB')).toBeNull())
   })
 })

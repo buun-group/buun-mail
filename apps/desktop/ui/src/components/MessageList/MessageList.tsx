@@ -53,7 +53,7 @@ interface MessageListProps {
   wide: boolean
   /** A bar under the header for the open workspace, such as dissolve.email's inbox actions. */
   banner?: ReactNode
-  /** Show each message's sender checks and size, as the dissolve.email workspace does. */
+  /** Show each message's sender checks and size (Settings, General). */
   details?: boolean
 }
 

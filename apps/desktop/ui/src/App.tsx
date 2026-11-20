@@ -195,7 +195,7 @@ export function App(): ReactNode {
         scope={mailbox.scope}
         onScope={mailbox.setScope}
         wide={preferences.readingPane === 'off'}
-        details={workspace?.id === DISSOLVE_WORKSPACE && mailbox.view === null}
+        details={preferences.senderChecks}
         banner={workspace?.id === DISSOLVE_WORKSPACE && mailbox.view === null && mailbox.place !== null ? <DissolveBar key={mailbox.place.folder ?? ''} place={mailbox.place} onOpen={mailbox.open} /> : undefined}
       />
       )}

@@ -82,6 +82,15 @@ export function GeneralSection({ preferences }: { preferences: Preferences }): R
       </div>
       <div className="settings__row">
         <div>
+          <label id="sender-checks-label" htmlFor="sender-checks" className="settings__label">
+            {t('senderChecks.title')}
+          </label>
+          <p className="settings__hint">{t('senderChecks.hint')}</p>
+        </div>
+        <Switch id="sender-checks" labelledBy="sender-checks-label" checked={preferences.senderChecks} onChange={preferences.setSenderChecks} />
+      </div>
+      <div className="settings__row">
+        <div>
           <label id="remember-label" htmlFor="remember" className="settings__label">
             {t('remember.title')}
           </label>

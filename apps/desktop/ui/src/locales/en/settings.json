@@ -80,5 +80,9 @@
   "conversations": {
     "title": "Group by conversation",
     "hint": "One row per conversation, showing its newest message, with replies and your sent answers gathered above the open message."
+  },
+  "senderChecks": {
+    "title": "Sender checks and size in the list",
+    "hint": "SPF, DKIM and DMARC for each message, as the receiving server found them, and its size. Point at one to see what it means."
   }
 }

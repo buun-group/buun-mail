@@ -21,7 +21,7 @@ function stateOf(checks: Authentication | null, name: CheckName): CheckState {
 
 /** A row's sender checks and size in words, for the row's accessible name and for tests. */
 export function rowDetailsLabel(message: Message): string {
-  const parts = CHECKS.map((name) => `${name.toUpperCase()} ${i18n.t(`mail:auth.${stateOf(message.checks, name)}`)}`)
+  const parts = message.checks === null ? [] : CHECKS.map((name) => `${name.toUpperCase()} ${i18n.t(`mail:auth.${stateOf(message.checks, name)}`)}`)
   if (message.size !== null) parts.push(readableSize(message.size))
   return parts.join(', ')
 }
@@ -29,6 +29,7 @@ export function rowDetailsLabel(message: Message): string {
 /**
  * SPF, DKIM and DMARC as a glyph and the check's name each, green tick for passed, a cross for failed, a question for
  * unclear and a dash when not recorded, each with a tip that says what it means for this sender; then the size.
+ * Mail that carries no checks (your sent copies, most imports) shows only its size.
  */
 export function RowDetails({ message }: { message: Message }): ReactNode {
   const { t } = useTranslation('mail')
@@ -36,7 +37,7 @@ export function RowDetails({ message }: { message: Message }): ReactNode {
   return (
     <span className="row-details" aria-hidden="true">
       <span className="row-details__checks">
-        {CHECKS.map((name) => {
+        {message.checks !== null && CHECKS.map((name) => {
           const state = stateOf(message.checks, name)
           const Glyph = GLYPHS[state]
           return (
