@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import type { ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 
 import './Confirm.css'
 
@@ -29,7 +30,8 @@ export function Confirm({ request, cancelLabel, onClose }: { request: Confirmati
     if (request === null && element.open) element.close()
   }, [request])
 
-  return (
+  // Drawn at the top of the page wherever it is used, so a parent's layout (a flex bar, a grid list) never shapes it.
+  return createPortal(
     <dialog ref={dialog} className="confirm" aria-labelledby="confirm-title" aria-describedby="confirm-body" onClose={onClose}>
       {request !== null && (
         <>
@@ -52,6 +54,7 @@ export function Confirm({ request, cancelLabel, onClose }: { request: Confirmati
           </div>
         </>
       )}
-    </dialog>
+    </dialog>,
+    document.body,
   )
 }

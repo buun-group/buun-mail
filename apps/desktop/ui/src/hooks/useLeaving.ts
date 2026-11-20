@@ -12,21 +12,29 @@ interface Seen<T> {
   signature: string
   scope: string
   leaving: Map<string, { item: T; index: number }>
+  /** The scope just changed and its own items have not come yet: the next change is a replacement, not removals. */
+  settling: boolean
 }
 
 /**
  * Keeps items that just left a list on screen, marked leaving, so they can dissolve away where they were; `gone(key)`
  * drops one once its animation has run. Only removals within one `scope` (one folder, one filter) leave this way:
- * opening another folder replaces the list at once. Compares keys, so a list rebuilt each render is fine.
+ * opening another folder replaces the list at once, also when its items arrive a moment after the scope changes.
+ * Compares keys, so a list rebuilt each render is fine.
  */
 export function useLeaving<T>(items: readonly T[], keyOf: (item: T) => string, scope: string): { list: Kept<T>[]; gone: (key: string) => void } {
   const signature = items.map(keyOf).join('\u0000')
-  const [seen, setSeen] = useState<Seen<T>>(() => ({ items, signature, scope, leaving: new Map() }))
+  const [seen, setSeen] = useState<Seen<T>>(() => ({ items, signature, scope, leaving: new Map(), settling: false }))
   if (seen.signature !== signature || seen.scope !== scope) {
-    const sameScope = seen.scope === scope
-    const leaving = new Map(sameScope ? seen.leaving : [])
+    const scopeChanged = seen.scope !== scope
     const now = new Set(items.map(keyOf))
-    if (sameScope) {
+    const before = new Set(seen.items.map(keyOf))
+    // Only a pure removal in a settled scope leaves: opening a folder swaps the place a moment before its messages
+    // arrive, and that swap must not play the old folder's messages dissolving.
+    const removalOnly = [...now].every((key) => before.has(key))
+    const animate = !scopeChanged && !seen.settling && removalOnly
+    const leaving = new Map(animate ? seen.leaving : [])
+    if (animate) {
       seen.items.forEach((item, index) => {
         const key = keyOf(item)
         if (!now.has(key) && !leaving.has(key)) leaving.set(key, { item, index })
@@ -34,7 +42,7 @@ export function useLeaving<T>(items: readonly T[], keyOf: (item: T) => string, s
     }
     // Something that came back is no longer leaving.
     for (const key of leaving.keys()) if (now.has(key)) leaving.delete(key)
-    setSeen({ items, signature, scope, leaving })
+    setSeen({ items, signature, scope, leaving, settling: scopeChanged && seen.signature === signature })
   }
   const gone = useCallback((key: string) => {
     setSeen((current) => {

@@ -29,3 +29,17 @@ describe('useLeaving', () => {
     expect(result.current.list.map((kept) => kept.key)).toEqual(['a', 'b'])
   })
 })
+
+describe('useLeaving across a folder change', () => {
+  it('does not dissolve the old folder when its scope changes before its items do', () => {
+    const { result, rerender } = renderHook(({ items, scope }) => useLeaving(items, keyOf, scope), { initialProps: { items: ['a', 'b'], scope: 'inbox' } })
+    // The place changes first, the old items still showing; then the new folder's items arrive (here, none).
+    rerender({ items: ['a', 'b'], scope: 'billing' })
+    rerender({ items: [], scope: 'billing' })
+    expect(result.current.list).toEqual([])
+    // Settled now: a later removal dissolves.
+    rerender({ items: ['c', 'd'], scope: 'billing' })
+    rerender({ items: ['c'], scope: 'billing' })
+    expect(result.current.list.map((kept) => `${kept.key}${kept.leaving ? '-' : ''}`)).toEqual(['c', 'd-'])
+  })
+})
