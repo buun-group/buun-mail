@@ -95,10 +95,14 @@ export function AlertConnect({ kind, onCount }: { kind: AlertKind; onCount: (cou
               className="settings__button"
               glyph={IconSend}
               busyLabel={t('alerts.sending')}
+              doneLabel={t('alerts.sent')}
               run={() =>
                 testAlert(channel.id)
                   .then(() => toast({ text: t('alerts.tested'), detail: channel.name, tone: 'done', glyph: IconSend }))
-                  .catch((cause: unknown) => toast({ text: t('alerts.testFailed'), detail: reason(cause), tone: 'problem' }))
+                  .catch((cause: unknown) => {
+                  toast({ text: t('alerts.testFailed'), detail: reason(cause), tone: 'problem' })
+                  throw cause
+                })
                   .finally(() => void listAlerts().then(take))
               }
             >
@@ -112,7 +116,10 @@ export function AlertConnect({ kind, onCount }: { kind: AlertKind; onCount: (cou
                 run={() =>
                   sendDigestNow(channel.id)
                     .then(() => toast({ text: t('alerts.digestSent'), detail: channel.name, tone: 'done', glyph: IconSend }))
-                    .catch((cause: unknown) => toast({ text: t('alerts.testFailed'), detail: reason(cause), tone: 'problem' }))
+                    .catch((cause: unknown) => {
+                  toast({ text: t('alerts.testFailed'), detail: reason(cause), tone: 'problem' })
+                  throw cause
+                })
                 }
               >
                 {t('alerts.digestNow')}

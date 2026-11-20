@@ -12,6 +12,28 @@
   }
 }
 
+/* How it went, for a moment: a green tick that pops in, or a warning glyph. */
+.busy-button[data-state='done'] {
+  color: var(--status-success-fg);
+}
+.busy-button[data-state='done'] .busy-button__glyph {
+  color: var(--status-success-fg);
+  animation: busy-pop 260ms var(--ease-out);
+}
+.busy-button[data-state='failed'] .busy-button__glyph {
+  color: var(--status-danger-fg);
+  animation: busy-pop 260ms var(--ease-out);
+}
+@keyframes busy-pop {
+  from {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.15);
+  }
+}
+
 /* Placeholder rows while a panel loads: soft bars with a slow shimmer. */
 .skeleton {
   display: grid;

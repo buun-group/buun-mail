@@ -37,6 +37,7 @@
     "sender": "Buun Mail",
     "subject": "This is how new mail looks",
     "toastsOff": "Pop-ups in the window are off",
-    "toastsOffDetail": "Turn them on above to see the test."
+    "toastsOffDetail": "Turn them on above to see the test.",
+    "sent": "Sent"
   }
 }

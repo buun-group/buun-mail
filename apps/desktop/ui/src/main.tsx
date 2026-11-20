@@ -7,6 +7,7 @@ import { hasOwnTitleBar, isMac, watchMaximized } from './api/window'
 
 import '@buun-mail/brand/motion.css'
 import './styles/base.css'
+import { followInputMode } from './lib/inputMode'
 
 document.documentElement.dataset['platform'] = isMac ? 'mac' : 'other'
 // The desktop window is transparent so the app can round its own corners; square again while maximised.
@@ -17,6 +18,8 @@ watchMaximized((maximized) => {
 
 const root = document.getElementById('root')
 if (root === null) throw new Error('index.html has no #root')
+
+followInputMode()
 
 createRoot(root).render(
   <StrictMode>

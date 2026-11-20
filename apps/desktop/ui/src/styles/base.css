@@ -39,6 +39,17 @@ button {
   border-radius: var(--radius-sm);
 }
 
+/* The ring is for the keyboard. After a click or a tap it stays hidden, whatever the engine guesses (WebKit shows it
+   when a dialog opens); the first key that moves focus brings it back. lib/inputMode.ts keeps data-input current. */
+:root[data-input='pointer'] :focus-visible {
+  outline: none;
+}
+
+/* A dialog that holds focus itself shows no ring of its own. */
+dialog:focus {
+  outline: none;
+}
+
 .visually-hidden {
   position: absolute;
   width: 1px;
@@ -72,4 +83,19 @@ code {
 html[data-shell='desktop'],
 html[data-shell='desktop'] body {
   background: transparent;
+}
+
+/* Every button answers a press: it dips a little while held and springs back, so a click always reads as taken. */
+button:not(:disabled):not([aria-disabled='true']) {
+  transition: transform 160ms var(--ease-out);
+}
+button:not(:disabled):not([aria-disabled='true']):active {
+  transform: scale(0.96);
+  transition-duration: 80ms;
+}
+@media (prefers-reduced-motion: reduce) {
+  button:not(:disabled):not([aria-disabled='true']):active {
+    transform: none;
+    filter: brightness(0.9);
+  }
 }

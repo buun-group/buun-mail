@@ -8,6 +8,7 @@ import type { Workspace } from '../../api/types'
 import type { Notifications } from '../../hooks/useNotifications'
 import { IconBell } from '../../icons'
 import { Switch } from './Switch'
+import { BusyButton } from '../Busy/BusyButton'
 
 /** How new mail tells you it arrived, and which workspaces stay quiet. Saved on this computer. */
 export function NotificationsSection({ notifications, workspaces }: { notifications: Notifications; workspaces: Workspace[] }): ReactNode {
@@ -53,10 +54,9 @@ export function NotificationsSection({ notifications, workspaces }: { notificati
             <p className="settings__label">{t('test.title')}</p>
             <p className="settings__hint">{t('test.hint')}</p>
           </div>
-          <button type="button" className="settings__button" onClick={() => notifications.sendTest(workspaces[0]?.id ?? '')}>
-            <IconBell aria-hidden="true" />
+          <BusyButton className="settings__button" glyph={IconBell} doneLabel={t('test.sent')} run={async () => notifications.sendTest(workspaces[0]?.id ?? '')}>
             {t('test.button')}
-          </button>
+          </BusyButton>
         </div>
       </div>
 

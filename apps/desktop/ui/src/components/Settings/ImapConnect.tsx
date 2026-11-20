@@ -95,7 +95,10 @@ export function ImapConnect({ preset: initial, onChanged }: { preset: MailPreset
                     onChanged()
                     return listImapAccounts().then(setAccounts)
                   })
-                  .catch((cause: unknown) => toast({ text: t('imap.checkFailed'), detail: reason(cause), tone: 'problem' }))
+                  .catch((cause: unknown) => {
+                  toast({ text: t('imap.checkFailed'), detail: reason(cause), tone: 'problem' })
+                  throw cause
+                })
               }
             >
               {t('gateway.checkNow')}

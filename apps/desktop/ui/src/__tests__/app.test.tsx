@@ -310,3 +310,27 @@ describe('busy buttons and skeletons', () => {
     expect(screen.getByRole('status', { name: 'Loading' }).querySelectorAll('.skeleton__row')).toHaveLength(3)
   })
 })
+
+describe('press feedback and the focus ring', () => {
+  it('shows the focus ring after the keyboard only', async () => {
+    const { followInputMode } = await import('../lib/inputMode')
+    followInputMode()
+    expect(document.documentElement.dataset['input']).toBe('pointer')
+    fireEvent.keyDown(window, { key: 'Tab' })
+    expect(document.documentElement.dataset['input']).toBe('keyboard')
+    fireEvent.pointerDown(window)
+    expect(document.documentElement.dataset['input']).toBe('pointer')
+  })
+
+  it('says it worked right on the button once its work is done', async () => {
+    const { BusyButton } = await import('../components/Busy/BusyButton')
+    const { IconBell } = await import('../icons')
+    render(
+      <BusyButton glyph={IconBell} doneLabel="Sent" run={async () => undefined}>
+        Send a test
+      </BusyButton>,
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Send a test' }))
+    expect(await screen.findByRole('button', { name: 'Sent' }, { timeout: 2000 })).toBeTruthy()
+  })
+})

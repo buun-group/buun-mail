@@ -356,7 +356,8 @@
     "digestAt": "Daily digest at {{time}}.",
     "digestNow": "Send digest now",
     "digestSent": "Digest sent",
-    "sending": "Sending..."
+    "sending": "Sending...",
+    "sent": "Sent"
   },
   "loading": "Loading"
 }

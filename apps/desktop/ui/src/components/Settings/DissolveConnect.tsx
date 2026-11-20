@@ -125,7 +125,10 @@ export function DissolveConnect({ onChanged, onConnected }: { onChanged: () => v
                   onChanged()
                   setStatus(await dissolveStatus())
                 })
-                .catch((cause: unknown) => toast({ text: t('dissolve.checkFailed'), detail: reason(cause), tone: 'problem' }))
+                .catch((cause: unknown) => {
+                  toast({ text: t('dissolve.checkFailed'), detail: reason(cause), tone: 'problem' })
+                  throw cause
+                })
             }
           >
             {t('gateway.checkNow')}

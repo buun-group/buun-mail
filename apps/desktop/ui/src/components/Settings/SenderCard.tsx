@@ -79,7 +79,10 @@ export function SenderCard({ sender, onList }: { sender: Sender; onList: (sender
                   onList(list)
                   toast({ text: t('resend.refreshed'), tone: 'done' })
                 })
-                .catch((cause: unknown) => toast({ text: t('resend.refreshFailed'), detail: reason(cause), tone: 'problem' }))
+                .catch((cause: unknown) => {
+                  toast({ text: t('resend.refreshFailed'), detail: reason(cause), tone: 'problem' })
+                  throw cause
+                })
             }
           >
             {t('resend.refresh')}

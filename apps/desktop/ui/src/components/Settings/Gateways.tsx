@@ -66,7 +66,10 @@ export function Gateways({ onChanged, onCount }: GatewaysProps): ReactNode {
         else toast({ text: t('gateway.checked', { count: report.gateways.length }), detail: report.arrived > 0 ? t('gateway.arrived', { count: report.arrived }) : t('gateway.nothingNew'), tone: 'done' })
         if (report.arrived > 0) onChanged()
       })
-      .catch((cause: unknown) => toast({ text: t('domains.failedToast'), detail: reason(cause), tone: 'problem' }))
+      .catch((cause: unknown) => {
+                  toast({ text: t('domains.failedToast'), detail: reason(cause), tone: 'problem' })
+                  throw cause
+                })
 
   if (gateways === null) return <Skeleton label={t('loading')} />
 

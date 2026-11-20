@@ -57,12 +57,16 @@ export function Settings({ open, onClose, preferences, workspaces, looks, onLook
   useEffect(() => {
     const element = dialog.current
     if (element === null) return
-    if (open && !element.open) element.showModal()
+    if (open && !element.open) {
+      element.showModal()
+      // The dialog itself takes focus, not its first tab, so opening it with the mouse shows no focus ring.
+      element.focus()
+    }
     if (!open && element.open) element.close()
   }, [open])
 
   return (
-    <dialog ref={dialog} className="settings" aria-labelledby="settings-title" onClose={onClose}>
+    <dialog ref={dialog} className="settings" aria-labelledby="settings-title" tabIndex={-1} onClose={onClose}>
       <nav className="settings__nav" aria-label={t('sectionsLabel')}>
         <h2 id="settings-title">{t('title')}</h2>
         {SETTINGS_SECTIONS.map((id) => {
