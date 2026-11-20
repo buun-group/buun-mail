@@ -51,6 +51,8 @@ export interface Preferences {
   grain: boolean
   sidebarCollapsed: boolean
   language: LanguagePreference
+  /** Look for a newer release once a day. */
+  checkUpdates: boolean
   setThemePreference: (value: ThemePreference) => void
   setDensity: (value: Density) => void
   setReadingPane: (value: ReadingPane) => void
@@ -60,6 +62,7 @@ export interface Preferences {
   setGrain: (value: boolean) => void
   setSidebarCollapsed: (value: boolean) => void
   setLanguage: (value: LanguagePreference) => void
+  setCheckUpdates: (value: boolean) => void
 }
 
 const ON_OFF = ['on', 'off'] as const
@@ -75,6 +78,7 @@ export function usePreferences(): Preferences {
   const [grain, setGrainState] = useState<boolean>(() => read(STORAGE_KEYS.grain, ON_OFF, 'on') === 'on')
   const [sidebarCollapsed, setSidebarState] = useState<boolean>(() => read(STORAGE_KEYS.sidebar, ['open', 'collapsed'] as const, 'open') === 'collapsed')
   const [language, setLanguageState] = useState<LanguagePreference>(storedLanguage)
+  const [checkUpdates, setCheckUpdatesState] = useState<boolean>(() => read(STORAGE_KEYS.checkUpdates, ON_OFF, 'on') === 'on')
   const system = useSystemTheme()
   const theme = themePreference === 'system' ? system : themePreference
 
@@ -94,6 +98,7 @@ export function usePreferences(): Preferences {
     grain,
     sidebarCollapsed,
     language,
+    checkUpdates,
     setThemePreference: (value) => {
       setThemePreferenceState(value)
       write(STORAGE_KEYS.theme, value)
@@ -130,6 +135,10 @@ export function usePreferences(): Preferences {
       setLanguageState(value)
       write(STORAGE_KEYS.language, value)
       applyLanguage(resolveLanguage(value))
+    },
+    setCheckUpdates: (value) => {
+      setCheckUpdatesState(value)
+      write(STORAGE_KEYS.checkUpdates, value ? 'on' : 'off')
     },
   }
 }

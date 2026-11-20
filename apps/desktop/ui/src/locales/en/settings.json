@@ -107,6 +107,18 @@
     "right": "Right",
     "off": "Off"
   },
+  "updates": {
+    "title": "Check for updates",
+    "hint": "Once a day, asks the Buun Mail releases page on GitHub for the newest version and tells you when one is out. Nothing about you or your mail is sent.",
+    "unchecked": "Not checked yet this session.",
+    "current": "You have {{current}}, the newest release.",
+    "newer": "Buun Mail {{latest}} is out. You have {{current}}.",
+    "checkNow": "Check now",
+    "checking": "Checking...",
+    "get": "Get {{version}}",
+    "available": "Buun Mail {{version}} is out",
+    "availableDetail": "Settings, General has the download."
+  },
   "remember": {
     "title": "Reopen where I left off",
     "hint": "Opens on the folder and message you had open when Buun Mail closed, instead of the first inbox."

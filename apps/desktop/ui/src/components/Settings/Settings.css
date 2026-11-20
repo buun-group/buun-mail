@@ -1050,3 +1050,17 @@ label.settings__label {
   justify-content: flex-start;
   padding: var(--space-3) 0;
 }
+
+/* Under the update switch: what the last check found, Check now, and the download when one is out. */
+.settings__update {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: 0 0 var(--space-3);
+}
+
+.settings__update .settings__hint {
+  margin: 0;
+}

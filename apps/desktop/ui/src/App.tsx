@@ -9,6 +9,7 @@ import { onReminderDue } from './api/events'
 import { notify } from './api/notify'
 import { toast } from './lib/feedback'
 import { useWorkspaceDeletion } from './hooks/useWorkspaceDeletion'
+import { useUpdateCheck } from './hooks/useUpdateCheck'
 import { IconSnooze } from './icons'
 import { Overview } from './components/Dissolve/Overview'
 import { DISSOLVE_WORKSPACE } from './lib/dissolve'
@@ -100,6 +101,7 @@ export function App(): ReactNode {
     [setLook, allWorkspaces, currentPlace, openPlace, refreshMailbox],
   )
   const workspaceDeletion = useWorkspaceDeletion(deletedWorkspace)
+  const updates = useUpdateCheck(preferences.checkUpdates)
   useShortcut(SETTINGS_SHORTCUT, openSettings)
   useShortcut('f', focusSearch)
   const selectedId = mailbox.selected?.message.id ?? null
@@ -288,6 +290,7 @@ export function App(): ReactNode {
         onImported={mailbox.refresh}
         notifications={notifications}
         onSendersChanged={sending.refresh}
+        updates={updates}
       />
       <Compose compose={compose} workspaces={mailbox.workspaces} sendable={sending.sendable} />
       <Toasts toasts={notifications.toasts} workspaceName={workspaceName} onOpen={(message) => (notifications.isTest(message.id) ? undefined : mailbox.reveal(message))} onDismiss={notifications.dismissToast} />

@@ -158,6 +158,12 @@ pub fn import_files(app: AppHandle, mailbox: State<'_, Arc<Mailbox>>, paths: Vec
     Ok(report)
 }
 
+/// Whether a newer release is out, from the project's GitHub releases page. Off the window's thread.
+#[tauri::command]
+pub async fn check_for_update() -> Result<crate::updates::UpdateDto, String> {
+    tauri::async_runtime::spawn_blocking(crate::updates::check).await.map_err(|error| error.to_string())?
+}
+
 /// The routing file's workspaces, for the editor in Settings.
 #[tauri::command]
 pub fn routing_workspaces(mailbox: State<'_, Arc<Mailbox>>) -> Result<Vec<WorkspaceEdit>, AppError> {

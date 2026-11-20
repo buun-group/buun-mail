@@ -429,3 +429,12 @@ export interface Writing {
   templates: Template[]
   profiles: Record<string, Profile>
 }
+
+/** Whether a newer release is out, from the project's releases page. */
+export interface UpdateInfo {
+  current: string
+  latest: string
+  newer: boolean
+  url: string
+  publishedAt: string | null
+}

@@ -15,6 +15,8 @@ export const STORAGE_KEYS = {
   senderChecks: 'buun-mail:sender-checks',
   outbox: 'buun-mail:outbox',
   looks: 'buun-mail:workspace-looks',
+  checkUpdates: 'buun-mail:check-updates',
+  updateChecked: 'buun-mail:update-checked',
 } as const
 
 /** A workspace image is drawn at this many pixels square before it is kept, so storage stays small. */
@@ -88,3 +90,9 @@ export const EXPORT_FORMATS = [
   { id: 'text', extension: 'txt' },
 ] as const
 export type ExportFormat = (typeof EXPORT_FORMATS)[number]['id'] | 'mbox'
+
+/** How often a newer release is looked for, while the app runs and when it starts. */
+export const UPDATE_CHECK_EVERY_MS = 24 * 60 * 60 * 1000
+
+/** How long after starting the first check waits, so it never slows opening the app. */
+export const UPDATE_CHECK_DELAY_MS = 8000

@@ -11,6 +11,7 @@ import type { WorkspaceLook, WorkspaceLooks } from '../../hooks/useWorkspaceLook
 import { IconClose, SECTION_GLYPHS } from '../../icons'
 import { AgentsSection } from './AgentsSection'
 import { GeneralSection } from './GeneralSection'
+import type { UpdateCheck } from '../../hooks/useUpdateCheck'
 import { IntegrationsSection } from './IntegrationsSection'
 import { NotificationsSection } from './NotificationsSection'
 import { RulesSection } from './RulesSection'
@@ -54,10 +55,12 @@ interface SettingsProps {
   notifications: Notifications
   /** Called when a sender is connected, changed or removed, so what can send is read again. */
   onSendersChanged: () => void
+  /** Whether a newer release is out. */
+  updates: UpdateCheck
 }
 
 /** Settings in a native modal dialog: sections down the left, the chosen one on the right. Escape closes it. */
-export function Settings({ open, onClose, preferences, workspaces, looks, onLook, section, onSection, editing, onEditing, changing, onChanging, onDeleteWorkspace, onImported, notifications, onSendersChanged }: SettingsProps): ReactNode {
+export function Settings({ open, onClose, preferences, workspaces, looks, onLook, section, onSection, editing, onEditing, changing, onChanging, onDeleteWorkspace, onImported, notifications, onSendersChanged, updates }: SettingsProps): ReactNode {
   const { t } = useTranslation('settings')
   const dialog = useRef<HTMLDialogElement | null>(null)
 
@@ -95,7 +98,7 @@ export function Settings({ open, onClose, preferences, workspaces, looks, onLook
           </button>
         </header>
         <div className="settings__body">
-          {section === 'general' && <GeneralSection preferences={preferences} />}
+          {section === 'general' && <GeneralSection preferences={preferences} updates={updates} />}
           {section === 'notifications' && <NotificationsSection notifications={notifications} workspaces={workspaces} />}
           {section === 'workspaces' && <WorkspacesSection workspaces={workspaces} looks={looks} onLook={onLook} editing={editing} onEditing={onEditing} changing={changing} onChanging={onChanging} onDelete={onDeleteWorkspace} onChanged={onImported} theme={preferences.theme} />}
           {section === 'rules' && <RulesSection workspaces={workspaces} onChanged={onImported} />}

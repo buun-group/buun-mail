@@ -5,7 +5,7 @@ import { openUrl } from '@tauri-apps/plugin-opener'
 import type { ExportFormat } from '../constants/ui'
 import { COMMANDS, IMPORT_EXTENSIONS } from './commands'
 import { preview, previewDetail, previewMessages, previewRouting, previewView, previewWorkspaces } from './preview'
-import type { Activity, AgentStatus, AlertChannel, Profile, Template, Writing, Reminder, ScheduledMessage, AlertKind, AvailableDomain, CheckReport, Contact, RevealStatus, SecretKind, DissolveInbox, DissolveStatus, Draft, FileToSend, ImapAccount, KnownContact, SmtpSecurity, SmtpServer, Sendable, Sender, GatewayDomain, GatewayStatus, ImportReport, MailView, Message, MessageDetail, Place, Rule, Shelf, TagCount, Workspace, WorkspaceEdit } from './types'
+import type { Activity, AgentStatus, AlertChannel, Profile, Template, Writing, Reminder, ScheduledMessage, AlertKind, AvailableDomain, CheckReport, Contact, RevealStatus, SecretKind, DissolveInbox, DissolveStatus, Draft, FileToSend, ImapAccount, KnownContact, SmtpSecurity, SmtpServer, Sendable, Sender, GatewayDomain, GatewayStatus, ImportReport, MailView, Message, MessageDetail, Place, Rule, Shelf, TagCount, UpdateInfo, Workspace, WorkspaceEdit } from './types'
 
 /**
  * The one door to the Rust side. In the desktop app every call is a Tauri command; in a plain browser (`pnpm dev:ui`)
@@ -117,6 +117,12 @@ export async function saveWorkspace(workspace: WorkspaceEdit): Promise<string> {
 /** Deletes a workspace from the routing file. Its mail is filed again; resolves to how many messages moved. */
 export async function deleteWorkspace(id: string): Promise<number> {
   return isTauri() ? invoke<number>(COMMANDS.deleteWorkspace, { id }) : previewRouting.remove(id)
+}
+
+/** Asks the project's releases page whether a newer Buun Mail is out. The preview always has the newest. */
+export async function checkForUpdate(): Promise<UpdateInfo> {
+  if (isTauri()) return invoke<UpdateInfo>(COMMANDS.checkForUpdate)
+  return { current: '0.4.0', latest: '0.4.0', newer: false, url: 'https://github.com/buun-group/buun-mail/releases', publishedAt: null }
 }
 
 /** Opens a page in the person's browser, never inside the app. The desktop allows only the product sites. */

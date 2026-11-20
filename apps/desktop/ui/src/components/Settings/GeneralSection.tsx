@@ -3,15 +3,18 @@ import { useTranslation } from 'react-i18next'
 
 import { DENSITIES, READING_PANES, THEME_PREFERENCES } from '../../constants/ui'
 import type { Preferences } from '../../hooks/usePreferences'
-import { DENSITY_GLYPHS, IconGlobe, READING_PANE_GLYPHS, THEME_GLYPHS } from '../../icons'
+import { openExternal } from '../../api/client'
+import type { UpdateCheck } from '../../hooks/useUpdateCheck'
+import { DENSITY_GLYPHS, IconExternal, IconGlobe, IconRegenerate, READING_PANE_GLYPHS, THEME_GLYPHS } from '../../icons'
+import { BusyButton } from '../Busy/BusyButton'
 import { Segmented } from './Segmented'
 import { Switch } from './Switch'
 import { LANGUAGES } from '../../i18n/languages'
 import type { LanguagePreference } from '../../i18n/languages'
 import { Select } from '../Select/Select'
 
-/** Look and feel, saved on this computer. */
-export function GeneralSection({ preferences }: { preferences: Preferences }): ReactNode {
+/** Look and feel, saved on this computer, and whether to look for a newer release. */
+export function GeneralSection({ preferences, updates }: { preferences: Preferences; updates: UpdateCheck }): ReactNode {
   const { t } = useTranslation(['settings', 'common'])
   const themeLabels = { system: t('common:themes.system'), light: t('common:themes.light'), dark: t('common:themes.dark') }
   const densityLabels = { comfortable: t('density.comfortable'), compact: t('density.compact') }
@@ -97,6 +100,37 @@ export function GeneralSection({ preferences }: { preferences: Preferences }): R
           <p className="settings__hint">{t('remember.hint')}</p>
         </div>
         <Switch id="remember" labelledBy="remember-label" checked={preferences.rememberPlace} onChange={preferences.setRememberPlace} />
+      </div>
+      <div className="settings__row">
+        <div>
+          <label id="updates-label" htmlFor="updates" className="settings__label">
+            {t('updates.title')}
+          </label>
+          <p className="settings__hint">{t('updates.hint')}</p>
+        </div>
+        <Switch id="updates" labelledBy="updates-label" checked={preferences.checkUpdates} onChange={preferences.setCheckUpdates} />
+      </div>
+      <div className="settings__update">
+        <p className="settings__hint" role="status">
+          {updates.problem !== null
+            ? updates.problem
+            : updates.found === null
+              ? t('updates.unchecked')
+              : updates.found.newer
+                ? t('updates.newer', { latest: updates.found.latest, current: updates.found.current })
+                : t('updates.current', { current: updates.found.current })}
+        </p>
+        <div className="settings__actions settings__actions--tight">
+          <BusyButton className="settings__button" glyph={IconRegenerate} run={updates.checkNow} busyLabel={t('updates.checking')}>
+            {t('updates.checkNow')}
+          </BusyButton>
+          {updates.found?.newer === true && (
+            <button type="button" className="settings__button" onClick={() => void openExternal(updates.found?.url ?? '')}>
+              <IconExternal aria-hidden="true" />
+              {t('updates.get', { version: updates.found.latest })}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   )
