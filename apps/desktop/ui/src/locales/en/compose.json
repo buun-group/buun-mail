@@ -64,5 +64,16 @@
   "remindNone": "No reminder",
   "remind1": "If no reply in 1 day",
   "remind3": "If no reply in 3 days",
-  "remind7": "If no reply in a week"
+  "remind7": "If no reply in a week",
+  "templates": {
+    "label": "Templates",
+    "none": "No templates yet. Save a message you send often below.",
+    "everywhere": "every workspace",
+    "remove": "Remove {{name}}",
+    "saveThis": "Save this message as a template",
+    "namePlaceholder": "Name, such as Quote sent",
+    "add": "Save template",
+    "forAll": "For every workspace",
+    "saved": "Template saved"
+  }
 }

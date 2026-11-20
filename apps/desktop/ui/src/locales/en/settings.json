@@ -116,5 +116,16 @@
     "removed": "Reveal code removed",
     "mismatch": "The two codes are not the same.",
     "passkeyLater": "Unlocking with a passkey, Touch ID or Windows Hello is planned; it depends on what each system offers."
+  },
+  "profile": {
+    "edit": "Writing",
+    "from": "New mail from",
+    "fromAny": "The first address that can send",
+    "fromNone": "Connect a sender for this workspace's domain to pick its address here.",
+    "signature": "Signature",
+    "signaturePlaceholder": "Your name\nYour business",
+    "signatureHint": "Used on this workspace's mail in place of the sender's own signature. Leave empty to keep that one.",
+    "save": "Save",
+    "saved": "Writing settings saved"
   }
 }

@@ -50,3 +50,12 @@ describe('compose helpers', () => {
     expect(replyAllCc(original, 'buun-mail@flung.dev').map((person) => person.address)).toEqual(['ops@client.example'])
   })
 })
+
+describe('templates', () => {
+  it('puts a template above the signature and keeps what is quoted', async () => {
+    const { insertTemplate, workspaceOfAddress } = await import('../lib/compose')
+    expect(insertTemplate('\n\n-- \nSacha', 'Your quote is attached.')).toBe('Your quote is attached.\n\n-- \nSacha')
+    expect(insertTemplate('Hi Jo,\n\n-- \nSacha\n\n> earlier', 'Thanks!')).toBe('Hi Jo,\n\nThanks!\n\n-- \nSacha\n\n> earlier')
+    expect(workspaceOfAddress(workspaces, 'hello@flung.dev')).toBe('flung')
+  })
+})

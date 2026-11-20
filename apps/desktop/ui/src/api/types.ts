@@ -397,3 +397,25 @@ export interface Reminder {
   /** When it is due, RFC 3339. */
   dueAt: string
 }
+
+/** A saved reply. Mirrors `Template`. */
+export interface Template {
+  id: string
+  name: string
+  /** The workspace it is for, or null for every workspace. */
+  workspace: string | null
+  subject: string
+  text: string
+}
+
+/** A workspace's signature and address for new mail. Mirrors `Profile`. */
+export interface Profile {
+  signature: string
+  from: string
+}
+
+/** Every template and profile. Mirrors `Writing`. */
+export interface Writing {
+  templates: Template[]
+  profiles: Record<string, Profile>
+}

@@ -7,15 +7,16 @@ import { isTauri } from '@tauri-apps/api/core'
 import { pickFilesToSend } from '../../api/client'
 import type { Contact, Sendable, Workspace } from '../../api/types'
 import type { Compose as ComposeApi } from '../../hooks/useCompose'
-import { IconAttachment, IconCalendar, IconClose, IconDelete, IconMinimize, IconRestore, IconSend } from '../../icons'
+import { IconAttachment, IconCalendar, IconClose, IconDelete, IconMinimize, IconRestore, IconSend, IconText } from '../../icons'
 import { toast } from '../../lib/feedback'
 import { readableSize } from '../../lib/size'
-import { contactLine, fromChoices, isAddress } from '../../lib/compose'
+import { contactLine, fromChoices, insertTemplate, isAddress, workspaceOfAddress } from '../../lib/compose'
 import { canSendAs, domainOf } from '../../lib/sending'
 import { Select } from '../Select/Select'
 import { SnoozePicker } from '../Snooze/SnoozePicker'
 import { TipButton } from '../Tooltip/TipButton'
 import { RecipientField } from './RecipientField'
+import { TemplatesMenu } from './TemplatesMenu'
 
 import './Compose.css'
 
@@ -40,6 +41,7 @@ export function Compose({ compose, workspaces, sendable }: ComposeProps): ReactN
   const [showCc, setShowCc] = useState(false)
   const [showBcc, setShowBcc] = useState(false)
   const [laterFrom, setLaterFrom] = useState<HTMLElement | null>(null)
+  const [templatesFrom, setTemplatesFrom] = useState<HTMLElement | null>(null)
   const [typingFrom, setTypingFrom] = useState(false)
   const [openedFor, setOpenedFor] = useState<string | null>(null)
 
@@ -226,6 +228,22 @@ export function Compose({ compose, workspaces, sendable }: ComposeProps): ReactN
           <IconSend aria-hidden="true" />
           {t('send')}
         </button>
+        <TipButton tip={t('templates.label')} className="compose__icon" aria-label={t('templates.label')} onClick={(event) => setTemplatesFrom(event.currentTarget)}>
+          <IconText aria-hidden="true" />
+        </TipButton>
+        {templatesFrom !== null && (
+          <TemplatesMenu
+            anchor={templatesFrom}
+            workspace={workspaceOfAddress(workspaces, draft.from.address)}
+            subject={draft.subject}
+            text={draft.text}
+            onClose={() => setTemplatesFrom(null)}
+            onInsert={(template) => {
+              setTemplatesFrom(null)
+              set({ text: insertTemplate(draft.text, template.text), ...(draft.subject.trim() === '' && template.subject !== '' ? { subject: template.subject } : {}) })
+            }}
+          />
+        )}
         <TipButton tip={t('sendLater')} className="compose__icon" aria-label={t('sendLater')} aria-disabled={!ready || undefined} onClick={ready ? (event) => setLaterFrom(event.currentTarget) : undefined}>
           <IconCalendar aria-hidden="true" />
         </TipButton>

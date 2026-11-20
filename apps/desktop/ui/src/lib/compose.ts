@@ -111,3 +111,17 @@ export function replyTarget(original: Original): Contact[] {
 }
 
 export { signatureFor }
+
+/** The workspace an address belongs to: the one claiming it exactly, or its domain. */
+export function workspaceOfAddress(workspaces: readonly Workspace[], address: string): string | null {
+  const clean = address.trim().toLowerCase()
+  return workspaces.find((workspace) => workspace.addresses.includes(clean))?.id ?? workspaces.find((workspace) => workspace.addresses.includes(`*@${domainOf(clean)}`))?.id ?? null
+}
+
+/** A message's text with a template's words put where the person writes: above the signature and anything quoted. */
+export function insertTemplate(text: string, words: string): string {
+  const head = text.split(/\n-- \n/u)[0] ?? ''
+  const rest = text.slice(head.length)
+  const before = head.trimEnd()
+  return `${before === '' ? '' : `${before}\n\n`}${words.trim()}\n${rest === '' ? '' : `\n${rest.replace(/^\n+/u, '')}`}`
+}

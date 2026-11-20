@@ -9,6 +9,7 @@ import type { ComposeMode, Composing, Original } from '../lib/compose'
 import { forwardBlock, forwardSubject, fromChoices, quote, replyAllCc, replySubject, replyTarget, signatureFor, startingText } from '../lib/compose'
 import { dismissFeedback, toast } from '../lib/feedback'
 import { formatListed } from '../lib/time'
+import { loadWriting, profileOf } from '../lib/writing'
 
 /** How long Undo stays possible after Send, before the message really goes. */
 export const UNDO_SEND_MS = 5_000
@@ -70,7 +71,7 @@ const failureOf = (error: unknown): SendFailure => (typeof error === 'object' &&
  * outbox that keeps a message Resend could not take (offline, busy) and tries again every minute and when the
  * computer comes back online. A refused message reopens with the reason.
  */
-export function useCompose(workspaces: readonly Workspace[], sendable: readonly Sendable[], onSent: (message: Message) => void): Compose {
+export function useCompose(workspaces: readonly Workspace[], sendable: readonly Sendable[], onSent: (message: Message) => void, currentWorkspace: string | null = null): Compose {
   const { t } = useTranslation('compose')
   const [open, setOpen] = useState<Composing | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -102,8 +103,11 @@ export function useCompose(workspaces: readonly Workspace[], sendable: readonly 
 
   const start = (mode: ComposeMode, original: Original | null, to: Contact[] = []): void => {
     const choices = fromChoices(workspaces, sendable, original)
-    const from = choices[0] ?? { name: null, address: sendable[0] === undefined ? '' : `@${sendable[0].domain}` }
-    const signature = signatureFor(from.address, sendable)
+    // The workspace's own profile: its address for new mail, and its signature in place of the sender's.
+    const profile = profileOf(original?.message.workspace ?? currentWorkspace)
+    const preferred = original === null && profile !== undefined && profile.from !== '' ? choices.find((choice) => choice.address === profile.from) : undefined
+    const from = preferred ?? choices[0] ?? { name: null, address: sendable[0] === undefined ? '' : `@${sendable[0].domain}` }
+    const signature = profile !== undefined && profile.signature.trim() !== '' ? profile.signature : signatureFor(from.address, sendable)
     const carried =
       original === null ? '' : mode === 'forward' ? forwardBlock(original, { title: t('forward.title'), from: t('fields.from'), date: t('forward.date'), subject: t('fields.subject'), to: t('fields.to') }) : quote(original, (when, who) => t('quoteLine', { when, who }))
     const draft: Draft = {
@@ -236,6 +240,11 @@ export function useCompose(workspaces: readonly Workspace[], sendable: readonly 
       return days === null ? rest : { ...rest, remindDays: days }
     })
   }
+
+  // The templates and workspace profiles, read once so a new message can start from them at once.
+  useEffect(() => {
+    void loadWriting().catch(() => undefined)
+  }, [])
 
   // Tries the outbox again every minute while it holds something, and the moment the computer is back online.
   useEffect(() => {

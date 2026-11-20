@@ -92,7 +92,7 @@ export function App(): ReactNode {
   const workspaceName = (id: string): string => mailbox.workspaces.find((item) => item.id === id)?.name ?? id
   const notifications = useNotifications(workspaceName)
   const sending = useSending()
-  const compose = useCompose(mailbox.workspaces, sending.sendable, () => mailbox.refresh())
+  const compose = useCompose(mailbox.workspaces, sending.sendable, () => mailbox.refresh(), mailbox.place?.workspace ?? null)
   /** Starts a reply, reply all or forward of `message`, reading its text first when it is not the open one. */
   const composeFor = (mode: ComposeMode, message: Message): void => {
     const open = mailbox.selected

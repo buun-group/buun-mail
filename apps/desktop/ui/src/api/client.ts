@@ -5,7 +5,7 @@ import { openUrl } from '@tauri-apps/plugin-opener'
 import type { ExportFormat } from '../constants/ui'
 import { COMMANDS, IMPORT_EXTENSIONS } from './commands'
 import { preview, previewDetail, previewMessages, previewView, previewWorkspaces } from './preview'
-import type { Activity, AgentStatus, AlertChannel, Reminder, ScheduledMessage, AlertKind, AvailableDomain, CheckReport, Contact, RevealStatus, SecretKind, DissolveInbox, DissolveStatus, Draft, FileToSend, ImapAccount, KnownContact, SmtpSecurity, SmtpServer, Sendable, Sender, GatewayDomain, GatewayStatus, ImportReport, MailView, Message, MessageDetail, Place, Rule, Shelf, TagCount, Workspace } from './types'
+import type { Activity, AgentStatus, AlertChannel, Profile, Template, Writing, Reminder, ScheduledMessage, AlertKind, AvailableDomain, CheckReport, Contact, RevealStatus, SecretKind, DissolveInbox, DissolveStatus, Draft, FileToSend, ImapAccount, KnownContact, SmtpSecurity, SmtpServer, Sendable, Sender, GatewayDomain, GatewayStatus, ImportReport, MailView, Message, MessageDetail, Place, Rule, Shelf, TagCount, Workspace } from './types'
 
 /**
  * The one door to the Rust side. In the desktop app every call is a Tauri command; in a plain browser (`pnpm dev:ui`)
@@ -442,4 +442,24 @@ export async function listReminders(): Promise<Reminder[]> {
 /** Drops a reminder. */
 export async function cancelReminder(id: string): Promise<Reminder[]> {
   return isTauri() ? invoke<Reminder[]>(COMMANDS.cancelReminder, { id }) : preview.later.dropReminder(id)
+}
+
+/** Every template and workspace profile. */
+export async function readWriting(): Promise<Writing> {
+  return isTauri() ? invoke<Writing>(COMMANDS.readWriting) : preview.writing.read()
+}
+
+/** Adds (empty id) or replaces a template. */
+export async function saveTemplate(template: Template): Promise<Writing> {
+  return isTauri() ? invoke<Writing>(COMMANDS.saveTemplate, { template }) : preview.writing.saveTemplate(template)
+}
+
+/** Forgets a template. */
+export async function deleteTemplate(id: string): Promise<Writing> {
+  return isTauri() ? invoke<Writing>(COMMANDS.deleteTemplate, { id }) : preview.writing.deleteTemplate(id)
+}
+
+/** Sets a workspace's signature and address for new mail. */
+export async function saveProfile(workspace: string, profile: Profile): Promise<Writing> {
+  return isTauri() ? invoke<Writing>(COMMANDS.saveProfile, { workspace, profile }) : preview.writing.saveProfile(workspace, profile)
 }

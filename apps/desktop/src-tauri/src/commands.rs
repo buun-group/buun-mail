@@ -22,6 +22,7 @@ use crate::mailbox::{Actor, AttachmentDataDto, ExportFormat, Mailbox};
 use crate::send::{DraftDto, Security, SendFailure, SendService, SendableDto, SenderDto, SmtpServer};
 use crate::sync::{AvailableZone, CheckReportDto, DomainRoute, GatewayStatusDto, OwnedDomain, SyncService};
 use crate::vault::reveal::{RevealLock, RevealStatusDto};
+use crate::writing::{Profile, Template, Writing, WritingStore};
 
 /// Every workspace for the sidebar.
 #[tauri::command]
@@ -599,4 +600,28 @@ pub fn list_reminders(later: State<'_, LaterService>) -> Result<Vec<ReminderDto>
 #[tauri::command]
 pub fn cancel_reminder(later: State<'_, LaterService>, id: String) -> Result<Vec<ReminderDto>, String> {
     later.cancel_reminder(&id)
+}
+
+/// Every template and workspace profile.
+#[tauri::command]
+pub fn read_writing(writing: State<'_, WritingStore>) -> Result<Writing, String> {
+    writing.read()
+}
+
+/// Adds or replaces a template.
+#[tauri::command]
+pub fn save_template(writing: State<'_, WritingStore>, template: Template) -> Result<Writing, String> {
+    writing.save_template(template)
+}
+
+/// Forgets a template.
+#[tauri::command]
+pub fn delete_template(writing: State<'_, WritingStore>, id: String) -> Result<Writing, String> {
+    writing.delete_template(&id)
+}
+
+/// Sets a workspace's signature and address for new mail.
+#[tauri::command]
+pub fn save_profile(writing: State<'_, WritingStore>, workspace: String, profile: Profile) -> Result<Writing, String> {
+    writing.save_profile(&workspace, &profile)
 }

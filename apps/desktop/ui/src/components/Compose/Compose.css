@@ -383,3 +383,77 @@ html[data-composing='min'] .toasts {
   font-size: var(--text-xs);
   color: var(--text-muted);
 }
+
+.templates {
+  display: grid;
+  gap: var(--space-2);
+  width: min(22rem, calc(100vw - 2rem));
+  padding: var(--space-1);
+  font-size: var(--text-sm);
+}
+.templates__empty {
+  margin: 0;
+  padding: var(--space-2);
+  color: var(--text-muted);
+}
+.templates__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.templates__item {
+  display: flex;
+  align-items: center;
+}
+.templates__use {
+  flex: 1;
+  min-width: 0;
+}
+.templates__scope {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+.templates__remove,
+.templates__add {
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+}
+.templates__remove:hover,
+.templates__add:hover {
+  background: var(--alpha-6);
+  color: var(--text-primary);
+}
+.templates__save {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-2);
+  border-top: 1px solid var(--border-faint);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+.templates__row {
+  display: flex;
+  gap: var(--space-1);
+}
+.templates__row input {
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--border-muted);
+  border-radius: var(--radius-sm);
+  background: var(--surface-card);
+  color: var(--text-primary);
+}
+.templates__all {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+.templates__error {
+  margin: 0;
+  color: var(--status-danger-fg);
+}

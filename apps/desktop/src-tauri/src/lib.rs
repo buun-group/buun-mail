@@ -8,6 +8,7 @@
 //! - `imap`: collecting from IMAP mailboxes
 //! - `later`: messages scheduled to go later, and reminders when nobody answers
 //! - `alerts`: telling you elsewhere (Slack, a text, an email) when a rule matches arriving mail
+//! - `writing`: templates, and each workspace's signature and address for new mail
 //! - `vault`: secrets sealed at rest under this install's key, and the code asked before showing one
 //! - `dissolve`: dissolve.email's disposable inboxes as a workspace, after signing in with OAuth
 //! - `ingest`: parse, route and store one message; every mail source goes through it
@@ -32,6 +33,7 @@ mod paths;
 mod send;
 mod sync;
 mod vault;
+mod writing;
 
 use std::sync::Arc;
 
@@ -110,6 +112,10 @@ pub fn run() {
             commands::remind_if_no_reply,
             commands::list_reminders,
             commands::cancel_reminder,
+            commands::read_writing,
+            commands::save_template,
+            commands::delete_template,
+            commands::save_profile,
             commands::open_message,
             commands::mark_all_read,
             commands::tag_message,
@@ -185,6 +191,7 @@ fn start(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     app.manage(send);
     app.manage(imap::ImapService::start(paths.config.clone(), Arc::clone(&mailbox), Some(app.handle().clone())));
     app.manage(dissolve::DissolveService::start(paths.config.clone(), Arc::clone(&mailbox), Some(app.handle().clone())));
+    app.manage(writing::WritingStore::open(paths.config.clone()));
     app.manage(mailbox);
     Ok(())
 }

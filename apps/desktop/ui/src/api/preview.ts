@@ -1,4 +1,4 @@
-import type { Activity, AgentStatus, AlertChannel, Reminder, ScheduledMessage, AlertKind, Contact, RevealStatus, DissolveInbox, DissolveStatus, Draft, ImapAccount, KnownContact, SmtpServer, MailView, Message, MessageDetail, Place, Rule, Sendable, Sender, TagCount, Workspace } from './types'
+import type { Activity, AgentStatus, AlertChannel, Profile, Template, Writing, Reminder, ScheduledMessage, AlertKind, Contact, RevealStatus, DissolveInbox, DissolveStatus, Draft, ImapAccount, KnownContact, SmtpServer, MailView, Message, MessageDetail, Place, Rule, Sendable, Sender, TagCount, Workspace } from './types'
 
 /**
  * A small stand-in mailbox for `pnpm dev:ui`, where there is no Rust side, so the layout can be tuned in a plain
@@ -212,7 +212,28 @@ const later = {
   },
 }
 
+const WRITING: Writing = { templates: [{ id: 'template-1', name: 'Quote on its way', workspace: null, subject: 'Your quote', text: 'Thanks for asking. Your quote is attached; it holds for thirty days.' }], profiles: {} }
+const writingCopy = (): Writing => ({ templates: WRITING.templates.map((item) => ({ ...item })), profiles: { ...WRITING.profiles } })
+const writing = {
+  read: writingCopy,
+  saveTemplate: (template: Template): Writing => {
+    if (template.name.trim() === '' || template.text.trim() === '') throw new Error('Give the template a name and some words.')
+    if (template.id === '') WRITING.templates.push({ ...template, id: `template-${WRITING.templates.length + 1}` })
+    else WRITING.templates = WRITING.templates.map((item) => (item.id === template.id ? template : item))
+    return writingCopy()
+  },
+  deleteTemplate: (id: string): Writing => {
+    WRITING.templates = WRITING.templates.filter((item) => item.id !== id)
+    return writingCopy()
+  },
+  saveProfile: (workspace: string, profile: Profile): Writing => {
+    WRITING.profiles[workspace] = profile
+    return writingCopy()
+  },
+}
+
 export const preview = {
+  writing,
   later,
   dissolve,
   security,

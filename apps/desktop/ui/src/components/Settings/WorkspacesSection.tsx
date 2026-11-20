@@ -13,6 +13,7 @@ import type { WorkspaceLook, WorkspaceLooks } from '../../hooks/useWorkspaceLook
 import { IconImage, IconReset, WORKSPACE_GLYPHS } from '../../icons'
 import type { WorkspaceGlyph } from '../../icons'
 import { WorkspaceIcon } from '../WorkspaceIcon/WorkspaceIcon'
+import { ProfileEditor } from './ProfileEditor'
 
 interface WorkspacesSectionProps {
   workspaces: Workspace[]
@@ -31,6 +32,7 @@ export function WorkspacesSection({ workspaces, looks, onLook, editing, onEditin
   const { t } = useTranslation('settings')
   const defined = workspaces.filter((workspace) => workspace.id !== UNSORTED_WORKSPACE)
   const [path, setPath] = useState<string | null>(null)
+  const [writingFor, setWritingFor] = useState<string | null>(null)
   useEffect(() => {
     routingPath()
       .then(setPath)
@@ -53,7 +55,11 @@ export function WorkspacesSection({ workspaces, looks, onLook, editing, onEditin
               <button type="button" className="settings__button" aria-expanded={editing === workspace.id} onClick={() => onEditing(editing === workspace.id ? null : workspace.id)}>
                 {t('workspaces.changeIcon')}
               </button>
+              <button type="button" className="settings__button" aria-expanded={writingFor === workspace.id} onClick={() => setWritingFor(writingFor === workspace.id ? null : workspace.id)}>
+                {t('profile.edit')}
+              </button>
             </div>
+            {writingFor === workspace.id && <ProfileEditor workspace={workspace} />}
             {editing === workspace.id && <IconPicker workspace={workspace} theme={theme} look={looks[workspace.id]} onLook={(look) => onLook(workspace.id, look)} />}
           </li>
         ))}
