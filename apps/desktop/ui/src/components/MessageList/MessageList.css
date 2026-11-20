@@ -1,4 +1,6 @@
 .message-list {
+  /* Its width decides how much of the header's name and workspace fits (the container queries below). */
+  container: message-list / inline-size;
   /* Holds the agent identity drawer while the reading pane is hidden. */
   position: relative;
   /* Room for the longest date in the list ("19 Nov, 10:40 pm"), so quick actions can sit just before it. */
@@ -36,7 +38,9 @@
   grid-template-rows: auto auto minmax(0, 1fr);
 }
 .message-list__title h1 {
-  min-width: 0;
+  /* The name takes the room first; the workspace chip gives way before it does. */
+  flex: 0 1 auto;
+  min-width: 3ch;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -55,9 +59,12 @@
 /* The workspace beside the folder's name: its own icon in a soft chip, as in the sidebar. */
 .message-list__workspace {
   display: inline-flex;
+  flex: 0 100 auto;
+  /* Never narrower than its icon: the name inside gives way, the icon stays. */
+  min-width: calc(1.25rem + 6px);
+  overflow: hidden;
   align-items: center;
   gap: var(--space-1-5);
-  min-width: 0;
   padding: 2px var(--space-2) 2px 3px;
   border-radius: var(--radius-md);
   background: var(--alpha-4);
@@ -67,10 +74,25 @@
   color: var(--text-secondary);
 }
 
+.message-list__workspace > :first-child {
+  flex: none;
+}
+
 .message-list__workspace > span {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+/* In a narrow list the chip is just the workspace's icon; the tooltip on the title still names it. */
+@container message-list (max-width: 30rem) {
+  .message-list__workspace {
+    flex: none;
+    padding: 2px;
+  }
+  .message-list__workspace > span:last-child {
+    display: none;
+  }
 }
 
 .message-list__tally {

@@ -62,7 +62,9 @@
     },
     "searchResults": "Search results",
     "conversation_one": "{{count}} message in this conversation",
-    "conversation_other": "{{count}} messages in this conversation"
+    "conversation_other": "{{count}} messages in this conversation",
+    "copyAddress": "Copy the address",
+    "addressCopied": "Address copied"
   },
   "reader": {
     "label": "Reader",
@@ -91,7 +93,8 @@
       "replyTo": "Reply to"
     },
     "forward": "Forward",
-    "routeProvided": "{{workspace}}, where the integration it came from placed it."
+    "routeProvided": "{{workspace}}, where the integration it came from placed it.",
+    "nothingOpenHint": "J and K move through the list, C writes a new message, and / searches."
   },
   "tags": {
     "more": "+{{count}}",
@@ -360,8 +363,11 @@
     "copyPassword": "Copy the password",
     "revealCode": "Reveal code",
     "unlock": "Show",
-    "collapse": "Tuck the identity away",
-    "expand": "Show the agent identity"
+    "collapse": "Tuck the identity away (I)",
+    "expand": "Show the agent identity (I)",
+    "copyAll": "Copy everything",
+    "copiedAll": "Identity copied, every value on its own line",
+    "copiedAllNoPassword": "Identity copied without the password: show the password first to include it"
   },
   "verification": {
     "label": "Found in this message",
