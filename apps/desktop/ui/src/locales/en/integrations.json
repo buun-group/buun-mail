@@ -349,6 +349,11 @@
       "sms": "From your Twilio console: the account SID, the auth token, a Twilio number to send from, and your phone number.",
       "email": "Sent from an address on a domain one of your senders can send from.",
       "webhook": "Each alert is POSTed as JSON: the event, a title, the text, and the message's details."
-    }
+    },
+    "digest": "Daily digest at",
+    "digestHint": "Optional. Once a day at this time: what arrived in each workspace over the last day. Leave empty for alerts from rules only.",
+    "digestAt": "Daily digest at {{time}}.",
+    "digestNow": "Send digest now",
+    "digestSent": "Digest sent"
   }
 }

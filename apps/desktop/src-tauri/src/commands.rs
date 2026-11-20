@@ -637,3 +637,16 @@ pub fn message_note(mailbox: State<'_, Arc<Mailbox>>, id: String) -> Result<Opti
 pub fn set_message_note(mailbox: State<'_, Arc<Mailbox>>, id: String, text: String) -> Result<(), AppError> {
     mailbox.set_note(&id, &text)
 }
+
+/// Tells the app how far the person's clock is from UTC (minutes ahead), for digests at their local time.
+#[tauri::command]
+pub fn set_local_offset(alerts: State<'_, AlertService>, minutes: i64) {
+    alerts.set_local_offset(minutes);
+}
+
+/// Sends a channel's daily digest now, away from the window's thread.
+#[tauri::command]
+pub async fn send_digest_now(alerts: State<'_, AlertService>, id: String) -> Result<(), String> {
+    let service = alerts.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || service.send_digest(&id, crate::mailbox::unix_now())).await.map_err(|error| error.to_string())?
+}

@@ -95,6 +95,17 @@ fn base(channel: &AlertChannel, default: &str) -> String {
 /// What went wrong, in words for Settings and the activity log.
 pub fn deliver(channel: &AlertChannel, message: &MessageDto, send: &SendService) -> Result<(), String> {
     let (title, body) = lines(message);
+    let payload = json!({ "event": "mail.arrived", "title": title, "text": body, "message": message });
+    deliver_text(channel, &title, &body, &payload, send)
+}
+
+/// Sends any alert through `channel`: a title, the text under it, and what a webhook receives.
+///
+/// # Errors
+///
+/// What went wrong, in words for Settings and the activity log.
+pub fn deliver_text(channel: &AlertChannel, title: &str, body: &str, payload: &serde_json::Value, send: &SendService) -> Result<(), String> {
+    let (title, body) = (title.to_owned(), body.to_owned());
     let text = format!("{title}\n{body}");
     match channel.kind {
         AlertKind::Slack => answered(agent().post(channel.secret.trim()).send_json(json!({ "text": text })), "Slack"),
@@ -102,10 +113,7 @@ pub fn deliver(channel: &AlertChannel, message: &MessageDto, send: &SendService)
             let content: String = text.chars().take(1900).collect();
             answered(agent().post(channel.secret.trim()).send_json(json!({ "content": content })), "Discord")
         }
-        AlertKind::Webhook => answered(
-            agent().post(channel.secret.trim()).send_json(json!({ "event": "mail.arrived", "title": title, "text": body, "message": message })),
-            "The webhook",
-        ),
+        AlertKind::Webhook => answered(agent().post(channel.secret.trim()).send_json(payload), "The webhook"),
         AlertKind::Ntfy => {
             let server = if channel.field("server").is_empty() { "https://ntfy.sh" } else { channel.field("server").trim_end_matches('/') };
             let title_header: String = title.chars().filter(|character| !character.is_control()).take(200).collect();

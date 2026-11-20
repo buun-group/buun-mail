@@ -480,3 +480,13 @@ export async function pickFolder(): Promise<string | null> {
   const picked = await open({ multiple: false, directory: true })
   return typeof picked === 'string' ? picked : null
 }
+
+/** Tells the app how far this computer's clock is from UTC, so digests go at local time. */
+export async function setLocalOffset(): Promise<void> {
+  if (isTauri()) await invoke<void>(COMMANDS.setLocalOffset, { minutes: -new Date().getTimezoneOffset() })
+}
+
+/** Sends a channel's daily digest now. */
+export async function sendDigestNow(id: string): Promise<void> {
+  return isTauri() ? invoke<void>(COMMANDS.sendDigestNow, { id }) : undefined
+}

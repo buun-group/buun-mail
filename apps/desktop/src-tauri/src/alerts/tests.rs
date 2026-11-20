@@ -164,3 +164,26 @@ fn tagging_a_message_by_hand_alerts_through_its_rule() {
     thread::sleep(Duration::from_millis(150));
     assert_eq!(seen.lock().map_or(0, |log| log.len()), 1, "a tag already there does not alert again");
 }
+
+#[test]
+fn sends_a_daily_digest_once_a_day_at_its_local_time() {
+    let setup = setup();
+    let (base, seen) = fake_service();
+    let _ = setup.alerts.add("Digest", AlertKind::Webhook, fields(&[("digestAt", "08:00")]), &format!("{base}/digest"));
+    let raw = b"From: Client <c@client.example>\r\nTo: hello@gunspec.io\r\nSubject: Order 42\r\nMessage-ID: <o42@client.example>\r\nDate: Fri, 20 Nov 2026 06:00:00 +0000\r\n\r\nHi\r\n";
+    let _ = setup.mailbox.take_in(raw, "hello@gunspec.io", 1_795_000_000);
+    // 07:00 and 09:00 on 2026-11-20 in a place ten hours ahead of UTC.
+    setup.alerts.set_local_offset(600);
+    // Local midnight of 2026-11-20 at UTC+10 is 1_795_096_800.
+    let at_seven = 1_795_096_800 + 7 * 3600;
+    setup.alerts.digests_due(at_seven);
+    thread::sleep(Duration::from_millis(150));
+    assert_eq!(seen.lock().map_or(0, |log| log.len()), 0, "not before its time");
+    setup.alerts.digests_due(at_seven + 2 * 3600);
+    let log = wait_for(&seen, 1);
+    let body = serde_json::from_str::<serde_json::Value>(&log.first().map(|entry| entry.3.clone()).unwrap_or_default()).unwrap_or_default();
+    assert_eq!(body["event"], "digest");
+    setup.alerts.digests_due(at_seven + 3 * 3600);
+    thread::sleep(Duration::from_millis(150));
+    assert_eq!(seen.lock().map_or(0, |log| log.len()), 1, "once a day");
+}

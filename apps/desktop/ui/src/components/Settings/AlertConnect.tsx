@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { addAlert, listAlerts, listSenders, removeAlert, testAlert } from '../../api/client'
+import { addAlert, listAlerts, listSenders, removeAlert, sendDigestNow, testAlert } from '../../api/client'
 import type { AlertChannel, AlertKind } from '../../api/types'
 import { IconSend } from '../../icons'
 import { toast } from '../../lib/feedback'
@@ -79,7 +79,9 @@ export function AlertConnect({ kind, onCount }: { kind: AlertKind; onCount: (cou
             </h5>
             <span className="settings__mono">{Object.values(channel.fields).filter((value) => !value.startsWith('http://127') && !value.startsWith('http://localhost')).join('  ')}</span>
           </div>
-          <p className="settings__hint">{channel.lastSent === null ? t('alerts.neverSent') : t('alerts.lastSent', { time: formatFull(channel.lastSent), count: channel.sent })}</p>
+          <p className="settings__hint">
+            {channel.lastSent === null ? t('alerts.neverSent') : t('alerts.lastSent', { time: formatFull(channel.lastSent), count: channel.sent })} {channel.fields['digestAt'] !== undefined && t('alerts.digestAt', { time: channel.fields['digestAt'] })}
+          </p>
           {channel.problem !== null && (
             <p role="alert" className="settings__error">
               {channel.problem}
@@ -100,6 +102,19 @@ export function AlertConnect({ kind, onCount }: { kind: AlertKind; onCount: (cou
               <IconSend aria-hidden="true" />
               {t('alerts.test')}
             </button>
+            {channel.fields['digestAt'] !== undefined && (
+              <button
+                type="button"
+                className="settings__button"
+                onClick={() =>
+                  void sendDigestNow(channel.id)
+                    .then(() => toast({ text: t('alerts.digestSent'), detail: channel.name, tone: 'done', glyph: IconSend }))
+                    .catch((cause: unknown) => toast({ text: t('alerts.testFailed'), detail: reason(cause), tone: 'problem' }))
+                }
+              >
+                {t('alerts.digestNow')}
+              </button>
+            )}
             <button type="button" className="settings__button settings__button--danger" onClick={() => void removeAlert(channel.id).then(take)}>
               {t('resend.remove')}
             </button>
@@ -126,6 +141,11 @@ export function AlertConnect({ kind, onCount }: { kind: AlertKind; onCount: (cou
             />
           </div>
         ))}
+        <div className="connect__field">
+          <label htmlFor={`alert-${kind}-digest`}>{t('alerts.digest')}</label>
+          <input id={`alert-${kind}-digest`} type="time" value={fields['digestAt'] ?? ''} onChange={(event) => setFields({ ...fields, digestAt: event.target.value })} />
+          <small>{t('alerts.digestHint')}</small>
+        </div>
         {form.secret !== null && (
           <div className="connect__field">
             <label htmlFor={`alert-${kind}-secret`}>{t(`alerts.secret.${form.secret}`)}</label>

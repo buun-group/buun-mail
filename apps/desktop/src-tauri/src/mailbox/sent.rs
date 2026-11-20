@@ -125,6 +125,33 @@ impl Mailbox {
         Ok(())
     }
 
+    /// What arrived since `since` (Unix seconds), per workspace: how many, how many unread, and the first subjects.
+    ///
+    /// # Errors
+    ///
+    /// [`AppError`] when the store cannot be read.
+    pub fn digest(&self, since: i64) -> Result<Vec<DigestLine>, AppError> {
+        let names: std::collections::HashMap<String, String> = self.workspaces()?.into_iter().map(|workspace| (workspace.id, workspace.name)).collect();
+        let messages = self.store.lock()?.view(buun_mail_store::View::All)?;
+        let mut lines: Vec<DigestLine> = Vec::new();
+        for message in messages.into_iter().filter(|message| message.sent_at >= since) {
+            let workspace = names.get(&message.placement.workspace).cloned().unwrap_or_else(|| message.placement.workspace.clone());
+            let index = lines.iter().position(|line| line.workspace == workspace).unwrap_or_else(|| {
+                lines.push(DigestLine { workspace, count: 0, unread: 0, subjects: Vec::new() });
+                lines.len() - 1
+            });
+            if let Some(line) = lines.get_mut(index) {
+                line.count += 1;
+                line.unread += usize::from(message.unread);
+                if line.subjects.len() < DIGEST_SUBJECTS {
+                    line.subjects.push(format!("{}: {}", message.from_name, message.subject));
+                }
+            }
+        }
+        lines.sort_by_key(|line| std::cmp::Reverse(line.count));
+        Ok(lines)
+    }
+
     /// One message's summary.
     ///
     /// # Errors
@@ -210,4 +237,20 @@ impl Mailbox {
             .map(|(name, address, _, _)| ContactDto { name: (!name.is_empty() && name != address).then_some(name), address })
             .collect())
     }
+}
+
+/// How many subjects a digest names per workspace.
+const DIGEST_SUBJECTS: usize = 5;
+
+/// One workspace's part of a daily digest.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DigestLine {
+    /// The workspace's name.
+    pub workspace: String,
+    /// Messages that arrived.
+    pub count: usize,
+    /// Of those, still unread.
+    pub unread: usize,
+    /// The first few, as `Sender: Subject`, newest first.
+    pub subjects: Vec<String>,
 }

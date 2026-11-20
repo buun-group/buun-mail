@@ -118,6 +118,8 @@ pub fn run() {
             commands::save_profile,
             commands::message_note,
             commands::set_message_note,
+            commands::set_local_offset,
+            commands::send_digest_now,
             commands::open_message,
             commands::mark_all_read,
             commands::tag_message,

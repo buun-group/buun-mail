@@ -4,6 +4,7 @@ import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { DissolveBar } from './components/Dissolve/DissolveBar'
+import { setLocalOffset } from './api/client'
 import { onReminderDue } from './api/events'
 import { notify } from './api/notify'
 import { toast } from './lib/feedback'
@@ -51,6 +52,12 @@ export function App(): ReactNode {
   const [restore] = useState(() => (preferences.rememberPlace ? readLastPlace() : null))
   const mailbox = useMailbox(restore, preferences.conversations)
   const looks = useWorkspaceLooks()
+  // Digests go at local time: the app is told this computer's offset from UTC now and every hour (summer time).
+  useEffect(() => {
+    void setLocalOffset()
+    const timer = window.setInterval(() => void setLocalOffset(), 3_600_000)
+    return () => window.clearInterval(timer)
+  }, [])
   // A follow-up reminder that fell due with no reply: a toast, and a desktop notification.
   useEffect(
     () =>

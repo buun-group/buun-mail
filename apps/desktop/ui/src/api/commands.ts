@@ -62,6 +62,8 @@ export const COMMANDS = {
   saveProfile: 'save_profile',
   messageNote: 'message_note',
   setMessageNote: 'set_message_note',
+  setLocalOffset: 'set_local_offset',
+  sendDigestNow: 'send_digest_now',
   openMessage: 'open_message',
   markAllRead: 'mark_all_read',
   importFiles: 'import_files',

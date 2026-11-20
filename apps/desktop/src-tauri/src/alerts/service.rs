@@ -7,7 +7,7 @@ use std::sync::{Arc, Mutex};
 
 use serde::Serialize;
 
-use super::deliver::{check, deliver};
+use super::deliver::{check, deliver, deliver_text};
 use super::settings::{self, AlertChannel, AlertKind};
 use crate::dto::MessageDto;
 use crate::error::AppError;
@@ -44,6 +44,8 @@ struct Progress {
 }
 
 struct Inner {
+    /// Minutes the person's clock is ahead of UTC, as the window last said; digests go by local time.
+    local_offset: Mutex<i64>,
     config_folder: PathBuf,
     channels: Mutex<Vec<AlertChannel>>,
     progress: Mutex<HashMap<String, Progress>>,
@@ -60,7 +62,8 @@ impl AlertService {
     #[must_use]
     pub fn start(config_folder: PathBuf, mailbox: &Arc<Mailbox>, send: SendService) -> Self {
         let channels = Mutex::new(settings::load(&config_folder));
-        let service = Self(Arc::new(Inner { config_folder, channels, progress: Mutex::default(), send, mailbox: Arc::clone(mailbox) }));
+        let service =
+            Self(Arc::new(Inner { local_offset: Mutex::new(0), config_folder, channels, progress: Mutex::default(), send, mailbox: Arc::clone(mailbox) }));
         let (sink, arrivals) = std::sync::mpsc::channel();
         mailbox.on_alert(sink);
         let working = service.clone();
@@ -71,7 +74,97 @@ impl AlertService {
                 }
             }
         });
+        let digesting = service.clone();
+        std::thread::spawn(move || {
+            loop {
+                digesting.digests_due(crate::mailbox::unix_now());
+                std::thread::sleep(std::time::Duration::from_secs(60));
+            }
+        });
         service
+    }
+
+    /// Notes how far the person's clock is from UTC, in minutes ahead, so digests go at their local time.
+    pub fn set_local_offset(&self, minutes: i64) {
+        if let Ok(mut offset) = self.0.local_offset.lock() {
+            *offset = minutes.clamp(-14 * 60, 14 * 60);
+        }
+    }
+
+    /// Sends each channel's daily digest when its local time has come and it has not gone today.
+    pub(super) fn digests_due(&self, now: i64) {
+        let offset = self.0.local_offset.lock().map_or(0, |offset| *offset);
+        let local = now + offset * 60;
+        let day = buun_mail_message::rfc3339(local).get(..10).unwrap_or_default().to_owned();
+        let minute_of_day = local.rem_euclid(86_400) / 60;
+        let due: Vec<String> = self
+            .0
+            .channels
+            .lock()
+            .map(|channels| {
+                channels
+                    .iter()
+                    .filter(|channel| {
+                        digest_minute(channel.field("digestAt")).is_some_and(|at| minute_of_day >= at) && channel.last_digest.as_deref() != Some(day.as_str())
+                    })
+                    .map(|channel| channel.id.clone())
+                    .collect()
+            })
+            .unwrap_or_default();
+        for id in due {
+            let _ = self.send_digest(&id, now);
+            let _ = self.mark_digest(&id, &day);
+        }
+    }
+
+    fn mark_digest(&self, id: &str, day: &str) -> Result<(), String> {
+        let mut channels = self.0.channels.lock().map_err(|error| error.to_string())?.clone();
+        if let Some(channel) = channels.iter_mut().find(|channel| channel.id == id) {
+            channel.last_digest = Some(day.to_owned());
+        }
+        settings::save(&self.0.config_folder, &channels).map_err(|error| error.to_string())?;
+        *self.0.channels.lock().map_err(|error| error.to_string())? = channels;
+        Ok(())
+    }
+
+    /// Sends a channel's digest of the last day now.
+    ///
+    /// # Errors
+    ///
+    /// What went wrong, in words for a toast.
+    pub fn send_digest(&self, id: &str, now: i64) -> Result<(), String> {
+        let channel = self.0.channels.lock().map_err(|error| error.to_string())?.iter().find(|channel| channel.id == id).cloned();
+        let Some(channel) = channel else { return Err("That alert channel was removed.".to_owned()) };
+        let lines = self.0.mailbox.digest(now - 86_400).map_err(|error| error.to_string())?;
+        let total: usize = lines.iter().map(|line| line.count).sum();
+        let title = if total == 0 { "Daily digest: no new mail".to_owned() } else { format!("Daily digest: {total} new") };
+        let body = if lines.is_empty() {
+            "Nothing arrived in the last day.".to_owned()
+        } else {
+            lines
+                .iter()
+                .map(|line| {
+                    let subjects = line.subjects.iter().map(|subject| format!("  {subject}")).collect::<Vec<_>>().join("\n");
+                    format!("{}: {} new, {} unread\n{subjects}", line.workspace, line.count, line.unread)
+                })
+                .collect::<Vec<_>>()
+                .join("\n\n")
+        };
+        let payload = serde_json::json!({ "event": "digest", "title": title, "text": body, "workspaces": lines.iter().map(|line| serde_json::json!({ "workspace": line.workspace, "count": line.count, "unread": line.unread, "subjects": line.subjects })).collect::<Vec<_>>() });
+        let outcome = deliver_text(&channel, &title, &body, &payload, &self.0.send);
+        if let Ok(mut progress) = self.0.progress.lock() {
+            let entry = progress.entry(channel.id.clone()).or_default();
+            match &outcome {
+                Ok(()) => {
+                    entry.last_sent = Some(rfc3339_now());
+                    entry.sent += 1;
+                    entry.problem = None;
+                }
+                Err(problem) => entry.problem = Some(problem.clone()),
+            }
+        }
+        self.0.mailbox.note_alert(&channel.name, &title, outcome.as_ref().err().map(String::as_str));
+        outcome
     }
 
     /// Every channel, never a secret.
@@ -119,6 +212,7 @@ impl AlertService {
             kind,
             fields,
             secret: secret.trim().to_owned(),
+            last_digest: None,
         };
         check(&channel)?;
         channels.push(channel);
@@ -175,4 +269,11 @@ impl AlertService {
         self.0.mailbox.note_alert(&channel.name, &message.subject, outcome.as_ref().err().map(String::as_str));
         outcome
     }
+}
+
+/// A digest time, `08:00`, as minutes after midnight; `None` when there is none or it does not read.
+fn digest_minute(at: &str) -> Option<i64> {
+    let (hours, minutes) = at.trim().split_once(':')?;
+    let (hours, minutes) = (hours.parse::<i64>().ok()?, minutes.parse::<i64>().ok()?);
+    ((0..24).contains(&hours) && (0..60).contains(&minutes)).then_some(hours * 60 + minutes)
 }

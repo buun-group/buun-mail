@@ -47,6 +47,9 @@ pub struct AlertChannel {
     /// The secret: a webhook address, a topic, a bot or auth token. Sealed at rest; empty for an email channel.
     #[serde(default, with = "crate::vault::sealed")]
     pub secret: String,
+    /// The local day (`2026-11-20`) its last daily digest went, so a restart never sends a second one.
+    #[serde(default)]
+    pub last_digest: Option<String>,
 }
 
 impl AlertChannel {
