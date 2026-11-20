@@ -2,7 +2,7 @@ import type { ParseKeys } from 'i18next'
 
 /**
  * Where mail comes from and how it goes out. Receiving: Cloudflare for your own domains, or an existing mailbox pulled
- * over IMAP. Sending: a provider's API, or SMTP, as any address on a domain it has verified. Gmail and Outlook do both
+ * over IMAP. Sending: a provider's API, or SMTP, from any address on a domain it has verified. Gmail and Outlook do both
  * after one sign-in. The words are translation keys into `locales/<language>/integrations.json`; ids, field types and
  * sample values stay here. None is wired to Rust yet: the forms collect nothing until the sync step lands, and say so.
  */
