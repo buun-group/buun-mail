@@ -28,7 +28,11 @@ The envelope recipient survives the hop, so placing a message is a table lookup,
 | Organising: archive, trash, stars, snooze, read state, moves, quick actions, right-click menus, selecting several at once, contacts, export (`.eml`, JSON, CSV, text) | Done |
 | Conversations, and search across every folder's full text (SQLite FTS5) | Done |
 | Writing: compose, reply, reply all and forward through Resend or any SMTP server, attachments (forwards carry the original's), Sent folder, drafts, undo send, an outbox that retries, signatures | Done |
-| Outlook.com sign-in (needs a Microsoft app registration), sealed messages at rest | Next |
+| dissolve.email: inboxes as a workspace after OAuth sign-in, plan limits, verification codes, inbox page, the burn | Done |
+| Rules on words and tags, alerts (Slack, Discord, ntfy, Telegram, SMS, email, webhook), daily digests, saved attachments, block and one-click unsubscribe | Done |
+| All mail, send later, reminders when nobody answers, templates, a signature and address per workspace, private notes | Done |
+| Secrets sealed at rest under a per-install key, a reveal code, encrypted backup and restore | Done |
+| Outlook.com sign-in (needs a Microsoft app registration), passkey or system unlock for the reveal code | Next |
 
 ## Sending with Resend
 
