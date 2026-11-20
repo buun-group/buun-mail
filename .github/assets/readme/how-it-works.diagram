@@ -1,0 +1,26 @@
+flow "How mail reaches Buun Mail" direction=down animate=on desc="Mail for your domains, your IMAP mailboxes and your dissolve.email inboxes all come into one desktop app. The app files each message into a workspace and folder by the exact address it was delivered to, and keeps it on your computer, where agents can reach it over MCP."
+
+group cloudflare "Your Cloudflare account" type=account provider=cloudflare {
+  node domains external "Your domains" sub="MX to Email Routing" icon=cloudflare:email-routing
+  node gateway function "Mail gateway" sub="Email Worker" icon=cloudflare:workers
+}
+
+group sources "Other mailboxes" type=external-systems {
+  node imap external "IMAP mailboxes" sub="Gmail, iCloud, Fastmail" icon=lucide:inbox
+  node dissolve external "dissolve.email" sub="Disposable inboxes" icon=lucide:mail
+}
+
+group desktop "Buun Mail on your computer" type=client-side {
+  node router service "Router" sub="Address to workspace" icon=lucide:split
+  node store database "Local store" sub="SQLite and .eml" icon=simple:sqlite
+  node ui client "Desktop app" sub="Workspaces, folders" icon=lucide:monitor
+  node agents agent "MCP agents" sub="127.0.0.1 only"
+}
+
+domains -> gateway : "catch-all"
+gateway ..> router : "push"
+imap -> router : "collects"
+dissolve -> router : "OAuth"
+router -> store : "files" role=data
+store -> ui : "reads" role=data
+agents -> store : "searches"
