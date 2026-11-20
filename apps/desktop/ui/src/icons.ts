@@ -4,6 +4,7 @@
  */
 import type { IconType } from 'react-icons'
 import {
+  PiFlaskLight,
   PiAirplaneLight,
   PiBellLight,
   PiAmazonLogoLight,
@@ -65,7 +66,7 @@ import { SiBrevo, SiClaude, SiCloudflare, SiCursor, SiDiscord, SiGmail, SiIcloud
 
 import type { AgentClientId } from './constants/agents'
 import type { IntegrationId } from './constants/integrations'
-import type { Density, ExportFormat, JumpId, ReadingPane, SettingsSection, ThemePreference } from './constants/ui'
+import type { Density, ExportFormat, JumpId, ReadingPane, SettingsSection, ThemePreference, UpdateChannel } from './constants/ui'
 
 export {
   PiArchiveLight as IconArchive,
@@ -239,6 +240,9 @@ export const EXPORT_GLYPHS: Record<ExportFormat, IconType> = {
   text: PiFileTxtLight,
   mbox: PiStackSimpleLight,
 }
+
+/** Which releases the update check offers. */
+export const UPDATE_CHANNEL_GLYPHS: Record<UpdateChannel, IconType> = { stable: PiShieldCheckLight, early: PiFlaskLight }
 
 export const READING_PANE_GLYPHS: Record<ReadingPane, IconType> = { right: PiSquareSplitHorizontalLight, off: PiRectangleLight }
 

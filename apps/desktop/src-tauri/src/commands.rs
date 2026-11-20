@@ -158,10 +158,27 @@ pub fn import_files(app: AppHandle, mailbox: State<'_, Arc<Mailbox>>, paths: Vec
     Ok(report)
 }
 
-/// Whether a newer release is out, from the project's GitHub releases page. Off the window's thread.
+/// Whether a newer release is out on the stable channel, or with `early` also among betas. Off the window's thread.
 #[tauri::command]
-pub async fn check_for_update() -> Result<crate::updates::UpdateDto, String> {
-    tauri::async_runtime::spawn_blocking(crate::updates::check).await.map_err(|error| error.to_string())?
+pub async fn check_for_update(early: bool) -> Result<crate::updates::UpdateDto, String> {
+    tauri::async_runtime::spawn_blocking(move || crate::updates::check(early)).await.map_err(|error| error.to_string())?
+}
+
+/// Downloads a release's installer for this system into Downloads and opens it (an `.AppImage` is shown in its folder).
+#[tauri::command]
+pub async fn install_update(app: AppHandle, version: String) -> Result<crate::updates::DownloadedDto, String> {
+    use tauri::Manager as _;
+    use tauri_plugin_opener::OpenerExt as _;
+    let folder = app.path().download_dir().map_err(|error| format!("No Downloads folder: {error}"))?;
+    let (path, opens) =
+        tauri::async_runtime::spawn_blocking(move || crate::updates::download(&version, &folder)).await.map_err(|error| error.to_string())??;
+    let shown = path.display().to_string();
+    if opens {
+        app.opener().open_path(&shown, None::<&str>).map_err(|error| format!("Saved to {shown}, but it could not be opened: {error}"))?;
+    } else {
+        app.opener().reveal_item_in_dir(&path).map_err(|error| format!("Saved to {shown}, but its folder could not be shown: {error}"))?;
+    }
+    Ok(crate::updates::DownloadedDto { path: shown, opens })
 }
 
 /// The routing file's workspaces, for the editor in Settings.

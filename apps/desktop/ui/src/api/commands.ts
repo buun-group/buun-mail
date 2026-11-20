@@ -72,6 +72,7 @@ export const COMMANDS = {
   routingPath: 'routing_path',
   routingWorkspaces: 'routing_workspaces',
   checkForUpdate: 'check_for_update',
+  installUpdate: 'install_update',
   saveWorkspace: 'save_workspace',
   deleteWorkspace: 'delete_workspace',
   tagMessage: 'tag_message',

@@ -5,7 +5,7 @@ import { openUrl } from '@tauri-apps/plugin-opener'
 import type { ExportFormat } from '../constants/ui'
 import { COMMANDS, IMPORT_EXTENSIONS } from './commands'
 import { preview, previewDetail, previewMessages, previewRouting, previewView, previewWorkspaces } from './preview'
-import type { Activity, AgentStatus, AlertChannel, Profile, Template, Writing, Reminder, ScheduledMessage, AlertKind, AvailableDomain, CheckReport, Contact, RevealStatus, SecretKind, DissolveInbox, DissolveStatus, Draft, FileToSend, ImapAccount, KnownContact, SmtpSecurity, SmtpServer, Sendable, Sender, GatewayDomain, GatewayStatus, ImportReport, MailView, Message, MessageDetail, Place, Rule, Shelf, TagCount, UpdateInfo, Workspace, WorkspaceEdit } from './types'
+import type { Activity, AgentStatus, AlertChannel, Profile, Template, Writing, Reminder, ScheduledMessage, AlertKind, AvailableDomain, CheckReport, Contact, RevealStatus, SecretKind, DissolveInbox, DissolveStatus, Draft, FileToSend, ImapAccount, KnownContact, SmtpSecurity, SmtpServer, Sendable, Sender, GatewayDomain, GatewayStatus, ImportReport, MailView, Message, MessageDetail, Place, Rule, Shelf, TagCount, DownloadedUpdate, UpdateInfo, Workspace, WorkspaceEdit } from './types'
 
 /**
  * The one door to the Rust side. In the desktop app every call is a Tauri command; in a plain browser (`pnpm dev:ui`)
@@ -119,10 +119,21 @@ export async function deleteWorkspace(id: string): Promise<number> {
   return isTauri() ? invoke<number>(COMMANDS.deleteWorkspace, { id }) : previewRouting.remove(id)
 }
 
-/** Asks the project's releases page whether a newer Buun Mail is out. The preview always has the newest. */
-export async function checkForUpdate(): Promise<UpdateInfo> {
-  if (isTauri()) return invoke<UpdateInfo>(COMMANDS.checkForUpdate)
-  return { current: '0.4.0', latest: '0.4.0', newer: false, url: 'https://github.com/buun-group/buun-mail/releases', publishedAt: null }
+/** Asks the project's releases pages whether a newer Buun Mail is out; `early` takes betas too. The preview has the newest. */
+export async function checkForUpdate(early: boolean): Promise<UpdateInfo> {
+  if (isTauri()) return invoke<UpdateInfo>(COMMANDS.checkForUpdate, { early })
+  // `?update` in the preview's address pretends a newer release is out, to see the pop-up.
+  if (new URLSearchParams(window.location.search).has('update')) {
+    const latest = early ? '0.6.0-beta.2' : '0.6.0'
+    return { current: '0.5.0', latest, newer: true, beta: early, url: `https://github.com/buun-group/buun-mail/releases/tag/v${latest}`, asset: `Buun.Mail_${latest}_amd64.deb` }
+  }
+  return { current: '0.5.0', latest: '0.5.0', newer: false, beta: false, url: 'https://github.com/buun-group/buun-mail/releases', asset: null }
+}
+
+/** Downloads a release's installer for this computer into Downloads and opens it. */
+export async function installUpdate(version: string): Promise<DownloadedUpdate> {
+  if (isTauri()) return invoke<DownloadedUpdate>(COMMANDS.installUpdate, { version })
+  throw new Error('Installing needs the desktop app.')
 }
 
 /** Opens a page in the person's browser, never inside the app. The desktop allows only the product sites. */

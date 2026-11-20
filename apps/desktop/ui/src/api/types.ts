@@ -434,7 +434,18 @@ export interface Writing {
 export interface UpdateInfo {
   current: string
   latest: string
+  /** True when `latest` is newer and its installer for this computer is attached. */
   newer: boolean
+  /** True when `latest` is a beta. */
+  beta: boolean
+  /** The release's page, for its notes. */
   url: string
-  publishedAt: string | null
+  /** The installer for this computer. */
+  asset: string | null
+}
+
+/** An installer saved to Downloads; `opens` is false for an AppImage, which is shown in its folder instead. */
+export interface DownloadedUpdate {
+  path: string
+  opens: boolean
 }

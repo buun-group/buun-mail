@@ -11,7 +11,7 @@
 //! - `writing`: templates, and each workspace's signature and address for new mail
 //! - `backup`: the whole mailbox and settings in one passphrase-sealed file, and restoring one
 //! - `vault`: secrets sealed at rest under this install's key, and the code asked before showing one
-//! - `updates`: whether a newer release is out on the project's releases page
+//! - `updates`: whether a newer release (or, for early releases, a beta) is out, and fetching its installer
 //! - `dissolve`: dissolve.email's disposable inboxes as a workspace, after signing in with OAuth
 //! - `ingest`: parse, route and store one message; every mail source goes through it
 //! - `mailbox`: what the UI and agents read and change, on top of the store
@@ -141,6 +141,7 @@ pub fn run() {
             commands::routing_path,
             commands::routing_workspaces,
             commands::check_for_update,
+            commands::install_update,
             commands::save_workspace,
             commands::delete_workspace,
             commands::agent_status,
