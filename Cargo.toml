@@ -6,7 +6,7 @@ members = ["crates/routing", "crates/message", "crates/store", "crates/rules", "
 version = "0.4.0"
 edition = "2024"
 rust-version = "1.99"
-license = "UNLICENSED"
+license = "GPL-3.0-only"
 publish = false
 
 # Exact versions only: a bump is a deliberate change, never a silent one.

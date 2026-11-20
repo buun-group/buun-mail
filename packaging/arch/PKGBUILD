@@ -11,7 +11,7 @@ pkgrel=1
 pkgdesc='Local mail client that files every business domain into workspaces, fed by Cloudflare Email Routing'
 arch=('x86_64' 'aarch64')
 url='https://github.com/buun-group/buun-mail'
-license=('LicenseRef-proprietary')
+license=('GPL-3.0-only')
 depends=('webkit2gtk-4.1' 'gtk3' 'librsvg' 'libayatana-appindicator')
 makedepends=('rustup' 'nodejs' 'pnpm' 'git')
 source=("$pkgname::git+$url.git#tag=v$pkgver")

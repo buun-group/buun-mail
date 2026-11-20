@@ -7,6 +7,7 @@
 
 <p>
   <a href="https://github.com/buun-group/buun-mail/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/buun-group/buun-mail?style=flat-square&color=f18707&label=release"></a>
+  <a href="LICENSE"><img alt="GPL-3.0 licence" src="https://img.shields.io/badge/licence-GPL--3.0-16141c?style=flat-square"></a>
   <img alt="Linux, macOS and Windows" src="https://img.shields.io/badge/platforms-Linux%20%7C%20macOS%20%7C%20Windows-16141c?style=flat-square">
   <img alt="Rust 1.99" src="https://img.shields.io/badge/Rust-1.99-b45309?style=flat-square&logo=rust&logoColor=white">
   <img alt="Tauri 2" src="https://img.shields.io/badge/Tauri-2-24c8db?style=flat-square&logo=tauri&logoColor=white">
@@ -261,3 +262,8 @@ to use it.
 <br>
 <sub>Made by <a href="https://buungroup.com">Buun Group</a>. The code follows the <a href="https://github.com/buun-group/standards">Buun Group coding standards</a>.</sub>
 </div>
+
+## Licence
+
+Buun Mail is free software under the [GNU General Public License v3.0](LICENSE): use it, study it, change it and
+share it. A changed version you distribute must be shared under the same licence, with its source.
