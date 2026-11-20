@@ -127,5 +127,25 @@
     "signatureHint": "Used on this workspace's mail in place of the sender's own signature. Leave empty to keep that one.",
     "save": "Save",
     "saved": "Writing settings saved"
+  },
+  "backup": {
+    "title": "Backup",
+    "hint": "Your whole mailbox and every setting, connections included, in one file sealed with a passphrase. Keep it somewhere safe, or use it to move Buun Mail to another computer.",
+    "passphrase": "Passphrase",
+    "again": "Passphrase again",
+    "keepIt": "Without the passphrase the backup cannot be opened by anyone, you included. Keep it somewhere safe.",
+    "save": "Save a backup",
+    "working": "Working...",
+    "tooShort": "Use a passphrase of at least {{count}} characters.",
+    "mismatch": "The two passphrases are not the same.",
+    "saved": "Backup saved",
+    "savedDetail_one": "{{count}} file, sealed.",
+    "savedDetail_other": "{{count}} files, sealed.",
+    "restorePassphrase": "Restore: the backup's passphrase",
+    "restore": "Restore from a backup",
+    "staged": "Backup checked",
+    "stagedDetail_one": "{{count}} file ready. Restart Buun Mail to finish.",
+    "stagedDetail_other": "{{count}} files ready. Restart Buun Mail to finish.",
+    "restart": "Quit and reopen Buun Mail to finish the restore. What it replaces is kept in a before-restore folder beside your mail."
   }
 }

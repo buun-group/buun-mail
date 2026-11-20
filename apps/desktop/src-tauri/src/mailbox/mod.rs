@@ -136,6 +136,20 @@ impl Mailbox {
         }
     }
 
+    /// Runs `work` with the store held still and its log written into the index, so a copy taken meanwhile is whole.
+    /// Mail waits for the store until it is done.
+    ///
+    /// # Errors
+    ///
+    /// [`AppError`] when the store cannot be held or written.
+    pub fn with_store_still<T>(&self, work: impl FnOnce() -> T) -> Result<T, AppError> {
+        let store = self.store.lock()?;
+        store.checkpoint()?;
+        let result = work();
+        drop(store);
+        Ok(result)
+    }
+
     /// Where the routing file lives, for the settings screen.
     #[must_use]
     pub fn routing_path(&self) -> &Path {

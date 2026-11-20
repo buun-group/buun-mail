@@ -268,3 +268,17 @@ describe('conversation notes', () => {
     expect(await screen.findByText('Refunded in Stripe')).toBeTruthy()
   })
 })
+
+describe('backup', () => {
+  it('asks for a long enough passphrase, typed twice', async () => {
+    const { BackupPanel } = await import('../components/Settings/BackupPanel')
+    render(<BackupPanel />)
+    fireEvent.change(screen.getByLabelText('Passphrase'), { target: { value: 'short' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save a backup' }))
+    expect(await screen.findByText('Use a passphrase of at least 8 characters.')).toBeTruthy()
+    fireEvent.change(screen.getByLabelText('Passphrase'), { target: { value: 'correct horse' } })
+    fireEvent.change(screen.getByLabelText('Passphrase again'), { target: { value: 'correct horses' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save a backup' }))
+    expect(await screen.findByText('The two passphrases are not the same.')).toBeTruthy()
+  })
+})

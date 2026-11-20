@@ -9,6 +9,7 @@
 //! - `later`: messages scheduled to go later, and reminders when nobody answers
 //! - `alerts`: telling you elsewhere (Slack, a text, an email) when a rule matches arriving mail
 //! - `writing`: templates, and each workspace's signature and address for new mail
+//! - `backup`: the whole mailbox and settings in one passphrase-sealed file, and restoring one
 //! - `vault`: secrets sealed at rest under this install's key, and the code asked before showing one
 //! - `dissolve`: dissolve.email's disposable inboxes as a workspace, after signing in with OAuth
 //! - `ingest`: parse, route and store one message; every mail source goes through it
@@ -20,6 +21,7 @@
 
 mod agent;
 mod alerts;
+mod backup;
 mod commands;
 mod dissolve;
 mod dto;
@@ -120,6 +122,8 @@ pub fn run() {
             commands::set_message_note,
             commands::set_local_offset,
             commands::send_digest_now,
+            commands::create_backup,
+            commands::restore_backup,
             commands::open_message,
             commands::mark_all_read,
             commands::tag_message,
@@ -179,6 +183,10 @@ fn catch_up(mailbox: Arc<Mailbox>, app: tauri::AppHandle) {
 /// Opens the mailbox and starts every service, before the window shows.
 fn start(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     let paths = AppPaths::resolve(app.handle())?;
+    // A restore staged last time goes in before anything opens the folders it replaces.
+    let backup_paths = backup::BackupPaths { config: paths.config.clone(), store: paths.store.clone() };
+    backup::apply_pending(&backup_paths, mailbox::unix_now())?;
+    app.manage(backup_paths);
     // Before anything reads a settings file: the install's key, and any plain secret an older version left, sealed.
     vault::open(&paths.config)?;
     app.manage(vault::reveal::RevealLock::open(&paths.config));

@@ -490,3 +490,20 @@ export async function setLocalOffset(): Promise<void> {
 export async function sendDigestNow(id: string): Promise<void> {
   return isTauri() ? invoke<void>(COMMANDS.sendDigestNow, { id }) : undefined
 }
+
+/** Asks where to save a backup, then writes it sealed with `passphrase`. Resolves to the files saved, or null if cancelled. */
+export async function createBackup(passphrase: string): Promise<number | null> {
+  if (!isTauri()) return 0
+  const day = new Date().toISOString().slice(0, 10)
+  const path = await save({ defaultPath: `buun-mail-${day}.buunmail`, filters: [{ name: 'Buun Mail backup', extensions: ['buunmail'] }] })
+  if (path === null) return null
+  return invoke<number>(COMMANDS.createBackup, { path, passphrase })
+}
+
+/** Asks for a backup file, then checks and unpacks it to replace this mailbox at the next start. Null if cancelled. */
+export async function restoreBackup(passphrase: string): Promise<number | null> {
+  if (!isTauri()) return 0
+  const path = await open({ multiple: false, directory: false, filters: [{ name: 'Buun Mail backup', extensions: ['buunmail'] }] })
+  if (typeof path !== 'string') return null
+  return invoke<number>(COMMANDS.restoreBackup, { path, passphrase })
+}

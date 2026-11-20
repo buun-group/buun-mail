@@ -650,3 +650,32 @@ pub async fn send_digest_now(alerts: State<'_, AlertService>, id: String) -> Res
     let service = alerts.inner().clone();
     tauri::async_runtime::spawn_blocking(move || service.send_digest(&id, crate::mailbox::unix_now())).await.map_err(|error| error.to_string())?
 }
+
+/// Writes the whole mailbox and settings to `path`, sealed with `passphrase`, away from the window's thread. Mail waits
+/// while the store is copied. Returns how many files went in.
+#[tauri::command]
+pub async fn create_backup(
+    mailbox: State<'_, Arc<Mailbox>>,
+    paths: State<'_, crate::backup::BackupPaths>,
+    path: PathBuf,
+    passphrase: String,
+) -> Result<usize, String> {
+    if passphrase.chars().count() < crate::backup::SHORTEST {
+        return Err(format!("Use a passphrase of at least {} characters.", crate::backup::SHORTEST));
+    }
+    let (mailbox, paths) = (Arc::clone(mailbox.inner()), paths.inner().clone());
+    tauri::async_runtime::spawn_blocking(move || {
+        mailbox.with_store_still(|| crate::backup::create(&paths, &path, &passphrase)).map_err(|error| error.to_string())?.map_err(|error| error.to_string())
+    })
+    .await
+    .map_err(|error| error.to_string())?
+}
+
+/// Checks and unpacks a backup to replace this mailbox at the next start. Returns how many files it holds.
+#[tauri::command]
+pub async fn restore_backup(paths: State<'_, crate::backup::BackupPaths>, path: PathBuf, passphrase: String) -> Result<usize, String> {
+    let paths = paths.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || crate::backup::stage_restore(&paths, &path, &passphrase).map_err(|error| error.to_string()))
+        .await
+        .map_err(|error| error.to_string())?
+}

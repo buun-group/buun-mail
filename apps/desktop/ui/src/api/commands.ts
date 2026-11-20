@@ -64,6 +64,8 @@ export const COMMANDS = {
   setMessageNote: 'set_message_note',
   setLocalOffset: 'set_local_offset',
   sendDigestNow: 'send_digest_now',
+  createBackup: 'create_backup',
+  restoreBackup: 'restore_backup',
   openMessage: 'open_message',
   markAllRead: 'mark_all_read',
   importFiles: 'import_files',

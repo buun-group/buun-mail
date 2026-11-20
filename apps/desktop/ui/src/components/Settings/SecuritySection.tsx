@@ -6,6 +6,7 @@ import { lockReveals, revealStatus, setRevealCode } from '../../api/client'
 import type { RevealStatus } from '../../api/types'
 import { IconLock } from '../../icons'
 import { toast } from '../../lib/feedback'
+import { BackupPanel } from './BackupPanel'
 
 /**
  * How secrets are kept, and the reveal code: set it to be asked before a saved key, token or password is shown again;
@@ -93,6 +94,7 @@ export function SecuritySection(): ReactNode {
         </div>
         <p className="settings__hint">{t('security.passkeyLater')}</p>
       </form>
+      <BackupPanel />
     </div>
   )
 }

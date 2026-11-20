@@ -1002,3 +1002,6 @@ label.settings__label {
   flex: 1;
   min-width: 0;
 }
+.backup__restart {
+  color: var(--status-success-fg);
+}

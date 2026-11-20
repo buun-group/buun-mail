@@ -61,6 +61,16 @@ impl Store {
         Ok(Self { index, raw: RawFiles::new(folder.join(RAW_DIR)) })
     }
 
+    /// Writes everything waiting in the write-ahead log into the index file, so a copy of the folder is whole.
+    ///
+    /// # Errors
+    ///
+    /// [`StoreError`] when the index cannot be written.
+    pub fn checkpoint(&self) -> Result<(), StoreError> {
+        self.index.execute_batch("PRAGMA wal_checkpoint(TRUNCATE);")?;
+        Ok(())
+    }
+
     /// The folder the raw messages are kept in.
     #[must_use]
     pub fn raw_folder(&self) -> &Path {
