@@ -10,6 +10,19 @@ pub struct Placement {
     pub folder: Option<String>,
 }
 
+/// A message's id, folder and the addresses routing reads, for filing it again after the routing file changes.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Addressed {
+    /// The message id.
+    pub id: String,
+    /// The folder it is in, `None` for the inbox.
+    pub folder: Option<String>,
+    /// The sender's address.
+    pub from: String,
+    /// The address it was delivered to.
+    pub to: String,
+}
+
 /// One stored message: what the list shows, where it lives, and why it is there.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MessageRecord {

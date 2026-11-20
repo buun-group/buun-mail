@@ -167,8 +167,8 @@ fn adds_a_workspace_for_a_new_domain_once_and_reloads() -> Result<(), AppError> 
 #[test]
 fn a_new_install_starts_from_a_generic_example() -> Result<(), AppError> {
     let router = Router::from_toml(crate::paths::EXAMPLE_ROUTING)?;
-    let ids: Vec<&str> = router.workspaces().map(|workspace| workspace.id().as_str()).collect();
-    assert!(ids.contains(&"acme") && ids.contains(&"personal"));
+    let ids: Vec<&str> = router.workspaces().map(|workspace| workspace.id().as_str()).filter(|id| *id != UNSORTED_WORKSPACE).collect();
+    assert_eq!(ids, ["personal"], "a fresh install starts with one workspace");
     let addresses: Vec<String> = router.workspaces().flat_map(|workspace| workspace.patterns().iter().map(ToString::to_string).collect::<Vec<_>>()).collect();
     assert!(addresses.iter().all(|address| address.ends_with(".example")), "only reserved example domains: {addresses:?}");
     Ok(())
@@ -239,5 +239,86 @@ fn saves_attachments_into_a_folder_a_rule_names_without_overwriting() -> Result<
         .check()
         .is_err()
     );
+    Ok(())
+}
+
+fn editable_mailbox() -> (tempfile::TempDir, PathBuf, Mailbox) {
+    let folder = tempfile::tempdir().unwrap_or_else(|error| unreachable!("temp folder: {error}"));
+    let routing = folder.path().join("workspaces.toml");
+    fs::write(&routing, TEST_ROUTING).unwrap_or_else(|error| unreachable!("routing file: {error}"));
+    let store = Store::open(&folder.path().join("store")).unwrap_or_else(|error| unreachable!("store: {error}"));
+    let router = Router::from_toml(TEST_ROUTING).unwrap_or_else(|error| unreachable!("routing: {error}"));
+    let mailbox = Mailbox::new(router, store, routing.clone()).unwrap_or_else(|error| unreachable!("mailbox: {error}"));
+    (folder, routing, mailbox)
+}
+
+fn edit(id: Option<&str>, name: &str, addresses: &[&str]) -> super::WorkspaceEdit {
+    super::WorkspaceEdit {
+        id: id.map(str::to_owned),
+        name: name.to_owned(),
+        addresses: addresses.iter().map(|address| (*address).to_owned()).collect(),
+        folders: vec![],
+    }
+}
+
+#[test]
+fn adds_a_workspace_and_files_unsorted_mail_it_now_claims() -> Result<(), AppError> {
+    let (folder, routing, mailbox) = editable_mailbox();
+    mailbox.import_files(&[file(&folder, "stranger.eml", STRANGER)])?;
+    assert_eq!(mailbox.messages(&placement(UNSORTED_WORKSPACE, None))?.len(), 1);
+
+    let mut new = edit(None, "  Old Domain ", &[" *@Forwarded.example "]);
+    new.folders = vec![super::routing::FolderEdit { name: "News".to_owned(), from: "*@letters.example".to_owned(), icon: None }];
+    let id = mailbox.save_workspace(&new, &Actor::You)?;
+    assert_eq!(id, "old-domain");
+    assert_eq!(mailbox.messages(&placement("old-domain", Some("News")))?.len(), 1, "the unsorted message moved to its new home");
+    assert_eq!(mailbox.messages(&placement(UNSORTED_WORKSPACE, None))?.len(), 0);
+
+    let text = fs::read_to_string(&routing).unwrap_or_default();
+    assert!(text.contains("# An environment is its own workspace"), "comments survive: {text}");
+    assert!(text.contains("match = [\"*@forwarded.example\"]"), "addresses are trimmed and lowercased: {text}");
+    assert_eq!(mailbox.save_workspace(&edit(None, "Old domain", &["x@other.example"]), &Actor::You)?, "old-domain-2", "ids never collide");
+    Ok(())
+}
+
+#[test]
+fn edits_a_workspace_in_place_and_keeps_its_icon() -> Result<(), AppError> {
+    let (_folder, routing, mailbox) = editable_mailbox();
+    let mut flung =
+        mailbox.routing_workspaces()?.into_iter().find(|workspace| workspace.id.as_deref() == Some("flung")).unwrap_or_else(|| unreachable!("flung"));
+    flung.name = "Flung HQ".to_owned();
+    flung.addresses.push("*@flung.app".to_owned());
+    mailbox.save_workspace(&flung, &Actor::You)?;
+    let shown = mailbox.workspaces()?.into_iter().find(|workspace| workspace.id == "flung").unwrap_or_else(|| unreachable!("flung"));
+    assert_eq!((shown.name.as_str(), shown.icon.as_deref(), shown.addresses.len()), ("Flung HQ", Some("flung"), 2));
+    let text = fs::read_to_string(&routing).unwrap_or_default();
+    assert_eq!(text.matches("[[workspace]]").count(), 6, "changed in place, not appended");
+    Ok(())
+}
+
+#[test]
+fn refuses_an_edit_that_would_break_the_file_and_leaves_it_alone() -> Result<(), AppError> {
+    let (_folder, routing, mailbox) = editable_mailbox();
+    let before = fs::read_to_string(&routing).unwrap_or_default();
+    assert!(mailbox.save_workspace(&edit(None, "Clash", &["*@flung.dev"]), &Actor::You).is_err(), "a pattern another workspace claims");
+    assert!(mailbox.save_workspace(&edit(None, "", &["*@new.example"]), &Actor::You).is_err(), "no name");
+    assert!(mailbox.save_workspace(&edit(None, "Empty", &[" "]), &Actor::You).is_err(), "no address");
+    assert!(mailbox.delete_workspace("nope", &Actor::You).is_err());
+    assert_eq!(fs::read_to_string(&routing).unwrap_or_default(), before);
+    assert_eq!(mailbox.workspaces()?.iter().filter(|workspace| workspace.id == "clash").count(), 0);
+    Ok(())
+}
+
+#[test]
+fn deletes_a_workspace_and_files_its_mail_again() -> Result<(), AppError> {
+    let (folder, routing, mailbox) = editable_mailbox();
+    mailbox.import_files(&[file(&folder, "client.eml", CLIENT)])?;
+    assert_eq!(mailbox.messages(&placement("buun", None))?.len(), 1);
+    assert_eq!(mailbox.delete_workspace("buun", &Actor::You)?, 1);
+    assert_eq!(mailbox.messages(&placement(UNSORTED_WORKSPACE, None))?.len(), 1, "nothing claims hello@buungroup.com now");
+    assert!(mailbox.workspaces()?.iter().all(|workspace| workspace.id != "buun"));
+    let text = fs::read_to_string(&routing).unwrap_or_default();
+    assert!(!text.contains("id = \"buun\""));
+    assert!(text.contains("id = \"personal\""));
     Ok(())
 }

@@ -40,6 +40,9 @@ export type ReadingPane = (typeof READING_PANES)[number]
 /** The workspace the router keeps for mail no rule claims. Mirrors `UNSORTED_WORKSPACE` in the routing crate. */
 export const UNSORTED_WORKSPACE = 'unsorted'
 
+/** The Settings editor key for a workspace being added; a colon keeps it apart from every workspace id. */
+export const NEW_WORKSPACE = ':new'
+
 /** The words the sidebar calls a workspace's inbox, the folder with no name: a key for `t()`. */
 export const INBOX_LABEL = 'common:inbox'
 

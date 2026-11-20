@@ -12,35 +12,12 @@
 # product mark: buun, plotwork, flung, gunspec, dissolve, cryptflare. Without one, a workspace shows its initial.
 # Settings can also give a workspace an image.
 #
-# Replace these examples with your own domains. Settings, Integrations adds a workspace for each domain you connect.
-
-[[workspace]]
-id = "acme"
-name = "Acme"
-icon = "briefcase"
-match = ["*@acme.example"]
-folders = [
-  { name = "Billing", from = "*@stripe.com", icon = "receipt" },
-  { name = "Infrastructure", from = "*@cloudflare.com", icon = "cloud" },
-]
-
-# An environment is its own workspace: mail to the staging domain stays apart from production.
-[[workspace]]
-id = "acme-staging"
-name = "Acme staging"
-icon = "wrench"
-match = ["*@staging.acme.example"]
-
-[[workspace]]
-id = "side-project"
-name = "Side project"
-icon = "rocket"
-match = ["*@globex.example"]
-folders = [{ name = "GitHub", from = "notifications@github.com", icon = "github" }]
+# Add, change and delete workspaces in Settings, Workspaces, or right-click one in the sidebar. Settings, Integrations
+# also adds a workspace for each domain you connect. Edits by hand here work too; restart to load them.
 
 [[workspace]]
 id = "personal"
 name = "Personal"
 icon = "house"
-match = ["*@personal.example", "accounts@acme.example"]
+match = ["*@personal.example"]
 folders = [{ name = "Receipts", from = "*@stripe.com", icon = "receipt" }]

@@ -47,6 +47,7 @@ impl Mailbox {
                     addresses: workspace.patterns().iter().map(ToString::to_string).collect(),
                     folders,
                     unread: 0,
+                    editable: true,
                 }
             })
             .collect();
@@ -147,7 +148,7 @@ impl Mailbox {
 /// A workspace that holds mail but is not in the routing file: Unsorted, or one the file dropped. Named by its id.
 fn unlisted_workspace(id: &str) -> WorkspaceDto {
     let name = if id == UNSORTED_WORKSPACE { UNSORTED_NAME.to_owned() } else { id.to_owned() };
-    WorkspaceDto { id: id.to_owned(), name, icon: None, addresses: Vec::new(), folders: Vec::new(), unread: 0 }
+    WorkspaceDto { id: id.to_owned(), name, icon: None, addresses: Vec::new(), folders: Vec::new(), unread: 0, editable: false }
 }
 
 /// Unread messages in one folder, from the store's counts.

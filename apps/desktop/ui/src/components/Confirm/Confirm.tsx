@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 
@@ -20,6 +20,8 @@ export interface Confirmation {
 export function Confirm({ request, cancelLabel, onClose }: { request: Confirmation | null; cancelLabel: string; onClose: () => void }): ReactNode {
   const dialog = useRef<HTMLDialogElement | null>(null)
   const cancel = useRef<HTMLButtonElement | null>(null)
+  // Several can be on the page (one per kind of question), so each names its own title and body.
+  const id = useId()
   // The last question stays drawn while the dialog fades out after it is answered.
   const [shown, setShown] = useState(request)
   if (request !== null && request !== shown) setShown(request)
@@ -36,11 +38,11 @@ export function Confirm({ request, cancelLabel, onClose }: { request: Confirmati
 
   // Drawn at the top of the page wherever it is used, so a parent's layout (a flex bar, a grid list) never shapes it.
   return createPortal(
-    <dialog ref={dialog} className="confirm" aria-labelledby="confirm-title" aria-describedby="confirm-body" onClose={onClose} onCancel={cancelSmoothly}>
+    <dialog ref={dialog} className="confirm" aria-labelledby={`${id}-title`} aria-describedby={`${id}-body`} onClose={onClose} onCancel={cancelSmoothly}>
       {shown !== null && (
         <>
-          <h2 id="confirm-title">{shown.title}</h2>
-          <p id="confirm-body">{shown.body}</p>
+          <h2 id={`${id}-title`}>{shown.title}</h2>
+          <p id={`${id}-body`}>{shown.body}</p>
           <div className="confirm__actions">
             <button ref={cancel} type="button" className="confirm__button" onClick={() => closeDialog(dialog.current)}>
               {cancelLabel}

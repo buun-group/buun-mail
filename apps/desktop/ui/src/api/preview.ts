@@ -1,13 +1,13 @@
-import type { Activity, AgentStatus, AlertChannel, Profile, Template, Writing, Reminder, ScheduledMessage, AlertKind, Contact, RevealStatus, DissolveInbox, DissolveStatus, Draft, ImapAccount, KnownContact, SmtpServer, MailView, Message, MessageDetail, Place, Rule, Sendable, Sender, TagCount, Workspace } from './types'
+import type { Activity, AgentStatus, AlertChannel, Profile, Template, Writing, Reminder, ScheduledMessage, AlertKind, Contact, RevealStatus, DissolveInbox, DissolveStatus, Draft, ImapAccount, KnownContact, SmtpServer, MailView, Message, MessageDetail, Place, Rule, Sendable, Sender, TagCount, Workspace, WorkspaceEdit } from './types'
 
 /**
  * A small stand-in mailbox for `pnpm dev:ui`, where there is no Rust side, so the layout can be tuned in a plain
  * browser. The desktop app never reads it: there the router places the real demo messages.
  */
 const WORKSPACES: Workspace[] = [
-  { id: 'buun', name: 'Buun Group', icon: 'buun', addresses: ['*@buungroup.com'], unread: 2, folders: [{ name: null, icon: null, unread: 1 }, { name: 'Billing', icon: 'receipt', unread: 1 }] },
-  { id: 'plotwork', name: 'Plotwork', icon: 'plotwork', addresses: ['*@plotwork.dev'], unread: 1, folders: [{ name: null, icon: null, unread: 1 }, { name: 'GitHub', icon: 'github', unread: 0 }] },
-  { id: 'personal', name: 'Personal', icon: null, addresses: ['*@personal.example'], unread: 0, folders: [{ name: null, icon: null, unread: 0 }] },
+  { id: 'buun', name: 'Buun Group', icon: 'buun', addresses: ['*@buungroup.com'], unread: 2, editable: true, folders: [{ name: null, icon: null, unread: 1 }, { name: 'Billing', icon: 'receipt', unread: 1 }] },
+  { id: 'plotwork', name: 'Plotwork', icon: 'plotwork', addresses: ['*@plotwork.dev'], unread: 1, editable: true, folders: [{ name: null, icon: null, unread: 1 }, { name: 'GitHub', icon: 'github', unread: 0 }] },
+  { id: 'personal', name: 'Personal', icon: null, addresses: ['*@personal.example'], unread: 0, editable: true, folders: [{ name: null, icon: null, unread: 0 }] },
 ]
 
 const MESSAGES: Message[] = [
@@ -49,8 +49,49 @@ const MESSAGES: Message[] = [
 export function previewWorkspaces(): Workspace[] {
   if (!DISSOLVE.connected && DISSOLVE.inboxes.length === 0) return WORKSPACES
   const folders = DISSOLVE.inboxes.map((inbox) => ({ name: inbox.address, icon: null, unread: MESSAGES.filter((message) => message.folder === inbox.address && message.unread).length }))
-  const dissolveWorkspace: Workspace = { id: 'dissolve', name: 'dissolve.email', icon: 'dissolve', addresses: DISSOLVE.inboxes.map((inbox) => inbox.address), unread: folders.reduce((sum, folder) => sum + folder.unread, 0), folders: [{ name: null, icon: null, unread: 0 }, ...folders] }
+  const dissolveWorkspace: Workspace = { id: 'dissolve', name: 'dissolve.email', icon: 'dissolve', addresses: DISSOLVE.inboxes.map((inbox) => inbox.address), unread: folders.reduce((sum, folder) => sum + folder.unread, 0), folders: [{ name: null, icon: null, unread: 0 }, ...folders], editable: false }
   return [...WORKSPACES, dissolveWorkspace]
+}
+
+/** The sender each preview folder takes, as a routing file would say. */
+const FOLDER_FROM: Record<string, string> = { Billing: '*@stripe.com', GitHub: 'notifications@github.com' }
+
+/** The routing file editor against the preview workspaces, with the desktop app's checks on what is missing. */
+export const previewRouting = {
+  list: (): WorkspaceEdit[] =>
+    WORKSPACES.map((workspace) => ({
+      id: workspace.id,
+      name: workspace.name,
+      addresses: [...workspace.addresses],
+      folders: workspace.folders.flatMap((folder) => (folder.name === null ? [] : [{ name: folder.name, from: FOLDER_FROM[folder.name] ?? '', icon: folder.icon }])),
+    })),
+  save: (edit: WorkspaceEdit): string => {
+    const name = edit.name.trim()
+    if (name === '') throw new Error('Give the workspace a name.')
+    const addresses = edit.addresses.map((address) => address.trim().toLowerCase()).filter((address) => address !== '')
+    if (addresses.length === 0) throw new Error('Add at least one address, such as *@example.com.')
+    const base = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'workspace'
+    const id = edit.id ?? [base, ...Array.from({ length: 50 }, (_, index) => `${base}-${index + 2}`)].find((candidate) => WORKSPACES.every((workspace) => workspace.id !== candidate)) ?? base
+    const kept = edit.folders.filter((folder) => folder.name.trim() !== '')
+    for (const folder of kept) FOLDER_FROM[folder.name.trim()] = folder.from.trim()
+    const index = WORKSPACES.findIndex((workspace) => workspace.id === id)
+    const before = WORKSPACES[index]
+    const next: Workspace = { id, name, icon: before?.icon ?? null, addresses, unread: before?.unread ?? 0, editable: true, folders: [{ name: null, icon: null, unread: 0 }, ...kept.map((folder) => ({ name: folder.name.trim(), icon: folder.icon, unread: 0 }))] }
+    if (index === -1) WORKSPACES.push(next)
+    else WORKSPACES.splice(index, 1, next)
+    return id
+  },
+  remove: (id: string): number => {
+    const index = WORKSPACES.findIndex((workspace) => workspace.id === id)
+    if (index === -1) throw new Error(`No workspace ${id} in the routing file.`)
+    WORKSPACES.splice(index, 1)
+    const moved = MESSAGES.filter((message) => message.workspace === id)
+    for (const message of moved) {
+      message.workspace = 'unsorted'
+      if (message.folder !== 'Sent') message.folder = null
+    }
+    return moved.length
+  },
 }
 
 export function previewMessages(place: Place): Message[] {

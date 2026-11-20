@@ -21,6 +21,9 @@ pub struct WorkspaceDto {
     pub folders: Vec<FolderDto>,
     /// Unread messages across every folder.
     pub unread: u32,
+    /// True for a workspace the routing file defines, which Settings can edit and delete. An integration's workspace,
+    /// and mail left from a workspace that has gone, are not.
+    pub editable: bool,
 }
 
 /// One folder in a workspace. The inbox has no name.

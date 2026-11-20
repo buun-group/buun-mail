@@ -7,7 +7,7 @@ use rusqlite::{Connection, OptionalExtension, Row, params};
 
 use crate::error::StoreError;
 use crate::raw::RawFiles;
-use crate::record::{Activity, MessageRecord, Placement, Shelf, StoredRule, UnreadCount, View};
+use crate::record::{Activity, Addressed, MessageRecord, Placement, Shelf, StoredRule, UnreadCount, View};
 use crate::schema::migrate;
 
 /// The index file's name inside the store folder.
@@ -262,6 +262,34 @@ impl Store {
     pub fn move_to(&self, id: &str, placement: &Placement) -> Result<(), StoreError> {
         let changed =
             self.index.execute("UPDATE messages SET workspace = ?2, folder = ?3 WHERE id = ?1", params![id, placement.workspace, placement.folder])?;
+        if changed == 0 {
+            return Err(StoreError::NotFound(id.to_owned()));
+        }
+        Ok(())
+    }
+
+    /// Every message in one workspace, with the addresses routing reads, so it can be filed again after the routing file
+    /// changes.
+    ///
+    /// # Errors
+    ///
+    /// [`StoreError`] when the index cannot be read.
+    pub fn addressed_in(&self, workspace: &str) -> Result<Vec<Addressed>, StoreError> {
+        let mut statement = self.index.prepare_cached("SELECT id, folder, from_address, to_address FROM messages WHERE workspace = ?1")?;
+        let rows = statement.query_map([workspace], |row| Ok(Addressed { id: row.get(0)?, folder: row.get(1)?, from: row.get(2)?, to: row.get(3)? }))?;
+        Ok(rows.collect::<rusqlite::Result<_>>()?)
+    }
+
+    /// Files a message where routing now puts it, with the patterns that matched.
+    ///
+    /// # Errors
+    ///
+    /// [`StoreError::NotFound`] for an unknown id, or when the index cannot be written.
+    pub fn refile(&self, id: &str, placement: &Placement, matched: Option<&str>, folder_matched: Option<&str>) -> Result<(), StoreError> {
+        let changed = self.index.execute(
+            "UPDATE messages SET workspace = ?2, folder = ?3, matched = ?4, folder_matched = ?5 WHERE id = ?1",
+            params![id, placement.workspace, placement.folder, matched, folder_matched],
+        )?;
         if changed == 0 {
             return Err(StoreError::NotFound(id.to_owned()));
         }

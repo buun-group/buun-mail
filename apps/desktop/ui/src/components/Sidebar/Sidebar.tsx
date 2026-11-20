@@ -59,6 +59,10 @@ interface SidebarProps {
   onFold: (id: string) => void
   onEditIcon: (id: string) => void
   onResetIcon: (id: string) => void
+  /** Opens a workspace's editor in Settings. */
+  onEditWorkspace: (id: string) => void
+  /** Asks before deleting a workspace. */
+  onDeleteWorkspace: (workspace: Workspace) => void
   onMarkAllRead: (place: Place, wholeWorkspace: boolean) => void
 }
 
@@ -81,10 +85,8 @@ const VIEWS_FOLD = ':views'
  * Every workspace and its folders, the open one marked. Collapsed, it is a rail of icons; pointing at it, scrolling
  * over it or tabbing into it slides it open over the list, and it folds back when the pointer and focus leave.
  */
-export function Sidebar({ workspaces, place, view, theme, looks, folded, collapsed, onOpen, onOpenView, onCompose, canCompose, draftCount, onFold, onEditIcon, onResetIcon, onMarkAllRead }: SidebarProps): ReactNode {
+export function Sidebar({ workspaces, place, view, theme, looks, folded, collapsed, onOpen, onOpenView, onCompose, canCompose, draftCount, onFold, onEditIcon, onResetIcon, onEditWorkspace, onDeleteWorkspace, onMarkAllRead }: SidebarProps): ReactNode {
   const { t } = useTranslation(['sidebar', 'common', 'mail'])
-  // Why rename is off: names live in the routing file, which settings cannot edit yet.
-  const needsEditor = t('menu.needsEditor')
   const nav = useRef<HTMLElement | null>(null)
   const [peek] = usePeek(nav, collapsed)
   // Unread across every workspace, for All mail: the sum of the workspaces' own counts.
@@ -115,15 +117,16 @@ export function Sidebar({ workspaces, place, view, theme, looks, folded, collaps
       ...items,
       { id: 'icon', label: t('menu.changeIcon'), glyph: IconImage, onSelect: () => onEditIcon(workspace.id), separated: true },
       ...(looks[workspace.id] === undefined ? [] : [{ id: 'reset', label: t('menu.useRoutingIcon'), glyph: IconReset, onSelect: () => onResetIcon(workspace.id) }]),
-      { id: 'rename', label: t('menu.rename'), glyph: IconRename, disabledReason: needsEditor },
+      ...(workspace.editable ? [{ id: 'edit', label: t('menu.editWorkspace'), glyph: IconRename, onSelect: () => onEditWorkspace(workspace.id) }] : []),
       { ...copyItem(workspace.addresses), separated: true },
+      ...(workspace.editable ? [{ id: 'delete', label: t('menu.deleteWorkspace'), glyph: IconDelete, onSelect: () => onDeleteWorkspace(workspace), separated: true }] : []),
     ]
   }
 
   const folderMenu = (workspace: Workspace, folder: string | null, unread: number): MenuItem[] => [
     { id: 'open', label: t('menu.open'), glyph: folder === null ? IconInbox : IconFolder, onSelect: () => onOpen({ workspace: workspace.id, folder }) },
     { id: 'read', label: t('menu.markAllRead'), glyph: IconMarkRead, onSelect: () => onMarkAllRead({ workspace: workspace.id, folder }, false), ...(unread === 0 ? { disabledReason: t('menu.nothingUnread') } : {}) },
-    ...(folder === null ? [] : [{ id: 'rename', label: t('menu.rename'), glyph: IconRename, disabledReason: needsEditor }]),
+    ...(folder === null || !workspace.editable ? [] : [{ id: 'rename', label: t('menu.renameFolder'), glyph: IconRename, onSelect: () => onEditWorkspace(workspace.id) }]),
     ...(workspace.addresses.length > 0 ? [{ ...copyItem(workspace.addresses), separated: true }] : []),
   ]
 

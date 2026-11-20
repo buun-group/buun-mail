@@ -25,7 +25,15 @@ impl ProvidedWorkspace {
     pub(super) fn dto(&self, unread: &dyn Fn(&str, Option<&str>) -> u32) -> WorkspaceDto {
         let mut folders = vec![FolderDto { name: None, icon: None, unread: unread(&self.id, None) }];
         folders.extend(self.folders.iter().map(|name| FolderDto { name: Some(name.clone()), icon: None, unread: unread(&self.id, Some(name)) }));
-        WorkspaceDto { id: self.id.clone(), name: self.name.clone(), icon: self.icon.clone(), addresses: self.addresses.clone(), folders, unread: 0 }
+        WorkspaceDto {
+            id: self.id.clone(),
+            name: self.name.clone(),
+            icon: self.icon.clone(),
+            addresses: self.addresses.clone(),
+            folders,
+            unread: 0,
+            editable: false,
+        }
     }
 }
 

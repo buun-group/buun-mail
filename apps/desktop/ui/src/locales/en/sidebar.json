@@ -29,8 +29,9 @@
     "nothingUnread": "Nothing unread",
     "changeIcon": "Change icon",
     "useRoutingIcon": "Use the routing file icon",
-    "rename": "Rename",
-    "needsEditor": "Edit the routing file for now",
+    "editWorkspace": "Edit workspace",
+    "renameFolder": "Rename or change folders",
+    "deleteWorkspace": "Delete workspace",
     "copyAddress_one": "Copy address",
     "copyAddress_other": "Copy addresses",
     "empty": "Nothing to do here yet."

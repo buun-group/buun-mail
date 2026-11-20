@@ -8,6 +8,7 @@ import { setLocalOffset } from './api/client'
 import { onReminderDue } from './api/events'
 import { notify } from './api/notify'
 import { toast } from './lib/feedback'
+import { useWorkspaceDeletion } from './hooks/useWorkspaceDeletion'
 import { IconSnooze } from './icons'
 import { Overview } from './components/Dissolve/Overview'
 import { DISSOLVE_WORKSPACE } from './lib/dissolve'
@@ -72,6 +73,7 @@ export function App(): ReactNode {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [section, setSection] = useState<SettingsSection>('general')
   const [editing, setEditing] = useState<string | null>(null)
+  const [changing, setChanging] = useState<string | null>(null)
   const openSettings = useCallback(() => setSettingsOpen(true), [])
   const focusSearch = useCallback(() => document.getElementById('search')?.focus(), [])
   const editIcon = (id: string): void => {
@@ -79,6 +81,25 @@ export function App(): ReactNode {
     setEditing(id)
     setSettingsOpen(true)
   }
+  const editWorkspace = (id: string): void => {
+    setSection('workspaces')
+    setChanging(id)
+    setSettingsOpen(true)
+  }
+  const { open: openPlace, place: currentPlace, refresh: refreshMailbox, workspaces: allWorkspaces } = mailbox
+  const setLook = looks.set
+  // A deleted workspace forgets its icon, its editor closes, and when it was open the next workspace's inbox opens.
+  const deletedWorkspace = useCallback(
+    (id: string) => {
+      setLook(id, null)
+      setChanging((current) => (current === id ? null : current))
+      const next = allWorkspaces.find((item) => item.id !== id)
+      if (currentPlace?.workspace === id && next !== undefined) openPlace({ workspace: next.id, folder: null })
+      refreshMailbox()
+    },
+    [setLook, allWorkspaces, currentPlace, openPlace, refreshMailbox],
+  )
+  const workspaceDeletion = useWorkspaceDeletion(deletedWorkspace)
   useShortcut(SETTINGS_SHORTCUT, openSettings)
   useShortcut('f', focusSearch)
   const selectedId = mailbox.selected?.message.id ?? null
@@ -181,6 +202,8 @@ export function App(): ReactNode {
         onFold={folded.toggle}
         onEditIcon={editIcon}
         onResetIcon={(id) => looks.set(id, null)}
+        onEditWorkspace={editWorkspace}
+        onDeleteWorkspace={workspaceDeletion.ask}
         onMarkAllRead={mailbox.markAllRead}
       />
       {mailbox.view === 'drafts' ? (
@@ -259,6 +282,9 @@ export function App(): ReactNode {
         onSection={setSection}
         editing={editing}
         onEditing={setEditing}
+        changing={changing}
+        onChanging={setChanging}
+        onDeleteWorkspace={workspaceDeletion.ask}
         onImported={mailbox.refresh}
         notifications={notifications}
         onSendersChanged={sending.refresh}
@@ -266,6 +292,7 @@ export function App(): ReactNode {
       <Compose compose={compose} workspaces={mailbox.workspaces} sendable={sending.sendable} />
       <Toasts toasts={notifications.toasts} workspaceName={workspaceName} onOpen={(message) => (notifications.isTest(message.id) ? undefined : mailbox.reveal(message))} onDismiss={notifications.dismissToast} />
       <Confirm request={actions.confirmation} cancelLabel={t('actions.cancel')} onClose={actions.closeConfirmation} />
+      <Confirm request={workspaceDeletion.confirmation} cancelLabel={t('actions.cancel')} onClose={workspaceDeletion.close} />
       {preferences.grain && <Grain />}
       <Splash done={mailbox.ready} />
     </div>

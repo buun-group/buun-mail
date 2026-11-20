@@ -8,8 +8,8 @@ const message: Message = {
   subject: 'Quote', preview: '', receivedAt: '2026-11-19T07:42:00Z', unread: false, starred: false, shelf: 'active', tags: [], threadId: null, threadSize: 1, snoozedUntil: null, size: null, checks: null,
 }
 const workspaces: Workspace[] = [
-  { id: 'flung', name: 'Flung', icon: null, addresses: ['*@flung.dev', 'hello@flung.dev'], folders: [], unread: 0 },
-  { id: 'gun', name: 'GunSpec', icon: null, addresses: ['support@gunspec.io'], folders: [], unread: 0 },
+  { id: 'flung', name: 'Flung', icon: null, addresses: ['*@flung.dev', 'hello@flung.dev'], folders: [], unread: 0, editable: true },
+  { id: 'gun', name: 'GunSpec', icon: null, addresses: ['support@gunspec.io'], folders: [], unread: 0, editable: true },
 ]
 const original = { message, body: 'Line one\n\nLine two', recipients: { to: [{ name: null, address: 'buun-mail@flung.dev' }, { name: 'Ops', address: 'ops@client.example' }], cc: [{ name: null, address: 'c@client.example' }], replyTo: [] } }
 

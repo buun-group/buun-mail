@@ -51,6 +51,7 @@ pub use paths::AppPaths;
 ///
 /// Never on its own: a failure to start the window is reported by Tauri and ends the process.
 #[allow(clippy::expect_used, reason = "nothing can run if the window fails to start, and Tauri has already said why")]
+#[allow(clippy::too_many_lines, reason = "the command list is one registration, a line a command")]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
@@ -136,6 +137,9 @@ pub fn run() {
             commands::list_activity,
             commands::import_files,
             commands::routing_path,
+            commands::routing_workspaces,
+            commands::save_workspace,
+            commands::delete_workspace,
             commands::agent_status,
             commands::set_agent_enabled,
             commands::regenerate_agent_token,

@@ -32,6 +32,7 @@ The envelope recipient survives the hop, so placing a message is a table lookup,
 | Rules on words and tags, alerts (Slack, Discord, ntfy, Telegram, SMS, email, webhook), daily digests, saved attachments, block and one-click unsubscribe | Done |
 | All mail, send later, reminders when nobody answers, templates, a signature and address per workspace, private notes | Done |
 | Secrets sealed at rest under a per-install key, a reveal code, encrypted backup and restore | Done |
+| Workspaces added, changed and deleted in Settings or from the sidebar's right-click menu, mail filed again to match | Done |
 | Outlook.com sign-in (needs a Microsoft app registration), passkey or system unlock for the reveal code | Next |
 
 ## Sending with Resend
@@ -121,6 +122,11 @@ name = "Acme"
 match = ["*@acme.com", "acme@personal.example"]
 folders = [{ name = "Receipts", from = "*@stripe.com" }]
 ```
+
+Settings, Workspaces adds, changes and deletes workspaces (or right-click one in the sidebar). The file is edited in
+place, so its comments stay, and a change that would not load is refused with the reason. Mail Unsorted that a new
+address claims moves there; a deleted workspace's mail moves to whichever workspace now claims it, or Unsorted. A fresh
+install starts with one example workspace, Personal.
 
 An exact address beats its domain whatever the order. A `+tag` is ignored when matching. Two workspaces claiming one
 pattern is an error, not a coin toss. Mail nobody claims lands in **Unsorted**.

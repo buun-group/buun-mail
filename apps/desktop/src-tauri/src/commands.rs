@@ -18,7 +18,7 @@ use crate::error::AppError;
 use crate::events;
 use crate::imap::{ImapAccountDto, ImapSecurity, ImapService};
 use crate::later::{LaterService, ReminderDto, ScheduledDto};
-use crate::mailbox::{Actor, AttachmentDataDto, ExportFormat, Mailbox};
+use crate::mailbox::{Actor, AttachmentDataDto, ExportFormat, Mailbox, WorkspaceEdit};
 use crate::send::{DraftDto, Security, SendFailure, SendService, SendableDto, SenderDto, SmtpServer};
 use crate::sync::{AvailableZone, CheckReportDto, DomainRoute, GatewayStatusDto, OwnedDomain, SyncService};
 use crate::vault::reveal::{RevealLock, RevealStatusDto};
@@ -156,6 +156,28 @@ pub fn import_files(app: AppHandle, mailbox: State<'_, Arc<Mailbox>>, paths: Vec
     let (report, arrived) = mailbox.import_files(&paths)?;
     events::mail_arrived(&app, &arrived);
     Ok(report)
+}
+
+/// The routing file's workspaces, for the editor in Settings.
+#[tauri::command]
+pub fn routing_workspaces(mailbox: State<'_, Arc<Mailbox>>) -> Result<Vec<WorkspaceEdit>, AppError> {
+    mailbox.routing_workspaces()
+}
+
+/// Adds a workspace, or changes one, in the routing file. Returns its id.
+#[tauri::command]
+pub fn save_workspace(app: AppHandle, mailbox: State<'_, Arc<Mailbox>>, workspace: WorkspaceEdit) -> Result<String, AppError> {
+    let id = mailbox.save_workspace(&workspace, &Actor::You)?;
+    events::mail_changed(&app);
+    Ok(id)
+}
+
+/// Deletes a workspace from the routing file; its mail is filed again. Returns how many messages moved.
+#[tauri::command]
+pub fn delete_workspace(app: AppHandle, mailbox: State<'_, Arc<Mailbox>>, id: String) -> Result<usize, AppError> {
+    let moved = mailbox.delete_workspace(&id, &Actor::You)?;
+    events::mail_changed(&app);
+    Ok(moved)
 }
 
 /// Where the routing file lives.

@@ -2,18 +2,20 @@ import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 
-import { routingPath } from '../../api/client'
-import type { Workspace } from '../../api/types'
+import { routingPath, routingWorkspaces } from '../../api/client'
+import type { Workspace, WorkspaceEdit } from '../../api/types'
 import { BRAND_ICONS } from '../../constants/products'
 import type { BrandIcon } from '../../constants/products'
-import { UNSORTED_WORKSPACE } from '../../constants/ui'
+import { NEW_WORKSPACE, UNSORTED_WORKSPACE } from '../../constants/ui'
 import type { Theme } from '../../constants/ui'
 import { shrinkImage } from '../../hooks/useWorkspaceLooks'
 import type { WorkspaceLook, WorkspaceLooks } from '../../hooks/useWorkspaceLooks'
-import { IconImage, IconReset, WORKSPACE_GLYPHS } from '../../icons'
+import { IconAdd, IconImage, IconRename, IconReset, WORKSPACE_GLYPHS } from '../../icons'
 import type { WorkspaceGlyph } from '../../icons'
 import { WorkspaceIcon } from '../WorkspaceIcon/WorkspaceIcon'
 import { ProfileEditor } from './ProfileEditor'
+import { WorkspaceEditor } from './WorkspaceEditor'
+import { Skeleton } from '../Busy/Skeleton'
 
 interface WorkspacesSectionProps {
   workspaces: Workspace[]
@@ -21,23 +23,60 @@ interface WorkspacesSectionProps {
   onLook: (id: string, look: WorkspaceLook | null) => void
   editing: string | null
   onEditing: (id: string | null) => void
+  /** The workspace whose editor is open, {@link NEW_WORKSPACE} for one being added, or null. */
+  changing: string | null
+  onChanging: (id: string | null) => void
+  /** Asks before deleting a workspace. */
+  onDelete: (workspace: { id: string; name: string }) => void
+  /** After a workspace is added or changed, so the sidebar reads them again. */
+  onChanged: () => void
   theme: Theme
 }
+
+const BLANK: WorkspaceEdit = { id: null, name: '', addresses: [], folders: [] }
 
 const GLYPH_KEYS = Object.keys(WORKSPACE_GLYPHS) as WorkspaceGlyph[]
 const BRAND_KEYS = Object.keys(BRAND_ICONS) as BrandIcon[]
 
-/** Every workspace as the routing file defines it, each with a picker for its icon or image. */
-export function WorkspacesSection({ workspaces, looks, onLook, editing, onEditing, theme }: WorkspacesSectionProps): ReactNode {
+/**
+ * Every workspace as the routing file defines it: add one, change its name, addresses and folders, delete it, and give
+ * it an icon or image and a way of writing. A workspace an integration brings (dissolve.email's) has only the last two.
+ */
+export function WorkspacesSection({ workspaces, looks, onLook, editing, onEditing, changing, onChanging, onDelete, onChanged, theme }: WorkspacesSectionProps): ReactNode {
   const { t } = useTranslation('settings')
   const defined = workspaces.filter((workspace) => workspace.id !== UNSORTED_WORKSPACE)
   const [path, setPath] = useState<string | null>(null)
   const [writingFor, setWritingFor] = useState<string | null>(null)
+  const [routing, setRouting] = useState<WorkspaceEdit[] | null>(null)
   useEffect(() => {
     routingPath()
       .then(setPath)
       .catch(() => setPath(null))
   }, [])
+  // The file is read each time an editor opens, so an edit made elsewhere (a gateway domain, by hand) is what it starts from.
+  useEffect(() => {
+    if (changing === null || changing === NEW_WORKSPACE) return
+    let current = true
+    routingWorkspaces()
+      .then((found) => {
+        if (current) setRouting(found)
+      })
+      .catch(() => {
+        if (current) setRouting([])
+      })
+    return () => {
+      current = false
+    }
+  }, [changing])
+  const saved = (): void => {
+    onChanging(null)
+    onChanged()
+  }
+  const editorFor = (workspace: Workspace): ReactNode => {
+    const initial = routing?.find((edit) => edit.id === workspace.id)
+    if (initial === undefined) return <Skeleton rows={3} label={t('workspaces.loading')} />
+    return <WorkspaceEditor key={workspace.id} initial={initial} onSaved={saved} onCancel={() => onChanging(null)} onDelete={() => onDelete(workspace)} />
+  }
   return (
     <>
       <p className="settings__intro">
@@ -52,17 +91,38 @@ export function WorkspacesSection({ workspaces, looks, onLook, editing, onEditin
                 <p className="settings__label">{workspace.name}</p>
                 <p className="settings__mono">{workspace.addresses.join('  ')}</p>
               </div>
-              <button type="button" className="settings__button" aria-expanded={editing === workspace.id} onClick={() => onEditing(editing === workspace.id ? null : workspace.id)}>
-                {t('workspaces.changeIcon')}
-              </button>
-              <button type="button" className="settings__button" aria-expanded={writingFor === workspace.id} onClick={() => setWritingFor(writingFor === workspace.id ? null : workspace.id)}>
-                {t('profile.edit')}
-              </button>
+              <div className="settings__workspace-actions">
+                {workspace.editable && (
+                  <button type="button" className="settings__button" aria-expanded={changing === workspace.id} onClick={() => onChanging(changing === workspace.id ? null : workspace.id)}>
+                    <IconRename aria-hidden="true" />
+                    {t('workspaces.edit')}
+                  </button>
+                )}
+                <button type="button" className="settings__button" aria-expanded={editing === workspace.id} onClick={() => onEditing(editing === workspace.id ? null : workspace.id)}>
+                  {t('workspaces.changeIcon')}
+                </button>
+                <button type="button" className="settings__button" aria-expanded={writingFor === workspace.id} onClick={() => setWritingFor(writingFor === workspace.id ? null : workspace.id)}>
+                  {t('profile.edit')}
+                </button>
+              </div>
             </div>
+            {changing === workspace.id && workspace.editable && editorFor(workspace)}
             {writingFor === workspace.id && <ProfileEditor workspace={workspace} />}
             {editing === workspace.id && <IconPicker workspace={workspace} theme={theme} look={looks[workspace.id]} onLook={(look) => onLook(workspace.id, look)} />}
           </li>
         ))}
+        <li>
+          {changing === NEW_WORKSPACE ? (
+            <WorkspaceEditor key={NEW_WORKSPACE} initial={BLANK} onSaved={saved} onCancel={() => onChanging(null)} />
+          ) : (
+            <div className="settings__workspace--new">
+              <button type="button" className="settings__button" onClick={() => onChanging(NEW_WORKSPACE)}>
+                <IconAdd aria-hidden="true" />
+                {t('workspaces.addWorkspace')}
+              </button>
+            </div>
+          )}
+        </li>
       </ul>
     </>
   )

@@ -4,8 +4,8 @@ import { openUrl } from '@tauri-apps/plugin-opener'
 
 import type { ExportFormat } from '../constants/ui'
 import { COMMANDS, IMPORT_EXTENSIONS } from './commands'
-import { preview, previewDetail, previewMessages, previewView, previewWorkspaces } from './preview'
-import type { Activity, AgentStatus, AlertChannel, Profile, Template, Writing, Reminder, ScheduledMessage, AlertKind, AvailableDomain, CheckReport, Contact, RevealStatus, SecretKind, DissolveInbox, DissolveStatus, Draft, FileToSend, ImapAccount, KnownContact, SmtpSecurity, SmtpServer, Sendable, Sender, GatewayDomain, GatewayStatus, ImportReport, MailView, Message, MessageDetail, Place, Rule, Shelf, TagCount, Workspace } from './types'
+import { preview, previewDetail, previewMessages, previewRouting, previewView, previewWorkspaces } from './preview'
+import type { Activity, AgentStatus, AlertChannel, Profile, Template, Writing, Reminder, ScheduledMessage, AlertKind, AvailableDomain, CheckReport, Contact, RevealStatus, SecretKind, DissolveInbox, DissolveStatus, Draft, FileToSend, ImapAccount, KnownContact, SmtpSecurity, SmtpServer, Sendable, Sender, GatewayDomain, GatewayStatus, ImportReport, MailView, Message, MessageDetail, Place, Rule, Shelf, TagCount, Workspace, WorkspaceEdit } from './types'
 
 /**
  * The one door to the Rust side. In the desktop app every call is a Tauri command; in a plain browser (`pnpm dev:ui`)
@@ -102,6 +102,21 @@ export async function saveAttachment(id: string, index: number, name: string): P
 /** Where the routing file lives, or null in a plain browser. */
 export async function routingPath(): Promise<string | null> {
   return isTauri() ? invoke<string>(COMMANDS.routingPath) : null
+}
+
+/** The routing file's workspaces, as the editor shows them. */
+export async function routingWorkspaces(): Promise<WorkspaceEdit[]> {
+  return isTauri() ? invoke<WorkspaceEdit[]>(COMMANDS.routingWorkspaces) : previewRouting.list()
+}
+
+/** Adds a workspace (no id) or changes one in the routing file. Resolves to its id. */
+export async function saveWorkspace(workspace: WorkspaceEdit): Promise<string> {
+  return isTauri() ? invoke<string>(COMMANDS.saveWorkspace, { workspace }) : previewRouting.save(workspace)
+}
+
+/** Deletes a workspace from the routing file. Its mail is filed again; resolves to how many messages moved. */
+export async function deleteWorkspace(id: string): Promise<number> {
+  return isTauri() ? invoke<number>(COMMANDS.deleteWorkspace, { id }) : previewRouting.remove(id)
 }
 
 /** Opens a page in the person's browser, never inside the app. The desktop allows only the product sites. */

@@ -33,6 +33,7 @@ use buun_mail_store::{Activity, Store};
 
 pub use export::{AttachmentDataDto, ExportFormat};
 pub use provided::ProvidedWorkspace;
+pub use routing::WorkspaceEdit;
 
 use crate::error::AppError;
 use crate::paths::AppPaths;

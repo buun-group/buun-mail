@@ -16,5 +16,5 @@ mod schema;
 mod store;
 
 pub use error::StoreError;
-pub use record::{Activity, MessageRecord, Placement, Shelf, StoredRule, UnreadCount, View};
+pub use record::{Activity, Addressed, MessageRecord, Placement, Shelf, StoredRule, UnreadCount, View};
 pub use store::{Inserted, Store};

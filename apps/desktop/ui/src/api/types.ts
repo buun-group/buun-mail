@@ -19,6 +19,16 @@ export interface Workspace {
   addresses: string[]
   folders: Folder[]
   unread: number
+  /** True for a workspace the routing file defines, which Settings can edit and delete. */
+  editable: boolean
+}
+
+/** One workspace as the routing file writes it, for the editor. A new one has no id yet. */
+export interface WorkspaceEdit {
+  id: string | null
+  name: string
+  addresses: string[]
+  folders: { name: string; from: string; icon: string | null }[]
 }
 
 /** A message, already placed by the router. */
