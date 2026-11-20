@@ -2,7 +2,12 @@ import { Splash } from '@buun-mail/brand/react'
 import { useCallback, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
+
 import { DissolveBar } from './components/Dissolve/DissolveBar'
+import { onReminderDue } from './api/events'
+import { notify } from './api/notify'
+import { toast } from './lib/feedback'
+import { IconSnooze } from './icons'
 import { Overview } from './components/Dissolve/Overview'
 import { DISSOLVE_WORKSPACE } from './lib/dissolve'
 
@@ -23,6 +28,7 @@ import type { Message } from './api/types'
 import { Compose } from './components/Compose/Compose'
 import { DraftsList } from './components/Compose/DraftsList'
 import { ContactsList } from './components/Contacts/ContactsList'
+import { ScheduledList } from './components/Scheduled/ScheduledList'
 import { useCompose } from './hooks/useCompose'
 import { useMailbox } from './hooks/useMailbox'
 import { useSending } from './hooks/useSending'
@@ -45,6 +51,16 @@ export function App(): ReactNode {
   const [restore] = useState(() => (preferences.rememberPlace ? readLastPlace() : null))
   const mailbox = useMailbox(restore, preferences.conversations)
   const looks = useWorkspaceLooks()
+  // A follow-up reminder that fell due with no reply: a toast, and a desktop notification.
+  useEffect(
+    () =>
+      onReminderDue((reminder) => {
+        const detail = t('later.dueDetail', { to: reminder.to, subject: reminder.subject })
+        toast({ text: t('later.dueTitle'), detail, tone: 'info', glyph: IconSnooze })
+        void notify(t('later.dueTitle'), detail)
+      }),
+    [t],
+  )
   const folded = useFolded()
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [section, setSection] = useState<SettingsSection>('general')
@@ -162,6 +178,8 @@ export function App(): ReactNode {
       />
       {mailbox.view === 'drafts' ? (
         <DraftsList compose={compose} />
+      ) : mailbox.view === 'scheduled' ? (
+        <ScheduledList />
       ) : mailbox.view === 'contacts' ? (
         <ContactsList
           theme={preferences.theme}

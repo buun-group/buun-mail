@@ -242,3 +242,17 @@ describe('unsubscribe and block', () => {
     expect(await screen.findByText('projects@client.example blocked')).toBeTruthy()
   })
 })
+
+describe('scheduled and follow-ups', () => {
+  it('lists what is scheduled and waiting for a reply', async () => {
+    const { preview } = await import('../api/preview')
+    preview.later.schedule({ from: { name: null, address: 'hello@buungroup.com' }, to: [{ name: null, address: 'client@client.example' }], cc: [], bcc: [], subject: 'Invoice reminder', text: 'Hi', replyToMessage: null, attachments: [] }, new Date(Date.now() + 3_600_000))
+    preview.later.remind('p5', 3)
+    const { ScheduledList } = await import('../components/Scheduled/ScheduledList')
+    render(<ScheduledList />)
+    expect(await screen.findByText('Invoice reminder')).toBeTruthy()
+    expect(screen.getByText('Re: Quote for the booking site')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel sending Invoice reminder' }))
+    expect(await screen.findByText(/Nothing scheduled/)).toBeTruthy()
+  })
+})

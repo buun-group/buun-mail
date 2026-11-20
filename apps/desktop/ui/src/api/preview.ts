@@ -1,4 +1,4 @@
-import type { Activity, AgentStatus, AlertChannel, AlertKind, Contact, RevealStatus, DissolveInbox, DissolveStatus, Draft, ImapAccount, KnownContact, SmtpServer, MailView, Message, MessageDetail, Place, Rule, Sendable, Sender, TagCount, Workspace } from './types'
+import type { Activity, AgentStatus, AlertChannel, Reminder, ScheduledMessage, AlertKind, Contact, RevealStatus, DissolveInbox, DissolveStatus, Draft, ImapAccount, KnownContact, SmtpServer, MailView, Message, MessageDetail, Place, Rule, Sendable, Sender, TagCount, Workspace } from './types'
 
 /**
  * A small stand-in mailbox for `pnpm dev:ui`, where there is no Rust side, so the layout can be tuned in a plain
@@ -58,7 +58,7 @@ export function previewMessages(place: Place): Message[] {
 }
 
 export function previewView(view: MailView): Message[] {
-  const keep = { all: (message: Message) => message.shelf === 'active' && message.snoozedUntil === null && message.folder !== 'Sent', starred: (message: Message) => message.starred && message.shelf !== 'trashed', archive: (message: Message) => message.shelf === 'archived', trash: (message: Message) => message.shelf === 'trashed', snoozed: (message: Message) => message.snoozedUntil !== null, drafts: () => false, contacts: () => false }[view]
+  const keep = { scheduled: () => false, all: (message: Message) => message.shelf === 'active' && message.snoozedUntil === null && message.folder !== 'Sent', starred: (message: Message) => message.starred && message.shelf !== 'trashed', archive: (message: Message) => message.shelf === 'archived', trash: (message: Message) => message.shelf === 'trashed', snoozed: (message: Message) => message.snoozedUntil !== null, drafts: () => false, contacts: () => false }[view]
   return MESSAGES.filter(keep).map((message) => ({ ...message }))
 }
 
@@ -187,7 +187,33 @@ const alerts = {
   },
 }
 
+const SCHEDULED: ScheduledMessage[] = []
+const REMINDERS: Reminder[] = []
+const later = {
+  list: (): ScheduledMessage[] => SCHEDULED.map((item) => ({ ...item })),
+  schedule: (draft: Draft, at: Date): ScheduledMessage[] => {
+    SCHEDULED.push({ id: `later-${SCHEDULED.length + 1}`, from: draft.from.address, to: draft.to.map((person) => person.address), subject: draft.subject, sendAt: at.toISOString(), problem: null })
+    return later.list()
+  },
+  cancel: (id: string): ScheduledMessage[] => {
+    const at = SCHEDULED.findIndex((item) => item.id === id)
+    if (at !== -1) SCHEDULED.splice(at, 1)
+    return later.list()
+  },
+  reminders: (): Reminder[] => REMINDERS.map((item) => ({ ...item })),
+  remind: (messageId: string, days: number): Reminder[] => {
+    REMINDERS.push({ id: `remind-${REMINDERS.length + 1}`, messageId, subject: 'Re: Quote for the booking site', to: 'projects@client.example', dueAt: new Date(Date.now() + days * 86_400_000).toISOString() })
+    return later.reminders()
+  },
+  dropReminder: (id: string): Reminder[] => {
+    const at = REMINDERS.findIndex((item) => item.id === id)
+    if (at !== -1) REMINDERS.splice(at, 1)
+    return later.reminders()
+  },
+}
+
 export const preview = {
+  later,
   dissolve,
   security,
   alerts,

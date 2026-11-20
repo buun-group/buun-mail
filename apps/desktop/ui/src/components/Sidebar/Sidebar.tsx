@@ -10,6 +10,7 @@ import { useLeaving } from '../../hooks/useLeaving'
 import { usePeek } from '../../hooks/usePeek'
 import type { WorkspaceLooks } from '../../hooks/useWorkspaceLooks'
 import {
+  IconCalendar,
   IconArchive,
   IconCaretDown,
   IconCompose,
@@ -64,6 +65,7 @@ interface SidebarProps {
 const VIEWS = [
   { id: 'all', glyph: IconUnsorted },
   { id: 'drafts', glyph: IconRename },
+  { id: 'scheduled', glyph: IconCalendar },
   { id: 'starred', glyph: IconStar },
   { id: 'snoozed', glyph: IconSnooze },
   { id: 'archive', glyph: IconArchive },

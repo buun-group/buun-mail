@@ -17,6 +17,7 @@ use crate::dto::{ActivityDto, ContactDto, ImportReportDto, KnownContactDto, Mess
 use crate::error::AppError;
 use crate::events;
 use crate::imap::{ImapAccountDto, ImapSecurity, ImapService};
+use crate::later::{LaterService, ReminderDto, ScheduledDto};
 use crate::mailbox::{Actor, AttachmentDataDto, ExportFormat, Mailbox};
 use crate::send::{DraftDto, Security, SendFailure, SendService, SendableDto, SenderDto, SmtpServer};
 use crate::sync::{AvailableZone, CheckReportDto, DomainRoute, GatewayStatusDto, OwnedDomain, SyncService};
@@ -555,4 +556,47 @@ pub async fn unsubscribe_one_click(mailbox: State<'_, Arc<Mailbox>>, id: String)
     })
     .await
     .map_err(|error| error.to_string())?
+}
+
+/// Schedules a message to go at `send_at` (Unix seconds), with a reminder after it when `remind_days` is given.
+#[tauri::command]
+pub fn schedule_send(later: State<'_, LaterService>, draft: DraftDto, send_at: i64, remind_days: Option<u32>) -> Result<Vec<ScheduledDto>, String> {
+    later.schedule(draft, send_at, remind_days)
+}
+
+/// Every scheduled message, soonest first.
+#[tauri::command]
+pub fn list_scheduled(later: State<'_, LaterService>) -> Result<Vec<ScheduledDto>, String> {
+    later.scheduled()
+}
+
+/// Cancels a scheduled message.
+#[tauri::command]
+pub fn cancel_scheduled(later: State<'_, LaterService>, id: String) -> Result<Vec<ScheduledDto>, String> {
+    later.cancel(&id)
+}
+
+/// Sends a scheduled message now, away from the window's thread.
+#[tauri::command]
+pub async fn send_scheduled_now(later: State<'_, LaterService>, id: String) -> Result<Vec<ScheduledDto>, String> {
+    let service = later.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || service.send_now(&id)).await.map_err(|error| error.to_string())?
+}
+
+/// Reminds you in `days` days if nobody answers a sent message.
+#[tauri::command]
+pub fn remind_if_no_reply(later: State<'_, LaterService>, message_id: String, days: u32) -> Result<Vec<ReminderDto>, String> {
+    later.remind(&message_id, days)
+}
+
+/// Every waiting reminder, soonest first.
+#[tauri::command]
+pub fn list_reminders(later: State<'_, LaterService>) -> Result<Vec<ReminderDto>, String> {
+    later.reminders()
+}
+
+/// Drops a reminder.
+#[tauri::command]
+pub fn cancel_reminder(later: State<'_, LaterService>, id: String) -> Result<Vec<ReminderDto>, String> {
+    later.cancel_reminder(&id)
 }

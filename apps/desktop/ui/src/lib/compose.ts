@@ -12,6 +12,8 @@ export interface Composing {
   draft: Draft
   /** When it was last changed, for the drafts list. ISO time. */
   updatedAt: string
+  /** After it is sent, remind if nobody answers within this many days. */
+  remindDays?: number
 }
 
 /** The message being answered or forwarded, as the reader holds it. */

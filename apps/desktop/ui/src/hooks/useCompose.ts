@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { sendMessage } from '../api/client'
+import { cancelScheduled, remindIfNoReply, scheduleSend, sendMessage } from '../api/client'
 import type { Contact, Draft, Message, SendFailure, Sendable, Workspace } from '../api/types'
 import { STORAGE_KEYS } from '../constants/ui'
 import { IconSend } from '../icons'
 import type { ComposeMode, Composing, Original } from '../lib/compose'
 import { forwardBlock, forwardSubject, fromChoices, quote, replyAllCc, replySubject, replyTarget, signatureFor, startingText } from '../lib/compose'
 import { dismissFeedback, toast } from '../lib/feedback'
+import { formatListed } from '../lib/time'
 
 /** How long Undo stays possible after Send, before the message really goes. */
 export const UNDO_SEND_MS = 5_000
@@ -32,6 +33,10 @@ export interface Compose {
   discard: () => void
   /** Sends the open message after a short Undo window. */
   send: () => void
+  /** Schedules the open message to go at `at`, with Undo. */
+  sendLater: (at: Date) => void
+  /** Asks to be reminded if nobody answers the open message within `days` days, or not (null). */
+  setRemind: (days: number | null) => void
   /** Every saved draft, newest first. */
   drafts: Composing[]
   /** Forgets one saved draft. */
@@ -153,6 +158,7 @@ export function useCompose(workspaces: readonly Workspace[], sendable: readonly 
           if (fromOutbox) saveOutbox((current) => current.filter((item) => item.id !== composing.id))
           toast({ text: t('sent'), detail: composing.draft.to.map((person) => person.address).join(', '), tone: 'done', glyph: IconSend })
           latest.current.onSent(sent)
+          if (composing.remindDays !== undefined) void remindIfNoReply(sent.id, composing.remindDays)
         })
         .catch((cause: unknown) => {
           const failure = failureOf(cause)
@@ -196,6 +202,41 @@ export function useCompose(workspaces: readonly Workspace[], sendable: readonly 
     })
   }
 
+  const sendLater = (at: Date): void => {
+    if (open === null) return
+    const outgoing = open
+    scheduleSend(outgoing.draft, at, outgoing.remindDays ?? null)
+      .then((list) => {
+        setOpen(null)
+        deleteDraft(outgoing.id)
+        const scheduled = list.find((item) => item.subject === outgoing.draft.subject && Date.parse(item.sendAt) === Math.floor(at.getTime() / 1000) * 1000)
+        toast({
+          text: t('scheduled', { when: formatListed(at.toISOString()) }),
+          detail: outgoing.draft.subject || t('noSubject'),
+          tone: 'done',
+          glyph: IconSend,
+          ...(scheduled === undefined
+            ? {}
+            : {
+                undo: () => {
+                  void cancelScheduled(scheduled.id)
+                  show(outgoing)
+                  saveDrafts((current) => [outgoing, ...current])
+                },
+              }),
+        })
+      })
+      .catch((cause: unknown) => setError(cause instanceof Error ? cause.message : String(cause)))
+  }
+
+  const setRemind = (days: number | null): void => {
+    setOpen((current) => {
+      if (current === null) return current
+      const { remindDays: _was, ...rest } = current
+      return days === null ? rest : { ...rest, remindDays: days }
+    })
+  }
+
   // Tries the outbox again every minute while it holds something, and the moment the computer is back online.
   useEffect(() => {
     if (outbox.length === 0) return
@@ -221,6 +262,8 @@ export function useCompose(workspaces: readonly Workspace[], sendable: readonly 
     change,
     discard,
     send,
+    sendLater,
+    setRemind,
     drafts,
     deleteDraft,
     waiting: outbox.length,

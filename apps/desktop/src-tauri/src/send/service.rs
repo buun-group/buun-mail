@@ -46,8 +46,8 @@ pub struct SendableDto {
     pub signature: String,
 }
 
-/// A message the person wrote, as the compose window sends it.
-#[derive(Debug, Clone, Deserialize)]
+/// A message the person wrote, as the compose window sends it. Saved as it is when scheduled to go later.
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DraftDto {
     /// Who it is from: an address on a domain a sender can send from.
@@ -90,7 +90,7 @@ pub struct FileInput {
 const ATTACHMENTS_LIMIT: usize = 35 * 1024 * 1024;
 
 /// An address and, optionally, a name, from the compose window.
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ContactInput {
     /// The name, if given.

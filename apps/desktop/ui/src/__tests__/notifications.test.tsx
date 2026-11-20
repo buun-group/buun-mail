@@ -11,6 +11,7 @@ vi.mock('../api/events', () => ({
     return () => {}
   },
   onMailChanged: () => () => {},
+  onReminderDue: () => () => {},
 }))
 
 const { App } = await import('../App')

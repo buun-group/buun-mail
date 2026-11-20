@@ -16,7 +16,8 @@
       "drafts": "",
       "snoozed": "Nothing snoozed. Snooze a message to hide it until a time you choose; it comes back unread.",
       "contacts": "",
-      "all": "Nothing here yet. Mail from every workspace shows here, newest first."
+      "all": "Nothing here yet. Mail from every workspace shows here, newest first.",
+      "scheduled": "Nothing scheduled."
     },
     "starredMark": "Starred",
     "emptyTrash": "Empty trash",
@@ -107,7 +108,8 @@
     "drafts": "Drafts",
     "snoozed": "Snoozed",
     "contacts": "Contacts",
-    "all": "All mail"
+    "all": "All mail",
+    "scheduled": "Scheduled"
   },
   "actions": {
     "menuLabel": "Actions for {{subject}}",
@@ -399,5 +401,27 @@
     "mailed": "Unsubscribe email sent",
     "failed": "Could not unsubscribe",
     "tip": "Stop mail from {{list}}"
+  },
+  "later": {
+    "sending_one": "{{count}} to send",
+    "sending_other": "{{count}} to send",
+    "waiting_one": "{{count}} waiting for a reply",
+    "waiting_other": "{{count}} waiting for a reply",
+    "noneSending": "Nothing scheduled. Send later, in the compose window, puts a message here.",
+    "noneWaiting": "Nothing waiting. Remind me, in the compose window, follows up when nobody answers.",
+    "noSubject": "(no subject)",
+    "toFrom": "To {{to}}, from {{from}}",
+    "to": "To {{to}}",
+    "sendNow": "Send now",
+    "sendNowLabel": "Send {{subject}} now",
+    "cancel": "Cancel",
+    "cancelLabel": "Cancel sending {{subject}}",
+    "cancelReminder": "Cancel the reminder for {{subject}}",
+    "remindAt": "Reminder {{when}}",
+    "sent": "Sent",
+    "notSent": "Not sent",
+    "scheduledFor": "Scheduled for {{when}}",
+    "dueTitle": "No reply yet",
+    "dueDetail": "{{to}} has not answered \"{{subject}}\"."
   }
 }

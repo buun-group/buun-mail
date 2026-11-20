@@ -7,12 +7,14 @@ import { isTauri } from '@tauri-apps/api/core'
 import { pickFilesToSend } from '../../api/client'
 import type { Contact, Sendable, Workspace } from '../../api/types'
 import type { Compose as ComposeApi } from '../../hooks/useCompose'
-import { IconAttachment, IconClose, IconDelete, IconMinimize, IconRestore, IconSend } from '../../icons'
+import { IconAttachment, IconCalendar, IconClose, IconDelete, IconMinimize, IconRestore, IconSend } from '../../icons'
 import { toast } from '../../lib/feedback'
 import { readableSize } from '../../lib/size'
 import { contactLine, fromChoices, isAddress } from '../../lib/compose'
 import { canSendAs, domainOf } from '../../lib/sending'
 import { Select } from '../Select/Select'
+import { SnoozePicker } from '../Snooze/SnoozePicker'
+import { TipButton } from '../Tooltip/TipButton'
 import { RecipientField } from './RecipientField'
 
 import './Compose.css'
@@ -37,6 +39,7 @@ export function Compose({ compose, workspaces, sendable }: ComposeProps): ReactN
   const body = useRef<HTMLTextAreaElement | null>(null)
   const [showCc, setShowCc] = useState(false)
   const [showBcc, setShowBcc] = useState(false)
+  const [laterFrom, setLaterFrom] = useState<HTMLElement | null>(null)
   const [typingFrom, setTypingFrom] = useState(false)
   const [openedFor, setOpenedFor] = useState<string | null>(null)
 
@@ -223,6 +226,32 @@ export function Compose({ compose, workspaces, sendable }: ComposeProps): ReactN
           <IconSend aria-hidden="true" />
           {t('send')}
         </button>
+        <TipButton tip={t('sendLater')} className="compose__icon" aria-label={t('sendLater')} aria-disabled={!ready || undefined} onClick={ready ? (event) => setLaterFrom(event.currentTarget) : undefined}>
+          <IconCalendar aria-hidden="true" />
+        </TipButton>
+        <Select
+          id="compose-remind"
+          className="compose__remind"
+          value={String(compose.open?.remindDays ?? '')}
+          options={[
+            { value: '', label: t('remindNone') },
+            { value: '1', label: t('remind1') },
+            { value: '3', label: t('remind3') },
+            { value: '7', label: t('remind7') },
+          ]}
+          onChange={(value) => compose.setRemind(value === '' ? null : Number(value))}
+        />
+        {laterFrom !== null && (
+          <SnoozePicker
+            anchor={laterFrom}
+            label={t('sendLaterLabel')}
+            onClose={() => setLaterFrom(null)}
+            onPick={(at) => {
+              setLaterFrom(null)
+              compose.sendLater(at)
+            }}
+          />
+        )}
         <span id="compose-send-hint" className="compose__hint">
           {ready ? t('sendHint') : fromOk ? t('noRecipients') : ''}
         </span>

@@ -102,6 +102,35 @@ impl Mailbox {
             .collect())
     }
 
+    /// One message's summary.
+    ///
+    /// # Errors
+    ///
+    /// [`AppError`] for an unknown id.
+    pub fn message(&self, id: &str) -> Result<MessageDto, AppError> {
+        Ok(self.store.lock()?.get(id)?.into())
+    }
+
+    /// True when someone answered the sent message `id`: a message in its conversation, not in Sent, dated after
+    /// `since` (Unix seconds).
+    ///
+    /// # Errors
+    ///
+    /// [`AppError`] for an unknown id, or when the store cannot be read.
+    pub fn answered_since(&self, id: &str, since: i64) -> Result<bool, AppError> {
+        let store = self.store.lock()?;
+        let sent = store.get(id)?;
+        let Some(thread) = sent.thread_id else { return Ok(false) };
+        Ok(store.thread(&thread)?.iter().any(|message| message.id != id && message.placement.folder.as_deref() != Some(SENT_FOLDER) && message.sent_at > since))
+    }
+
+    /// Notes a reminder that fell due with no answer, in the activity log.
+    pub fn note_reminder(&self, subject: &str, to: &str) {
+        if let Ok(store) = self.store.lock() {
+            let _ = log(&store, &Actor::App, "reminder", format!("no reply yet from {to}: \"{subject}\""));
+        }
+    }
+
     /// Every message in a conversation outside the trash, oldest first.
     ///
     /// # Errors

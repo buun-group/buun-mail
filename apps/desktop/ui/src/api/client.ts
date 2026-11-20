@@ -5,7 +5,7 @@ import { openUrl } from '@tauri-apps/plugin-opener'
 import type { ExportFormat } from '../constants/ui'
 import { COMMANDS, IMPORT_EXTENSIONS } from './commands'
 import { preview, previewDetail, previewMessages, previewView, previewWorkspaces } from './preview'
-import type { Activity, AgentStatus, AlertChannel, AlertKind, AvailableDomain, CheckReport, Contact, RevealStatus, SecretKind, DissolveInbox, DissolveStatus, Draft, FileToSend, ImapAccount, KnownContact, SmtpSecurity, SmtpServer, Sendable, Sender, GatewayDomain, GatewayStatus, ImportReport, MailView, Message, MessageDetail, Place, Rule, Shelf, TagCount, Workspace } from './types'
+import type { Activity, AgentStatus, AlertChannel, Reminder, ScheduledMessage, AlertKind, AvailableDomain, CheckReport, Contact, RevealStatus, SecretKind, DissolveInbox, DissolveStatus, Draft, FileToSend, ImapAccount, KnownContact, SmtpSecurity, SmtpServer, Sendable, Sender, GatewayDomain, GatewayStatus, ImportReport, MailView, Message, MessageDetail, Place, Rule, Shelf, TagCount, Workspace } from './types'
 
 /**
  * The one door to the Rust side. In the desktop app every call is a Tauri command; in a plain browser (`pnpm dev:ui`)
@@ -406,4 +406,40 @@ export async function testAlert(id: string): Promise<void> {
 /** Unsubscribes from a message's list with one POST, when its list offers one-click unsubscribing. */
 export async function unsubscribeOneClick(id: string): Promise<void> {
   return isTauri() ? invoke<void>(COMMANDS.unsubscribeOneClick, { id }) : undefined
+}
+
+/** Schedules a message to go at `at`, with a reminder after it when `remindDays` is given. */
+export async function scheduleSend(draft: Draft, at: Date, remindDays: number | null): Promise<ScheduledMessage[]> {
+  const sendAt = Math.floor(at.getTime() / 1000)
+  return isTauri() ? invoke<ScheduledMessage[]>(COMMANDS.scheduleSend, { draft, sendAt, remindDays }) : preview.later.schedule(draft, at)
+}
+
+/** Every scheduled message, soonest first. */
+export async function listScheduled(): Promise<ScheduledMessage[]> {
+  return isTauri() ? invoke<ScheduledMessage[]>(COMMANDS.listScheduled) : preview.later.list()
+}
+
+/** Cancels a scheduled message. */
+export async function cancelScheduled(id: string): Promise<ScheduledMessage[]> {
+  return isTauri() ? invoke<ScheduledMessage[]>(COMMANDS.cancelScheduled, { id }) : preview.later.cancel(id)
+}
+
+/** Sends a scheduled message now. */
+export async function sendScheduledNow(id: string): Promise<ScheduledMessage[]> {
+  return isTauri() ? invoke<ScheduledMessage[]>(COMMANDS.sendScheduledNow, { id }) : preview.later.cancel(id)
+}
+
+/** Reminds you in `days` days if nobody answers a sent message. */
+export async function remindIfNoReply(messageId: string, days: number): Promise<Reminder[]> {
+  return isTauri() ? invoke<Reminder[]>(COMMANDS.remindIfNoReply, { messageId, days }) : preview.later.remind(messageId, days)
+}
+
+/** Every waiting reminder, soonest first. */
+export async function listReminders(): Promise<Reminder[]> {
+  return isTauri() ? invoke<Reminder[]>(COMMANDS.listReminders) : preview.later.reminders()
+}
+
+/** Drops a reminder. */
+export async function cancelReminder(id: string): Promise<Reminder[]> {
+  return isTauri() ? invoke<Reminder[]>(COMMANDS.cancelReminder, { id }) : preview.later.dropReminder(id)
 }

@@ -20,7 +20,7 @@ function soonValue(): string {
 }
 
 /** Where a snooze can end: four common times, each with when it lands, or a date and time of the person's choosing. */
-export function SnoozePicker({ anchor, onPick, onClose }: { anchor: HTMLElement; onPick: (until: Date) => void; onClose: () => void }): ReactNode {
+export function SnoozePicker({ anchor, onPick, onClose, label }: { anchor: HTMLElement; onPick: (until: Date) => void; onClose: () => void; label?: string }): ReactNode {
   const { t } = useTranslation('mail')
   const [when, setWhen] = useState(soonValue)
   const submit = (event: FormEvent<HTMLFormElement>): void => {
@@ -29,7 +29,7 @@ export function SnoozePicker({ anchor, onPick, onClose }: { anchor: HTMLElement;
     if (!Number.isNaN(picked.getTime()) && picked.getTime() > Date.now()) onPick(picked)
   }
   return (
-    <Popover anchor={anchor} label={t('snooze.label')} onClose={onClose}>
+    <Popover anchor={anchor} label={label ?? t('snooze.label')} onClose={onClose}>
       <div className="jump">
         {SNOOZE_CHOICES.map((choice) => {
           const Glyph = GLYPHS[choice]

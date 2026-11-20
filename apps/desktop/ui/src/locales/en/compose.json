@@ -56,5 +56,13 @@
   "removeFile": "Remove {{name}}",
   "files_one": "{{count}} file",
   "files_other": "{{count}} files",
-  "tooLarge": "The files add up to {{size}}; at most 35 MB can be sent at once."
+  "tooLarge": "The files add up to {{size}}; at most 35 MB can be sent at once.",
+  "scheduled": "Scheduled for {{when}}",
+  "sendLater": "Send later",
+  "sendLaterLabel": "When to send",
+  "remind": "Remind me",
+  "remindNone": "No reminder",
+  "remind1": "If no reply in 1 day",
+  "remind3": "If no reply in 3 days",
+  "remind7": "If no reply in a week"
 }

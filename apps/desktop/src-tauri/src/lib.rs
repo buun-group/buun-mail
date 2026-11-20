@@ -6,6 +6,7 @@
 //! - `sync`: collecting mail from the Buun Mail Gateway
 //! - `send`: sending through a connected service such as Resend
 //! - `imap`: collecting from IMAP mailboxes
+//! - `later`: messages scheduled to go later, and reminders when nobody answers
 //! - `alerts`: telling you elsewhere (Slack, a text, an email) when a rule matches arriving mail
 //! - `vault`: secrets sealed at rest under this install's key, and the code asked before showing one
 //! - `dissolve`: dissolve.email's disposable inboxes as a workspace, after signing in with OAuth
@@ -25,6 +26,7 @@ mod error;
 mod events;
 mod imap;
 mod ingest;
+mod later;
 mod mailbox;
 mod paths;
 mod send;
@@ -50,26 +52,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
-        .setup(|app| {
-            let paths = AppPaths::resolve(app.handle())?;
-            // Before anything reads a settings file: the install's key, and any plain secret an older version left, sealed.
-            vault::open(&paths.config)?;
-            app.manage(vault::reveal::RevealLock::open(&paths.config));
-            let mailbox = Arc::new(Mailbox::open(&paths)?);
-            // Mail in the trash longer than thirty days goes for good. A failure here never stops the app opening.
-            let _ = mailbox.empty_trash(true, &mailbox::Actor::App);
-            catch_up(Arc::clone(&mailbox), app.handle().clone());
-            app.manage(agent::AgentState::open(paths.config.clone(), Arc::clone(&mailbox), Some(app.handle().clone()))?);
-            app.manage(sync::SyncService::start(paths.config.clone(), Arc::clone(&mailbox), Some(app.handle().clone())));
-            wake_snoozed(Arc::clone(&mailbox), app.handle().clone());
-            let send = send::SendService::open(paths.config.clone(), Arc::clone(&mailbox));
-            app.manage(alerts::AlertService::start(paths.config.clone(), &mailbox, send.clone()));
-            app.manage(send);
-            app.manage(imap::ImapService::start(paths.config.clone(), Arc::clone(&mailbox), Some(app.handle().clone())));
-            app.manage(dissolve::DissolveService::start(paths.config.clone(), Arc::clone(&mailbox), Some(app.handle().clone())));
-            app.manage(mailbox);
-            Ok(())
-        })
+        .setup(start)
         .invoke_handler(tauri::generate_handler![
             commands::list_workspaces,
             commands::list_messages,
@@ -120,6 +103,13 @@ pub fn run() {
             commands::remove_alert,
             commands::test_alert,
             commands::unsubscribe_one_click,
+            commands::schedule_send,
+            commands::list_scheduled,
+            commands::cancel_scheduled,
+            commands::send_scheduled_now,
+            commands::remind_if_no_reply,
+            commands::list_reminders,
+            commands::cancel_reminder,
             commands::open_message,
             commands::mark_all_read,
             commands::tag_message,
@@ -174,4 +164,27 @@ fn catch_up(mailbox: Arc<Mailbox>, app: tauri::AppHandle) {
             events::mail_changed(&app);
         }
     });
+}
+
+/// Opens the mailbox and starts every service, before the window shows.
+fn start(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
+    let paths = AppPaths::resolve(app.handle())?;
+    // Before anything reads a settings file: the install's key, and any plain secret an older version left, sealed.
+    vault::open(&paths.config)?;
+    app.manage(vault::reveal::RevealLock::open(&paths.config));
+    let mailbox = Arc::new(Mailbox::open(&paths)?);
+    // Mail in the trash longer than thirty days goes for good. A failure here never stops the app opening.
+    let _ = mailbox.empty_trash(true, &mailbox::Actor::App);
+    catch_up(Arc::clone(&mailbox), app.handle().clone());
+    app.manage(agent::AgentState::open(paths.config.clone(), Arc::clone(&mailbox), Some(app.handle().clone()))?);
+    app.manage(sync::SyncService::start(paths.config.clone(), Arc::clone(&mailbox), Some(app.handle().clone())));
+    wake_snoozed(Arc::clone(&mailbox), app.handle().clone());
+    let send = send::SendService::open(paths.config.clone(), Arc::clone(&mailbox));
+    app.manage(alerts::AlertService::start(paths.config.clone(), &mailbox, send.clone()));
+    app.manage(later::LaterService::start(paths.config.clone(), &mailbox, send.clone(), Some(app.handle().clone())));
+    app.manage(send);
+    app.manage(imap::ImapService::start(paths.config.clone(), Arc::clone(&mailbox), Some(app.handle().clone())));
+    app.manage(dissolve::DissolveService::start(paths.config.clone(), Arc::clone(&mailbox), Some(app.handle().clone())));
+    app.manage(mailbox);
+    Ok(())
 }

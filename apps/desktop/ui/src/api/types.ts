@@ -54,7 +54,7 @@ export interface Message {
 export type Shelf = 'active' | 'archived' | 'trashed'
 
 /** A list across every workspace. Drafts live on this computer only, so the Rust side never sees that view. */
-export type MailView = 'all' | 'starred' | 'snoozed' | 'archive' | 'trash' | 'drafts' | 'contacts'
+export type MailView = 'all' | 'scheduled' | 'starred' | 'snoozed' | 'archive' | 'trash' | 'drafts' | 'contacts'
 
 /** Where the list is pointed: one folder of one workspace. */
 export interface Place {
@@ -376,3 +376,24 @@ export interface AlertChannel {
 
 /** Which saved secret to show: a gateway's token, a mailbox's password, a sender's key, an alert's secret. */
 export type SecretKind = 'gateway' | 'imap' | 'sender' | 'alert' | 'agent'
+
+/** A message scheduled to go later. Mirrors `ScheduledDto`. */
+export interface ScheduledMessage {
+  id: string
+  from: string
+  to: string[]
+  subject: string
+  /** When it goes, RFC 3339. */
+  sendAt: string
+  problem: string | null
+}
+
+/** A reminder to follow up on a sent message nobody answered. Mirrors `ReminderDto`. */
+export interface Reminder {
+  id: string
+  messageId: string
+  subject: string
+  to: string
+  /** When it is due, RFC 3339. */
+  dueAt: string
+}
