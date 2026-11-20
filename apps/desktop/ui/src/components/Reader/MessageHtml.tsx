@@ -1,4 +1,4 @@
-import { useCallback, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -18,7 +18,7 @@ import { SelectionCopyButton } from '../Copy/SelectionCopy'
 function pageFor(html: string, loadRemote: boolean): string {
   const remote = loadRemote ? ' https: http:' : ''
   const policy = `default-src 'none'; img-src data:${remote}; style-src 'unsafe-inline'${remote}; font-src data:${remote}; media-src data:`
-  return `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${policy}"><meta name="referrer" content="no-referrer"><style>html,body{margin:0;padding:0;background:#fff;color:#1a1a1a;font:15px/1.55 system-ui,sans-serif;overflow-wrap:anywhere}body{padding:20px}img{max-width:100%;height:auto}a{color:#2453c7}</style></head><body>${sealHtml(html, loadRemote)}</body></html>`
+  return `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${policy}"><meta name="referrer" content="no-referrer"><style>html,body{margin:0;padding:0;background:#fff;color:#1a1a1a;font:15px/1.55 system-ui,sans-serif;overflow-wrap:anywhere}body{padding:20px}img{max-width:100%;height:auto}a{color:#2453c7}</style></head><body data-sealed="buun-mail">${sealHtml(html, loadRemote)}</body></html>`
 }
 
 /** What was under the pointer on a right click in the sealed page, in window coordinates. */
@@ -81,6 +81,7 @@ export function MessageHtml({ html, remote, onMenu }: MessageHtmlProps): ReactNo
   const { t } = useTranslation('mail')
   const frame = useRef<HTMLIFrameElement | null>(null)
   const menu = useRef(onMenu)
+  const wired = useRef(new WeakSet<Document>())
   const [spot, setSpot] = useState<{ left: number; top: number; text: string } | null>(null)
   useLayoutEffect(() => {
     menu.current = onMenu
@@ -92,10 +93,18 @@ export function MessageHtml({ html, remote, onMenu }: MessageHtmlProps): ReactNo
   /** Fits the frame to its page, sends links to the browser, and shows where a link goes while it is pointed at. */
   const wire = useCallback(() => {
     const page = frame.current?.contentDocument
-    if (page == null) return
+    // Only the sealed page, once: not the blank page a frame starts on, and not twice when load and the check both see it.
+    if (page == null || page.body?.dataset['sealed'] !== 'buun-mail' || wired.current.has(page)) return
+    wired.current.add(page)
     const fit = (): void => setHeight(Math.max(page.documentElement.scrollHeight, 120))
     fit()
-    new ResizeObserver(fit).observe(page.documentElement)
+    // Each part on its own, so one an engine refuses (watching a node of another window) cannot stop the others.
+    try {
+      new ResizeObserver(fit).observe(page.documentElement)
+    } catch {
+      page.defaultView?.addEventListener('resize', fit)
+    }
+    page.querySelectorAll('img').forEach((picture) => picture.addEventListener('load', fit))
     page.addEventListener('click', (event) => {
       const link = elementOf(event.target)?.closest('a[href]') ?? null
       if (link === null) return
@@ -142,7 +151,33 @@ export function MessageHtml({ html, remote, onMenu }: MessageHtmlProps): ReactNo
       const range = selection.getRangeAt(0).getBoundingClientRect()
       setSpot({ left: box.left + range.left + range.width / 2, top: Math.max(box.top + range.top - GAP, GAP), text })
     })
-    window.addEventListener('scroll', () => setSpot(null), { capture: true, passive: true })
+  }, [])
+
+  // Some engines (WebKit) can finish a srcdoc page before the load handler is in place, so the page is also looked for
+  // on every animation frame for two seconds after the frame mounts; wire() ignores the blank page and a second call.
+  // The frame is keyed by whether remote images load, so allowing them mounts a fresh frame and looks again.
+  const attachFrame = useCallback(
+    (element: HTMLIFrameElement | null) => {
+      frame.current = element
+      if (element === null) return undefined
+      let tries = 120
+      let next = 0
+      const look = (): void => {
+        wire()
+        const page = element.contentDocument
+        tries -= 1
+        if (tries > 0 && (page == null || !wired.current.has(page))) next = window.requestAnimationFrame(look)
+      }
+      look()
+      return () => window.cancelAnimationFrame(next)
+    },
+    [wire],
+  )
+
+  useEffect(() => {
+    const clear = (): void => setSpot(null)
+    window.addEventListener('scroll', clear, { capture: true, passive: true })
+    return () => window.removeEventListener('scroll', clear, { capture: true })
   }, [])
 
   return (
@@ -156,7 +191,7 @@ export function MessageHtml({ html, remote, onMenu }: MessageHtmlProps): ReactNo
           </button>
         </p>
       )}
-      <iframe ref={frame} className="message-html__frame" title={t('html.frame')} sandbox="allow-same-origin" srcDoc={pageFor(html, loadRemote)} style={{ height }} onLoad={wire} />
+      <iframe key={String(loadRemote)} ref={attachFrame} className="message-html__frame" title={t('html.frame')} sandbox="allow-same-origin" srcDoc={pageFor(html, loadRemote)} style={{ height }} onLoad={wire} />
       {spot !== null && <SelectionCopyButton spot={spot} label={t('copy.copy')} onDone={() => setSpot(null)} />}
       {hover !== null && (
         <p className="message-html__link" role="status">
