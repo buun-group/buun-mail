@@ -1,4 +1,6 @@
 .reader {
+  /* Holds the agent identity drawer, which sits inside the reading pane. */
+  position: relative;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   min-height: 0;

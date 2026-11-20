@@ -31,6 +31,7 @@ import { SelectionCopy } from '../Copy/SelectionCopy'
 import { MoreFromBuun } from '../MoreFromBuun/MoreFromBuun'
 import { TagEditor } from '../Tags/Tags'
 import { TipButton } from '../Tooltip/TipButton'
+import { registerReaderSlot } from '../../lib/readerSlot'
 
 import './Reader.css'
 
@@ -232,7 +233,7 @@ export function Reader({ grain, message, body, recipients, detail, workspace, th
 
   if (message === null) {
     return (
-      <section className="reader reader--empty" aria-label={t('reader.label')}>
+      <section className="reader reader--empty" aria-label={t('reader.label')} ref={registerReaderSlot}>
         <div className="reader__empty">
           <p className="reader__nothing">{t('reader.nothingOpen')}</p>
           <MoreFromBuun theme={theme} />
@@ -243,7 +244,7 @@ export function Reader({ grain, message, body, recipients, detail, workspace, th
 
 
   return (
-    <section className="reader" aria-label={t('reader.label')}>
+    <section className="reader" aria-label={t('reader.label')} ref={registerReaderSlot}>
       <div className="reader__toolbar">
         {onBack !== null && (
           <>

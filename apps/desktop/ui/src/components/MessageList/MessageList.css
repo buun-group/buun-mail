@@ -1,4 +1,6 @@
 .message-list {
+  /* Holds the agent identity drawer while the reading pane is hidden. */
+  position: relative;
   /* Room for the longest date in the list ("19 Nov, 10:40 pm"), so quick actions can sit just before it. */
   --list-time-width: 7.75rem;
   display: grid;

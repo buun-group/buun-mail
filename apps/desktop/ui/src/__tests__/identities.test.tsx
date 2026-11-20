@@ -37,11 +37,12 @@ describe('dissolve.email agent identities', () => {
 
     // The new address's folder opens with its identity showing.
     render(<DissolveBar place={{ workspace: DISSOLVE_WORKSPACE, folder: 'shop@dissolve.email' }} onOpen={onOpen} />)
-    const card = await screen.findByRole('region', { name: 'Agent identity' })
-    expect(within(card).getByRole('button', { name: 'Copy the Email' }).textContent).toContain('shop@dissolve.email')
+    const email = await screen.findByRole('button', { name: 'Copy the Email' })
+    expect(email.textContent).toContain('shop@dissolve.email')
+    const card = email.closest('aside') as HTMLElement
     expect(await within(card).findByText('Ada Example')).toBeTruthy()
     expect(within(card).queryByText(/Pretend-Pass/)).toBeNull()
-    fireEvent.click(within(card).getByRole('button', { name: /Show Password/i }))
+    fireEvent.click(within(card).getByRole('button', { name: 'Show the password' }))
     expect(await within(card).findByText(/^Pretend-Pass-0-/)).toBeTruthy()
 
     fireEvent.click(within(card).getByRole('button', { name: 'Regenerate' }))

@@ -7,13 +7,14 @@ import type { DissolveStatus, MadeDissolveInbox, Place } from '../../api/types'
 import i18n from '../../i18n'
 import { IconAdd, IconBurn, IconCopy, IconExtend, IconIdentity, IconTimer } from '../../icons'
 import { copyWithToast } from '../../lib/copy'
+import { STORAGE_KEYS } from '../../constants/ui'
 import { DISSOLVE_WORKSPACE, formatTimeLeft, readMeter, timeLeft } from '../../lib/dissolve'
 import { formatListed } from '../../lib/time'
 import { TipButton } from '../Tooltip/TipButton'
 import { toast } from '../../lib/feedback'
 import { Confirm } from '../Confirm/Confirm'
 import type { Confirmation } from '../Confirm/Confirm'
-import { IdentityCard } from './IdentityCard'
+import { IdentityDrawer } from './IdentityDrawer'
 import { NewAddress } from './NewAddress'
 
 import './Dissolve.css'
@@ -32,8 +33,25 @@ function usageWords(status: DissolveStatus): string {
 
 const reason = (cause: unknown): string => (cause instanceof Error ? cause.message : String(cause))
 
-/** The address whose identity card opens when its folder does: one just made with an identity. */
+/** The address whose identity drawer opens when its folder does: one just made with an identity. */
 let openIdentityFor: string | null = null
+
+/** Whether the identity drawer was left open; open unless the person collapsed it. */
+function drawerOpen(): boolean {
+  try {
+    return localStorage.getItem(STORAGE_KEYS.identityDrawer) !== 'closed'
+  } catch {
+    return true
+  }
+}
+
+function rememberDrawer(open: boolean): void {
+  try {
+    localStorage.setItem(STORAGE_KEYS.identityDrawer, open ? 'open' : 'closed')
+  } catch {
+    // Without storage it simply opens next time.
+  }
+}
 
 /**
  * The dissolve.email workspace's bar under the list header. On the workspace's own inbox: the account and New address.
@@ -47,7 +65,12 @@ export function DissolveBar({ place, onOpen }: { place: Place; onOpen: (place: P
   const [busy, setBusy] = useState(false)
   const [confirming, setConfirming] = useState<Confirmation | null>(null)
   const [making, setMaking] = useState<HTMLElement | null>(null)
-  const [showIdentity, setShowIdentity] = useState(() => place.folder !== null && place.folder === openIdentityFor)
+  const [showIdentity, setShowIdentity] = useState(() => (place.folder !== null && place.folder === openIdentityFor) || drawerOpen())
+  const toggleIdentity = (): void =>
+    setShowIdentity((open) => {
+      rememberDrawer(!open)
+      return !open
+    })
 
   useEffect(() => {
     if (place.folder !== null && place.folder === openIdentityFor) openIdentityFor = null
@@ -142,8 +165,9 @@ export function DissolveBar({ place, onOpen }: { place: Place; onOpen: (place: P
 
   // Identity shows once the plan has them or this address is known to have one; Free accounts never see it.
   const identityOn = inbox.identity || status.identities.plan === true
+  // One element: the list gives its banner a single grid row. The identity drawer renders at the window's edge.
   return (
-    <>
+    <div className="dissolve-banner">
     <div className="dissolve-bar">
       <button type="button" className="dissolve-bar__address" onClick={(event) => void copyWithToast(inbox.address, undefined, event.currentTarget)} aria-label={t('dissolve.copyAddress', { address: inbox.address })}>
         <span>{inbox.address}</span>
@@ -161,7 +185,7 @@ export function DissolveBar({ place, onOpen }: { place: Place; onOpen: (place: P
         </TipButton>
       )}
       {identityOn && (
-        <button type="button" className="dissolve-bar__button" aria-expanded={showIdentity} onClick={() => setShowIdentity((open) => !open)}>
+        <button type="button" className="dissolve-bar__button" aria-expanded={showIdentity} onClick={toggleIdentity}>
           <IconIdentity aria-hidden="true" />
           {t('identity.button')}
         </button>
@@ -172,7 +196,7 @@ export function DissolveBar({ place, onOpen }: { place: Place; onOpen: (place: P
       </button>
       <Confirm request={confirming} cancelLabel={t('actions.cancel')} onClose={() => setConfirming(null)} />
     </div>
-    {identityOn && showIdentity && <IdentityCard inbox={inbox} identities={status.identities} onStatus={setStatus} onClose={() => setShowIdentity(false)} />}
-    </>
+    {identityOn && <IdentityDrawer inbox={inbox} identities={status.identities} open={showIdentity} onToggle={toggleIdentity} onStatus={setStatus} />}
+    </div>
   )
 }
