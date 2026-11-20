@@ -1,0 +1,33 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "release-type": "node",
+  "include-component-in-tag": false,
+  "bump-minor-pre-major": true,
+  "draft": true,
+  "force-tag-creation": true,
+  "pull-request-title-pattern": "chore: release v${version}",
+  "pull-request-header": "Merging this releases Buun Mail: the tag is made, every installer is built and attached, and the release is published.",
+  "changelog-sections": [
+    { "type": "feat", "section": "Features" },
+    { "type": "fix", "section": "Fixes" },
+    { "type": "perf", "section": "Faster" },
+    { "type": "revert", "section": "Reverted" },
+    { "type": "docs", "section": "Documentation", "hidden": true },
+    { "type": "chore", "section": "Chores", "hidden": true },
+    { "type": "refactor", "section": "Refactoring", "hidden": true },
+    { "type": "test", "section": "Tests", "hidden": true },
+    { "type": "ci", "section": "CI", "hidden": true },
+    { "type": "build", "section": "Build", "hidden": true },
+    { "type": "style", "section": "Style", "hidden": true }
+  ],
+  "packages": {
+    ".": {
+      "package-name": "buun-mail",
+      "changelog-path": "CHANGELOG.md",
+      "extra-files": [
+        { "type": "json", "path": "apps/desktop/src-tauri/tauri.conf.json", "jsonpath": "$.version" },
+        { "type": "toml", "path": "Cargo.toml", "jsonpath": "$.workspace.package.version" }
+      ]
+    }
+  }
+}

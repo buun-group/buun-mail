@@ -1,38 +1,84 @@
 name: Release
 
-# Builds the desktop app for every platform and attaches the installers to a draft GitHub release. Runs on a version
-# tag (v0.2.0) or by hand. Nothing is published until the owner turns the draft into a release.
+# Releases happen on their own. Every push to main updates one release pull request, kept by release-please from the
+# conventional commits since the last release: it bumps the version in package.json, Cargo.toml, tauri.conf.json and
+# Cargo.lock, and writes CHANGELOG.md (feat is a minor version before 1.0, fix a patch). Merging that pull request:
+#
+#   1. tags the release and opens it as a draft with the changelog as its notes
+#   2. builds the installers on every platform and attaches them
+#   3. publishes the release once every build has passed; a failed build leaves the draft for a look
 #
 #   Linux x86_64  .deb (Debian, Ubuntu), .rpm (Fedora, openSUSE), .AppImage (any distribution, Arch included)
 #   macOS Apple silicon and Intel  .dmg and .app
 #   Windows x86_64  .msi and the NSIS setup .exe
 #
-# Arch users can also build from source with packaging/arch/PKGBUILD.
-#
-# Linux arm64: GitHub's free arm runners serve public repositories only. When this repository is public, or has
-# larger runners, add `{ name: Linux arm64, runner: ubuntu-24.04-arm, args: '' }` to the matrix.
-#
-# Make a release with `pnpm release 0.2.0`, then `git push --follow-tags`. The tag must match the app version.
+# Run it by hand with a tag (Actions, Release, Run workflow) to build and attach installers to an existing release again.
 #
 # Signing is optional and off until the secrets exist: APPLE_CERTIFICATE, APPLE_CERTIFICATE_PASSWORD, APPLE_SIGNING_IDENTITY,
-# APPLE_ID, APPLE_PASSWORD and APPLE_TEAM_ID for macOS notarisation; TAURI_SIGNING_PRIVATE_KEY and its password for the
-# updater. Unsigned builds run, but macOS and Windows warn on first open.
+# APPLE_ID, APPLE_PASSWORD and APPLE_TEAM_ID for macOS notarisation. Unsigned builds run, but macOS and Windows warn on
+# first open.
 
 on:
   push:
-    tags: ['v*']
+    branches: [main]
   workflow_dispatch:
+    inputs:
+      tag:
+        description: An existing release tag to build again, such as v0.5.0
+        required: true
 
 permissions:
   contents: write
+  pull-requests: write
 
 concurrency:
-  group: release-${{ github.ref }}
+  group: release-${{ github.ref }}-${{ inputs.tag }}
   cancel-in-progress: false
 
 jobs:
+  release-please:
+    name: Release pull request
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      created: ${{ steps.release.outputs.release_created }}
+      tag: ${{ steps.release.outputs.tag_name }}
+      prs-created: ${{ steps.release.outputs.prs_created }}
+      pr: ${{ steps.release.outputs.pr }}
+    steps:
+      - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
+        id: release
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  # release-please cannot run cargo, so the workspace crates' versions in Cargo.lock are moved on the release branch
+  # here. A push with this workflow's token starts no other workflow, so this never loops.
+  lockfile:
+    name: Cargo.lock on the release pull request
+    needs: release-please
+    if: needs.release-please.outputs.prs-created == 'true' && needs.release-please.outputs.pr != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ fromJSON(needs.release-please.outputs.pr).headBranchName }}
+      - name: Move the workspace crates to the new version
+        run: |
+          rustup show active-toolchain || rustup toolchain install
+          cargo update --workspace
+          if git diff --quiet Cargo.lock; then echo "Cargo.lock already matches."; exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore: Cargo.lock for the release" -- Cargo.lock
+          git push
+
   build:
     name: ${{ matrix.name }}
+    needs: release-please
+    if: always() && (needs.release-please.outputs.created == 'true' || github.event_name == 'workflow_dispatch')
     strategy:
       fail-fast: false
       matrix:
@@ -53,20 +99,33 @@ jobs:
             args: ''
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 60
+    env:
+      TAG: ${{ needs.release-please.outputs.tag || inputs.tag }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ env.TAG }}
           persist-credentials: false
 
       - name: The tag matches the app version
-        if: github.ref_type == 'tag'
         shell: bash
         run: |
           version=$(node -p "require('./apps/desktop/src-tauri/tauri.conf.json').version")
-          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
-            echo "::error::The tag $GITHUB_REF_NAME does not match the app version $version. Run pnpm release <version> to make a matching tag."
+          if [ "v$version" != "$TAG" ]; then
+            echo "::error::The tag $TAG does not match the app version $version."
             exit 1
           fi
+
+      # The release is a draft until every build is attached, and a draft is not found by its tag, so it is found by id.
+      - name: Find the release
+        id: find
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          id=$(gh api "repos/$GITHUB_REPOSITORY/releases?per_page=30" --jq ".[] | select(.tag_name == \"$TAG\") | .id" | head -n1)
+          if [ -z "$id" ]; then echo "::error::No release for $TAG."; exit 1; fi
+          echo "id=$id" >> "$GITHUB_OUTPUT"
 
       - name: Linux system libraries
         if: runner.os == 'Linux'
@@ -118,8 +177,17 @@ jobs:
           projectPath: apps/desktop
           tauriScript: pnpm exec tauri
           args: ${{ matrix.args }}
-          tagName: ${{ github.ref_type == 'tag' && github.ref_name || format('build-{0}', github.run_number) }}
-          releaseName: Buun Mail ${{ github.ref_type == 'tag' && github.ref_name || format('build {0}', github.run_number) }}
-          releaseBody: Installers for Linux, macOS and Windows. See the README for which file to pick.
-          releaseDraft: true
-          prerelease: ${{ github.ref_type != 'tag' }}
+          releaseId: ${{ steps.find.outputs.id }}
+
+  publish:
+    name: Publish the release
+    needs: [release-please, build]
+    if: needs.release-please.outputs.created == 'true' && needs.build.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Publish the draft as the latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.release-please.outputs.tag }}
+        run: gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --latest
