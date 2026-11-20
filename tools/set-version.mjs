@@ -29,5 +29,5 @@ function edit(file, change) {
 const jsonVersion = (text) => text.replace(/("version":\s*")[^"]+(")/, `$1${version}$2`)
 edit('apps/desktop/src-tauri/tauri.conf.json', jsonVersion)
 edit('package.json', jsonVersion)
-edit('Cargo.toml', (text) => text.replace(/(\[workspace\.package\]\nversion = ")[^"]+(")/, `$1${version}$2`))
+edit('Cargo.toml', (text) => text.replace(/(\[workspace\.package\]\r?\nversion = ")[^"]+(")/, `$1${version}$2`))
 process.stdout.write(`Version ${version} written.\n`)
