@@ -15,6 +15,16 @@ use ureq::Agent;
 /// What the app asks for: who you are, your inboxes and their mail. Never the vault, webhooks or rules.
 pub const SCOPES: &str = "profile email inboxes:read inboxes:write messages:read messages:write";
 
+/// Added to [`SCOPES`] once the person turns agent identities on. Kept apart because dissolve.email's approval page
+/// refuses a request for a scope the plan lacks, so asking for it on Free would stop the sign-in.
+pub const IDENTITY_SCOPES: &str = "identities:read identities:write";
+
+/// The scopes to ask for: [`SCOPES`], plus [`IDENTITY_SCOPES`] with `identities`.
+#[must_use]
+pub fn scopes(identities: bool) -> String {
+    if identities { format!("{SCOPES} {IDENTITY_SCOPES}") } else { SCOPES.to_owned() }
+}
+
 /// The redirect registered for a dynamically registered client. Any port on 127.0.0.1 matches it (RFC 8252 7.3).
 pub const REDIRECT: &str = "http://127.0.0.1/callback";
 
@@ -205,14 +215,14 @@ fn decode(value: &str) -> String {
 
 /// The browser address that asks the person to approve this app.
 #[must_use]
-pub fn authorize_url(metadata: &Metadata, client_id: &str, redirect: &str, state: &str, challenge: &str) -> String {
+pub fn authorize_url(metadata: &Metadata, client_id: &str, redirect: &str, state: &str, challenge: &str, scopes: &str) -> String {
     let separator = if metadata.authorization_endpoint.contains('?') { '&' } else { '?' };
     format!(
         "{}{separator}response_type=code&client_id={}&redirect_uri={}&scope={}&state={}&code_challenge={}&code_challenge_method=S256",
         metadata.authorization_endpoint,
         encode(client_id),
         encode(redirect),
-        encode(SCOPES),
+        encode(scopes),
         encode(state),
         encode(challenge)
     )
@@ -329,11 +339,16 @@ mod unit {
             registration_endpoint: None,
             revocation_endpoint: None,
         };
-        let url = authorize_url(&metadata, "dyn_1", "http://127.0.0.1:5000/callback", "s t", "c");
+        let url = authorize_url(&metadata, "dyn_1", "http://127.0.0.1:5000/callback", "s t", "c", &scopes(false));
         assert!(
             url.starts_with("https://api.example/oauth/authorize?response_type=code&client_id=dyn_1&redirect_uri=http%3A%2F%2F127.0.0.1%3A5000%2Fcallback")
         );
         assert!(url.contains("&scope=profile%20email%20inboxes%3Aread") && url.contains("&state=s%20t&") && url.ends_with("code_challenge_method=S256"));
+        assert!(!url.contains("identities"), "Free accounts could not approve a request for identities");
+        assert!(
+            authorize_url(&metadata, "dyn_1", "http://127.0.0.1:5000/callback", "s", "c", &scopes(true))
+                .contains("messages%3Awrite%20identities%3Aread%20identities%3Awrite&")
+        );
         assert_eq!(decode("a%20b+c%3A"), "a b c:");
     }
 }

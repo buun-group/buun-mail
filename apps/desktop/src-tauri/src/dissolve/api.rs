@@ -73,6 +73,18 @@ pub struct Limits {
     pub max_extensions: Option<i64>,
     /// The longest an inbox can live, extensions included.
     pub max_total_lifetime_minutes: Option<i64>,
+    /// Whether the plan includes agent identities (Pro and up).
+    pub agent_identities: Option<bool>,
+    /// Live agent identities at once.
+    pub max_agent_identities: Option<i64>,
+}
+
+/// The sign-in this app holds, as `/v1/me` reports it.
+#[derive(Debug, Clone, Default, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase", default)]
+pub struct Connection {
+    /// The scopes the person approved for this app.
+    pub scopes: Vec<String>,
 }
 
 /// What has been used, when `/v1/me` reports it.
@@ -101,6 +113,74 @@ pub struct Me {
     /// What has been used.
     #[serde(default)]
     pub usage: Usage,
+    /// The sign-in itself, when reported.
+    #[serde(default)]
+    pub connection: Option<Connection>,
+}
+
+/// A fictional person's postal address, made up like the rest of the persona.
+#[derive(Debug, Clone, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase", default)]
+pub struct PersonaAddress {
+    /// Number and street.
+    pub street: String,
+    /// The town or city.
+    pub city: String,
+    /// The region, state, province or county.
+    pub state: String,
+    /// The postcode or ZIP code.
+    pub zip: String,
+    /// The whole address on lines, as the country writes it.
+    pub formatted: String,
+}
+
+/// A synthetic person to fill in a sign-up form with: every value is made up.
+#[derive(Debug, Clone, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase", default)]
+pub struct Persona {
+    /// The whole name.
+    pub full_name: String,
+    /// The given name.
+    pub first_name: String,
+    /// The family name.
+    pub last_name: String,
+    /// A username to match.
+    pub username: String,
+    /// YYYY-MM-DD.
+    pub date_of_birth: String,
+    /// Two letters, such as `GB`.
+    pub country: String,
+    /// The postal address.
+    pub address: PersonaAddress,
+    /// A number from the range kept for fiction, when the country has one.
+    pub phone: Option<String>,
+}
+
+/// An agent identity: an inbox's address, a strong password and a persona, for one sign-up.
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct RemoteIdentity {
+    /// Its id.
+    pub id: String,
+    /// The inbox's address, the identity's email.
+    pub email: String,
+    /// The password, or `None` when dissolve.email could not open it just now.
+    #[serde(default)]
+    pub password: Option<String>,
+    /// The persona, when one was made.
+    #[serde(default)]
+    pub persona: Option<Persona>,
+}
+
+/// Why an inbox was made without the identity asked for.
+#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct IdentitySkipped {
+    /// `plan`, `limit`, `vault` or `anonymous`.
+    #[serde(default)]
+    pub reason: String,
+    /// In dissolve.email's words.
+    pub message: String,
 }
 
 /// One inbox.
@@ -128,6 +208,22 @@ pub struct RemoteInbox {
     /// When it can next be extended, when reported.
     #[serde(default)]
     pub extend_available_at: Option<String>,
+    /// The identity made with it, in the answer to making it.
+    #[serde(default)]
+    pub identity: Option<RemoteIdentity>,
+    /// Why it was made without the identity asked for.
+    #[serde(default)]
+    pub identity_skipped: Option<IdentitySkipped>,
+}
+
+/// One inbox as `GET /inboxes/{id}` answers: just what this app reads of it.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+struct InboxDetail {
+    /// The id of its identity, when it has one.
+    identity_id: Option<String>,
+    /// The identity in full, with the `identities:read` scope.
+    identity: Option<RemoteIdentity>,
 }
 
 /// One message as listed.
@@ -264,13 +360,17 @@ impl Api {
         Ok(found.into_iter().map(|domain| domain.domain).collect())
     }
 
-    /// Makes an inbox, on `domain` or the default one, with an optional name.
+    /// Makes an inbox, on `domain` or the default one, with an optional name, and with `identity` an agent identity
+    /// for it in the same call. The inbox is made even when the identity is not; the answer then says why.
     ///
     /// # Errors
     ///
     /// [`ApiError::Refused`] at a plan limit, or as for [`Api::me`].
-    pub fn create_inbox(&self, domain: Option<&str>, custom_name: Option<&str>) -> Result<RemoteInbox, ApiError> {
+    pub fn create_inbox(&self, domain: Option<&str>, custom_name: Option<&str>, identity: bool) -> Result<RemoteInbox, ApiError> {
         let mut body = Map::new();
+        if identity {
+            body.insert("identity".to_owned(), json!({ "create": true }));
+        }
         if let Some(domain) = domain.filter(|value| !value.trim().is_empty()) {
             body.insert("domain".to_owned(), json!(domain.trim()));
         }
@@ -290,6 +390,44 @@ impl Api {
     /// [`ApiError::Refused`] when the plan allows no more, or too early, in the server's words.
     pub fn extend(&self, inbox: &str) -> Result<RemoteInbox, ApiError> {
         checked(self.agent.post(self.url(&format!("/inboxes/{}/extend", segment(inbox)))).header("Authorization", &self.bearer).send_empty())?
+            .body_mut()
+            .read_json()
+            .map_err(unexpected)
+    }
+
+    /// An inbox's agent identity with its password, or `None` when it has none.
+    ///
+    /// # Errors
+    ///
+    /// [`ApiError::Gone`] when the inbox ended, or as for [`Api::me`].
+    pub fn inbox_identity(&self, inbox: &str) -> Result<Option<RemoteIdentity>, ApiError> {
+        let detail: InboxDetail = self.get(&format!("/inboxes/{}", segment(inbox)))?.body_mut().read_json().map_err(unexpected)?;
+        match (detail.identity, detail.identity_id) {
+            (Some(identity), _) => Ok(Some(identity)),
+            (None, Some(_)) => {
+                Err(ApiError::Refused("reconnect dissolve.email in Settings, Integrations, and allow agent identities, to see this one".to_owned()))
+            }
+            (None, None) => Ok(None),
+        }
+    }
+
+    /// Gives an inbox that has none an agent identity, with a persona.
+    ///
+    /// # Errors
+    ///
+    /// [`ApiError::Refused`] at the plan's limit or without the plan, or as for [`Api::me`].
+    pub fn add_identity(&self, inbox: &str) -> Result<RemoteIdentity, ApiError> {
+        let body = json!({ "inboxId": inbox, "persona": true });
+        checked(self.agent.post(self.url("/identities")).header("Authorization", &self.bearer).send_json(body))?.body_mut().read_json().map_err(unexpected)
+    }
+
+    /// A new persona and password for an identity, keeping its address. The old password cannot be read again.
+    ///
+    /// # Errors
+    ///
+    /// [`ApiError::Gone`] once the inbox ended, or as for [`Api::add_identity`].
+    pub fn regenerate_identity(&self, identity: &str) -> Result<RemoteIdentity, ApiError> {
+        checked(self.agent.post(self.url(&format!("/identities/{}/regenerate", segment(identity)))).header("Authorization", &self.bearer).send_json(json!({})))?
             .body_mut()
             .read_json()
             .map_err(unexpected)
@@ -316,8 +454,9 @@ fn refusal_of(status: u16, refusal: Refusal) -> ApiError {
         let meter = Meter { used: refusal.used.or(refusal.current), limit: refusal.limit, reset_at: refusal.reset_at.or(refusal.available_at) };
         return ApiError::Limited { message: words, meter };
     }
-    // Any other 429 is the per-minute rate: wait and try again.
-    if status == 429 { ApiError::Slow } else { ApiError::Refused(words) }
+    // A plan cap without a count, such as the live identities allowed, is a refusal in the server's words; any other
+    // 429 is the per-minute rate: wait and try again.
+    if status == 429 && refusal.error.as_deref() != Some("LIMIT_EXCEEDED") { ApiError::Slow } else { ApiError::Refused(words) }
 }
 
 /// An id safe in a path: anything but letters, digits, `-` and `_` is dropped, so an id can never reach another route.

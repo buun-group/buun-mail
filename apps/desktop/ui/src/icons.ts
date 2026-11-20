@@ -93,6 +93,7 @@ export {
   PiPlayLight as IconRun,
   PiEyeLight as IconShow,
   PiEyeSlashLight as IconHide,
+  PiIdentificationCardLight as IconIdentity,
   PiArrowsClockwiseLight as IconRegenerate,
   PiBellSlashLight as IconBellOff,
   PiMinusLight as IconMinimize,

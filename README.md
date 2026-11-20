@@ -97,7 +97,7 @@ each release changed.
 |---|---|
 | Your domains | A Cloudflare Email Worker gateway pushes mail over a WebSocket, with a 30 second check behind it |
 | IMAP | Gmail, iCloud, Fastmail and Zoho with app passwords, Proton Mail Bridge, any server; never marked read there |
-| dissolve.email | Disposable inboxes as their own workspace after an OAuth sign-in |
+| dissolve.email | Disposable inboxes as their own workspace after an OAuth sign-in, and on Pro and Business an agent identity (password and made-up person) with each new address |
 | Alerts | Slack, Discord, ntfy, Telegram, SMS, email or a webhook when a rule matches |
 | Digests | A daily summary of what arrived |
 | Notifications | Header bell, toasts, desktop notifications, mute per workspace |

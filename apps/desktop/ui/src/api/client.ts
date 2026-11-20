@@ -5,7 +5,7 @@ import { openUrl } from '@tauri-apps/plugin-opener'
 import type { ExportFormat } from '../constants/ui'
 import { COMMANDS, IMPORT_EXTENSIONS } from './commands'
 import { preview, previewDetail, previewMessages, previewRouting, previewView, previewWorkspaces } from './preview'
-import type { Activity, AgentStatus, AlertChannel, Profile, Template, Writing, Reminder, ScheduledMessage, AlertKind, AvailableDomain, CheckReport, Contact, RevealStatus, SecretKind, DissolveInbox, DissolveStatus, Draft, FileToSend, ImapAccount, KnownContact, SmtpSecurity, SmtpServer, Sendable, Sender, GatewayDomain, GatewayStatus, ImportReport, MailView, Message, MessageDetail, Place, Rule, Shelf, TagCount, DownloadedUpdate, UpdateInfo, Workspace, WorkspaceEdit } from './types'
+import type { Activity, AgentStatus, AlertChannel, Profile, Template, Writing, Reminder, ScheduledMessage, AlertKind, AvailableDomain, CheckReport, Contact, RevealStatus, SecretKind, DissolveIdentity, DissolveStatus, MadeDissolveInbox, Draft, FileToSend, ImapAccount, KnownContact, SmtpSecurity, SmtpServer, Sendable, Sender, GatewayDomain, GatewayStatus, ImportReport, MailView, Message, MessageDetail, Place, Rule, Shelf, TagCount, DownloadedUpdate, UpdateInfo, Workspace, WorkspaceEdit } from './types'
 
 /**
  * The one door to the Rust side. In the desktop app every call is a Tauri command; in a plain browser (`pnpm dev:ui`)
@@ -355,9 +355,12 @@ export async function dissolveStatus(): Promise<DissolveStatus> {
   return isTauri() ? invoke<DissolveStatus>(COMMANDS.dissolveStatus) : preview.dissolve.status()
 }
 
-/** Signs in to dissolve.email in the browser; resolves once the browser comes back (up to five minutes). */
-export async function connectDissolve(server?: string): Promise<DissolveStatus> {
-  return isTauri() ? invoke<DissolveStatus>(COMMANDS.connectDissolve, { server: server ?? null }) : preview.dissolve.connect()
+/**
+ * Signs in to dissolve.email in the browser; resolves once the browser comes back (up to five minutes). `identities`
+ * asks for agent identities too (or stops asking); left out, the last choice stands.
+ */
+export async function connectDissolve(server?: string, identities?: boolean): Promise<DissolveStatus> {
+  return isTauri() ? invoke<DissolveStatus>(COMMANDS.connectDissolve, { server: server ?? null, identities: identities ?? null }) : preview.dissolve.connect(identities)
 }
 
 /** Signs out of dissolve.email; with `deleteMail`, its mail here goes too. */
@@ -375,9 +378,33 @@ export async function setDissolveKeep(keep: boolean): Promise<DissolveStatus> {
   return isTauri() ? invoke<DissolveStatus>(COMMANDS.setDissolveKeep, { keep }) : preview.dissolve.keep(keep)
 }
 
-/** Makes a dissolve.email inbox, on a domain or the account's default, with an optional name. */
-export async function createDissolveInbox(options: { domain?: string; name?: string } = {}): Promise<DissolveInbox> {
-  return isTauri() ? invoke<DissolveInbox>(COMMANDS.createDissolveInbox, { domain: options.domain ?? null, name: options.name ?? null }) : preview.dissolve.create(options.name, options.domain)
+/**
+ * Makes a dissolve.email inbox, on a domain or the account's default, with an optional name, and with `identity` an
+ * agent identity when the plan and sign-in allow one.
+ */
+export async function createDissolveInbox(options: { domain?: string; name?: string; identity?: boolean } = {}): Promise<MadeDissolveInbox> {
+  const identity = options.identity ?? false
+  return isTauri() ? invoke<MadeDissolveInbox>(COMMANDS.createDissolveInbox, { domain: options.domain ?? null, name: options.name ?? null, identity }) : preview.dissolve.create(options.name, options.domain, identity)
+}
+
+/** A dissolve.email inbox's agent identity, never its password; null when it has none. */
+export async function dissolveIdentity(inboxId: string): Promise<DissolveIdentity | null> {
+  return isTauri() ? invoke<DissolveIdentity | null>(COMMANDS.dissolveIdentity, { inbox: inboxId }) : preview.dissolve.identity(inboxId)
+}
+
+/** Gives a dissolve.email inbox an agent identity. Rejects with dissolve.email's reason, such as the plan's cap. */
+export async function addDissolveIdentity(inboxId: string): Promise<DissolveIdentity> {
+  return isTauri() ? invoke<DissolveIdentity>(COMMANDS.addDissolveIdentity, { inbox: inboxId }) : preview.dissolve.addIdentity(inboxId)
+}
+
+/** A new persona and password for an inbox's identity; the old password cannot be read again. */
+export async function regenerateDissolveIdentity(inboxId: string): Promise<DissolveIdentity> {
+  return isTauri() ? invoke<DissolveIdentity>(COMMANDS.regenerateDissolveIdentity, { inbox: inboxId }) : preview.dissolve.regenerate(inboxId)
+}
+
+/** Makes an agent identity with each new dissolve.email address, or not. */
+export async function setDissolveIdentityWithNew(on: boolean): Promise<DissolveStatus> {
+  return isTauri() ? invoke<DissolveStatus>(COMMANDS.setDissolveIdentityWithNew, { on }) : preview.dissolve.withNew(on)
 }
 
 /** The domains a new dissolve.email inbox can be made on, the default first. */

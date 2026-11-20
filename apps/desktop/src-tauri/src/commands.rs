@@ -12,7 +12,7 @@ use tauri::{AppHandle, State};
 
 use crate::agent::{AgentState, AgentStatusDto};
 use crate::alerts::{AlertChannelDto, AlertService};
-use crate::dissolve::{DissolveInboxDto, DissolveService, DissolveStatusDto};
+use crate::dissolve::{DissolveService, DissolveStatusDto, IdentityDto, MadeInboxDto};
 use crate::dto::{ActivityDto, ContactDto, ImportReportDto, KnownContactDto, MessageDetailDto, MessageDto, ShelfDto, TagCountDto, ViewDto, WorkspaceDto};
 use crate::error::AppError;
 use crate::events;
@@ -454,11 +454,12 @@ pub fn dissolve_status(dissolve: State<'_, DissolveService>) -> Result<DissolveS
     dissolve.status()
 }
 
-/// Signs in to dissolve.email in the browser, away from the window's thread, waiting up to five minutes.
+/// Signs in to dissolve.email in the browser, away from the window's thread, waiting up to five minutes. With
+/// `identities`, asks for agent identities too (or, false, stops asking); without it the last choice stands.
 #[tauri::command]
-pub async fn connect_dissolve(dissolve: State<'_, DissolveService>, server: Option<String>) -> Result<DissolveStatusDto, String> {
+pub async fn connect_dissolve(dissolve: State<'_, DissolveService>, server: Option<String>, identities: Option<bool>) -> Result<DissolveStatusDto, String> {
     let service = dissolve.inner().clone();
-    tauri::async_runtime::spawn_blocking(move || service.connect(server.as_deref())).await.map_err(|error| error.to_string())?
+    tauri::async_runtime::spawn_blocking(move || service.connect(server.as_deref(), identities)).await.map_err(|error| error.to_string())?
 }
 
 /// Signs out of dissolve.email; with `delete_mail`, its mail here goes too.
@@ -481,11 +482,43 @@ pub fn set_dissolve_keep(dissolve: State<'_, DissolveService>, keep: bool) -> Re
     dissolve.set_keep_after_expiry(keep)
 }
 
-/// Makes a dissolve.email inbox.
+/// Makes a dissolve.email inbox, with an agent identity when `identity` is true and the plan and sign-in allow one.
 #[tauri::command]
-pub async fn create_dissolve_inbox(dissolve: State<'_, DissolveService>, domain: Option<String>, name: Option<String>) -> Result<DissolveInboxDto, String> {
+pub async fn create_dissolve_inbox(
+    dissolve: State<'_, DissolveService>,
+    domain: Option<String>,
+    name: Option<String>,
+    identity: bool,
+) -> Result<MadeInboxDto, String> {
     let service = dissolve.inner().clone();
-    tauri::async_runtime::spawn_blocking(move || service.create_inbox(domain.as_deref(), name.as_deref())).await.map_err(|error| error.to_string())?
+    tauri::async_runtime::spawn_blocking(move || service.create_inbox(domain.as_deref(), name.as_deref(), identity)).await.map_err(|error| error.to_string())?
+}
+
+/// A dissolve.email inbox's agent identity, never its password; `None` when it has none.
+#[tauri::command]
+pub async fn dissolve_identity(dissolve: State<'_, DissolveService>, inbox: String) -> Result<Option<IdentityDto>, String> {
+    let service = dissolve.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || service.identity(&inbox)).await.map_err(|error| error.to_string())?
+}
+
+/// Gives a dissolve.email inbox an agent identity.
+#[tauri::command]
+pub async fn add_dissolve_identity(dissolve: State<'_, DissolveService>, inbox: String) -> Result<IdentityDto, String> {
+    let service = dissolve.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || service.add_identity(&inbox)).await.map_err(|error| error.to_string())?
+}
+
+/// A new persona and password for a dissolve.email inbox's identity; the old password is gone for good.
+#[tauri::command]
+pub async fn regenerate_dissolve_identity(dissolve: State<'_, DissolveService>, inbox: String) -> Result<IdentityDto, String> {
+    let service = dissolve.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || service.regenerate_identity(&inbox)).await.map_err(|error| error.to_string())?
+}
+
+/// Makes an agent identity with each new dissolve.email address, or not.
+#[tauri::command]
+pub fn set_dissolve_identity_with_new(dissolve: State<'_, DissolveService>, on: bool) -> Result<DissolveStatusDto, AppError> {
+    dissolve.set_identity_with_new(on)
 }
 
 /// The domains a new dissolve.email inbox can be made on, the default first.
@@ -528,7 +561,8 @@ pub fn lock_reveals(lock: State<'_, RevealLock>) -> RevealStatusDto {
     lock.status()
 }
 
-/// A saved secret shown again: a gateway's token, a mailbox's password, a sender's key or password, an alert's secret.
+/// A saved secret shown again: a gateway's token, a mailbox's password, a sender's key or password, an alert's secret, or
+/// a dissolve.email agent identity's password (read from dissolve.email, never kept here).
 /// Asks for the reveal code when one is set and reveals are not open.
 #[tauri::command]
 #[allow(clippy::too_many_arguments, reason = "each service that holds a secret is its own Tauri state")]
@@ -539,12 +573,18 @@ pub async fn reveal_secret(
     send: State<'_, SendService>,
     alerts: State<'_, AlertService>,
     agent: State<'_, AgentState>,
+    dissolve: State<'_, DissolveService>,
     kind: String,
     id: String,
     code: Option<String>,
 ) -> Result<String, String> {
     lock.check(code.as_deref())?;
     let found = match kind.as_str() {
+        // An agent identity's password lives on dissolve.email only; `id` is its inbox.
+        "identity" => {
+            let service = dissolve.inner().clone();
+            tauri::async_runtime::spawn_blocking(move || service.identity_password(&id)).await.map_err(|error| error.to_string())??
+        }
         "gateway" => sync.secret(&id),
         "imap" => imap.secret(&id),
         "sender" => send.secret(&id),

@@ -29,6 +29,10 @@ pub struct DissolveSettings {
     pub keep_after_expiry: bool,
     /// Every inbox seen, by its id.
     pub inboxes: BTreeMap<String, KnownInbox>,
+    /// Ask for agent identities when signing in. Set when the person turns them on, on a plan that has them.
+    pub identities: bool,
+    /// Make an agent identity with each new address; `None` means on, as dissolve.email's own default.
+    pub identity_with_new: Option<bool>,
 }
 
 /// A signed-in account and its tokens.
@@ -63,6 +67,8 @@ pub struct KnownInbox {
     pub ended: bool,
     /// Its extensions, as dissolve.email last reported them.
     pub extensions: Option<Extensions>,
+    /// The id of its agent identity, once known. Never the password: that is read from dissolve.email when shown.
+    pub identity: Option<String>,
     /// Remote message id to the id stored here.
     pub messages: BTreeMap<String, String>,
 }

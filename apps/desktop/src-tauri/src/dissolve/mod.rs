@@ -14,7 +14,7 @@ mod settings;
 #[cfg(test)]
 mod tests;
 
-pub use service::{DissolveInboxDto, DissolveService, DissolveStatusDto};
+pub use service::{DissolveService, DissolveStatusDto, IdentityDto, MadeInboxDto};
 
 /// The workspace id dissolve.email's mail is stored under. Never rename: it is stored with every message.
 pub const WORKSPACE: &str = "dissolve";
