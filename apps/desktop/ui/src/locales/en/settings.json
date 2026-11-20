@@ -130,7 +130,10 @@
     "saved": "Buun Mail {{version}} is in Downloads",
     "installFailed": "{{version}} could not be installed",
     "checkNow": "Check now",
-    "checking": "Checking..."
+    "checking": "Checking...",
+    "installRestart": "Install {{version}} and restart",
+    "installRestartShort": "Install and restart",
+    "installingInPlace": "Installing..."
   },
   "remember": {
     "title": "Reopen where I left off",

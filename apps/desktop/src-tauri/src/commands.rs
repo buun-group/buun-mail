@@ -169,6 +169,17 @@ pub async fn check_for_update(early: bool) -> Result<crate::updates::UpdateDto, 
 pub async fn install_update(app: AppHandle, version: String) -> Result<crate::updates::DownloadedDto, String> {
     use tauri::Manager as _;
     use tauri_plugin_opener::OpenerExt as _;
+    // In place where the app can replace itself: download, check the signature against the key built into the app,
+    // install, restart. A release without an updater manifest (older ones) falls back to downloading the installer.
+    if crate::updates::updates_in_place() {
+        match install_in_place(&app, &version).await {
+            Ok(()) => {
+                app.restart();
+            }
+            Err(InPlace::Unavailable) => {}
+            Err(InPlace::Failed(message)) => return Err(message),
+        }
+    }
     let folder = app.path().download_dir().map_err(|error| format!("No Downloads folder: {error}"))?;
     let (path, opens) =
         tauri::async_runtime::spawn_blocking(move || crate::updates::download(&version, &folder)).await.map_err(|error| error.to_string())??;
@@ -178,7 +189,23 @@ pub async fn install_update(app: AppHandle, version: String) -> Result<crate::up
     } else {
         app.opener().reveal_item_in_dir(&path).map_err(|error| format!("Saved to {shown}, but its folder could not be shown: {error}"))?;
     }
-    Ok(crate::updates::DownloadedDto { path: shown, opens })
+    Ok(crate::updates::DownloadedDto { path: shown, opens, restarting: false })
+}
+
+/// Why updating in place did not happen: the release has nothing to update from (fall back), or it went wrong.
+enum InPlace {
+    Unavailable,
+    Failed(String),
+}
+
+/// Downloads and installs `version` over this copy through the updater, which verifies its signature first.
+async fn install_in_place(app: &AppHandle, version: &str) -> Result<(), InPlace> {
+    use tauri_plugin_updater::UpdaterExt as _;
+    let manifest = crate::updates::manifest_url(version).parse().map_err(|_| InPlace::Unavailable)?;
+    let updater = app.updater_builder().endpoints(vec![manifest]).and_then(tauri_plugin_updater::UpdaterBuilder::build).map_err(|_| InPlace::Unavailable)?;
+    // No manifest, or none for this system: the plain download still works.
+    let Ok(Some(update)) = updater.check().await else { return Err(InPlace::Unavailable) };
+    update.download_and_install(|_, _| {}, || {}).await.map_err(|error| InPlace::Failed(format!("Buun Mail {version} could not be installed: {error}")))
 }
 
 /// The routing file's workspaces, for the editor in Settings.

@@ -133,12 +133,18 @@ jobs:
             fi
           done
 
+      # The updater's key signs each installer the app can update itself from (.sig beside it), and the action
+      # gathers them into the release's latest.json, which the app reads to install in place.
       - uses: tauri-apps/tauri-action@1deb371b0cd8bd54025b384f1cd735e725c4060f # action-v1.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           projectPath: apps/desktop
           tauriScript: pnpm exec tauri
           args: ${{ inputs.beta && matrix.beta-args || matrix.args }}
           releaseId: ${{ steps.find.outputs.id }}
+          uploadUpdaterJson: true
+          updaterJsonPreferNsis: true
 

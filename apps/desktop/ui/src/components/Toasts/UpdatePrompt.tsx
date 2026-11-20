@@ -26,8 +26,8 @@ export function UpdatePrompt({ updates }: { updates: UpdateCheck }): ReactNode {
         <span className="toast__text">{t(found.beta ? 'updates.promptBeta' : 'updates.prompt', { version: found.latest })}</span>
         <span className="toast__detail">{t('updates.promptDetail', { current: found.current })}</span>
         <span className="toast__actions">
-          <BusyButton className="toast__action toast__action--primary" glyph={IconReceive} run={updates.install} busyLabel={t('updates.installing')}>
-            {t('updates.installShort')}
+          <BusyButton className="toast__action toast__action--primary" glyph={IconReceive} run={updates.install} busyLabel={t(found.inPlace ? 'updates.installingInPlace' : 'updates.installing')}>
+            {t(found.inPlace ? 'updates.installRestartShort' : 'updates.installShort')}
           </BusyButton>
           <button type="button" className="toast__action" onClick={() => void openExternal(found.url)}>
             <IconExternal aria-hidden="true" />

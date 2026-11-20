@@ -497,10 +497,14 @@ export interface UpdateInfo {
   url: string
   /** The installer for this computer. */
   asset: string | null
+  /** True when Install replaces this copy and restarts it; false when it downloads the installer to run. */
+  inPlace: boolean
 }
 
 /** An installer saved to Downloads; `opens` is false for an AppImage, which is shown in its folder instead. */
 export interface DownloadedUpdate {
   path: string
   opens: boolean
+  /** True when it installed in place; the app restarts straight after, so this is rarely seen. */
+  restarting: boolean
 }
