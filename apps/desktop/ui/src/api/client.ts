@@ -439,7 +439,7 @@ export async function lockReveals(): Promise<RevealStatus> {
 
 /** A saved secret shown again. Rejects with the reason, such as the reveal code being needed or wrong. */
 export async function revealSecret(kind: SecretKind, id: string, code: string | null): Promise<string> {
-  return isTauri() ? invoke<string>(COMMANDS.revealSecret, { kind, id, code }) : preview.security.reveal(kind, id, code)
+  return isTauri() ? invoke<string>(COMMANDS.reveal, { kind, id, code }) : preview.security.reveal(kind, id, code)
 }
 
 /** Every alert channel. */

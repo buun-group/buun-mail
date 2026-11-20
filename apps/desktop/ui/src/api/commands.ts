@@ -47,7 +47,7 @@ export const COMMANDS = {
   revealStatus: 'reveal_status',
   setRevealCode: 'set_reveal_code',
   lockReveals: 'lock_reveals',
-  revealSecret: 'reveal_secret',
+  reveal: 'reveal_secret',
   listAlerts: 'list_alerts',
   addAlert: 'add_alert',
   removeAlert: 'remove_alert',

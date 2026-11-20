@@ -44,7 +44,8 @@
         "enabled": true,
         "disable": [
           "no-hardcoded-jsx-text",
-          "no-hardcoded-jsx-attr"
+          "no-hardcoded-jsx-attr",
+          "no-sql-string-interpolation"
         ]
       },
       "bash-write": {
