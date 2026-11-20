@@ -5,7 +5,7 @@ import type { ComposeMode } from '../lib/compose'
 import type { MessageActions } from './useMessageActions'
 
 /** True when a key press belongs to whatever has focus: a field, an open dialog or menu, or a modifier chord. */
-function isBusy(event: KeyboardEvent): boolean {
+export function isBusy(event: KeyboardEvent): boolean {
   if (event.ctrlKey || event.metaKey || event.altKey) return true
   const target = event.target
   if (target instanceof Element && target.closest('input, textarea, select, [contenteditable="true"], [role="menu"], [role="listbox"]') !== null) return true

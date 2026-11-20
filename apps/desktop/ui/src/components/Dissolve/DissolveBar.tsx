@@ -8,6 +8,7 @@ import i18n from '../../i18n'
 import { IconAdd, IconBurn, IconCopy, IconExtend, IconIdentity, IconTimer } from '../../icons'
 import { copyWithToast } from '../../lib/copy'
 import { STORAGE_KEYS } from '../../constants/ui'
+import { isBusy } from '../../hooks/useMailKeys'
 import { DISSOLVE_WORKSPACE, formatTimeLeft, readMeter, timeLeft } from '../../lib/dissolve'
 import { formatListed } from '../../lib/time'
 import { TipButton } from '../Tooltip/TipButton'
@@ -65,7 +66,9 @@ export function DissolveBar({ place, onOpen }: { place: Place; onOpen: (place: P
   const [busy, setBusy] = useState(false)
   const [confirming, setConfirming] = useState<Confirmation | null>(null)
   const [making, setMaking] = useState<HTMLElement | null>(null)
-  const [showIdentity, setShowIdentity] = useState(() => (place.folder !== null && place.folder === openIdentityFor) || drawerOpen())
+  // A folder opened straight after making its address with an identity shows the drawer, glowing for a moment.
+  const [fresh] = useState(() => place.folder !== null && place.folder === openIdentityFor)
+  const [showIdentity, setShowIdentity] = useState(() => fresh || drawerOpen())
   const toggleIdentity = (): void =>
     setShowIdentity((open) => {
       rememberDrawer(!open)
@@ -88,16 +91,33 @@ export function DissolveBar({ place, onOpen }: { place: Place; onOpen: (place: P
     }
   }, [])
 
+  // I opens and tucks away the identity drawer on an address's folder, as the bar's Identity button does.
+  const folderInbox = status === null || place.folder === null ? undefined : status.inboxes.find((item) => item.address === place.folder)
+  const drawerKey = folderInbox !== undefined && status !== null && (folderInbox.identity || status.identities.plan === true)
+  useEffect(() => {
+    if (!drawerKey) return undefined
+    const onKey = (event: KeyboardEvent): void => {
+      if (event.key !== 'i' || isBusy(event)) return
+      event.preventDefault()
+      setShowIdentity((open) => {
+        rememberDrawer(!open)
+        return !open
+      })
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [drawerKey])
+
   if (status === null) return null
   const inbox = place.folder === null ? undefined : status.inboxes.find((item) => item.address === place.folder)
 
-  const made = (fresh: MadeDissolveInbox): void => {
+  const made = (inboxMade: MadeDissolveInbox): void => {
     setMaking(null)
-    if (fresh.identityMade !== null) openIdentityFor = fresh.address
-    const copied = fresh.identityMade !== null ? t('identity.madeWithAddress') : t('dissolve.madeCopied')
-    void copyWithToast(fresh.address, copied).then(() => {
-      if (fresh.identitySkipped !== null) toast({ text: t('identity.skipped'), detail: fresh.identitySkipped, tone: 'problem', glyph: IconIdentity })
-      onOpen({ workspace: DISSOLVE_WORKSPACE, folder: fresh.address })
+    if (inboxMade.identityMade !== null) openIdentityFor = inboxMade.address
+    const copied = inboxMade.identityMade !== null ? t('identity.madeWithAddress') : t('dissolve.madeCopied')
+    void copyWithToast(inboxMade.address, copied).then(() => {
+      if (inboxMade.identitySkipped !== null) toast({ text: t('identity.skipped'), detail: inboxMade.identitySkipped, tone: 'problem', glyph: IconIdentity })
+      onOpen({ workspace: DISSOLVE_WORKSPACE, folder: inboxMade.address })
     })
   }
 
@@ -196,7 +216,7 @@ export function DissolveBar({ place, onOpen }: { place: Place; onOpen: (place: P
       </button>
       <Confirm request={confirming} cancelLabel={t('actions.cancel')} onClose={() => setConfirming(null)} />
     </div>
-    {identityOn && <IdentityDrawer inbox={inbox} identities={status.identities} open={showIdentity} onToggle={toggleIdentity} onStatus={setStatus} />}
+    {identityOn && <IdentityDrawer inbox={inbox} identities={status.identities} open={showIdentity} fresh={fresh} onToggle={toggleIdentity} onStatus={setStatus} />}
     </div>
   )
 }
