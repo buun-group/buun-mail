@@ -9,5 +9,6 @@ export default defineConfig({
   clearScreen: false,
   server: { port: DEV_PORT, strictPort: true },
   build: { target: 'es2023', outDir: 'dist', emptyOutDir: true },
-  test: { environment: 'jsdom', setupFiles: ['src/__tests__/setup.ts'] },
+  // 20 s a test, for the whole-app tests on a busy machine (queries wait 5 s each; see setup.ts).
+  test: { environment: 'jsdom', setupFiles: ['src/__tests__/setup.ts'], testTimeout: 20_000 },
 })
