@@ -38,6 +38,7 @@ rests and the loader only fades.
 |---|---|
 | `pnpm brand:build` | Outlines the wordmark from Geist SemiBold, writes `src/svg/` and rasterises `assets/` with resvg |
 | `pnpm --filter @buun-mail/brand readme` | Draws the README's animated hero and routing pictures into `.github/assets/readme/`, every word outlined from Geist Medium |
+| `pnpm --filter @buun-mail/brand installer` | Draws the Windows installers' header, sidebar, banner and dialog images (24-bit BMP) into `apps/desktop/src-tauri/icons/installer/` |
 | `pnpm dev:brand` | The preview on http://localhost:28610: every file, size and motion on dark and light |
 | `pnpm exec tauri icon packages/brand/assets/app-icon-1024.png -o src-tauri/icons` (in `apps/desktop`) | The desktop icon set for macOS, Windows and Linux |
 

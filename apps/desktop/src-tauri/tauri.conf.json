@@ -38,6 +38,25 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "publisher": "Buun Group",
+    "homepage": "https://github.com/buun-group/buun-mail",
+    "copyright": "Copyright 2026 Buun Group. GPL-3.0-only.",
+    "shortDescription": "One inbox for every address you run",
+    "longDescription": "A local-first mail client that files every message by the exact address it was delivered to, across your own domains, IMAP mailboxes and dissolve.email.",
+    "windows": {
+      "nsis": {
+        "installerIcon": "icons/icon.ico",
+        "uninstallerIcon": "icons/icon.ico",
+        "headerImage": "icons/installer/nsis-header.bmp",
+        "sidebarImage": "icons/installer/nsis-sidebar.bmp",
+        "uninstallerHeaderImage": "icons/installer/nsis-header.bmp",
+        "startMenuFolder": "Buun Mail"
+      },
+      "wix": {
+        "bannerPath": "icons/installer/wix-banner.bmp",
+        "dialogImagePath": "icons/installer/wix-dialog.bmp"
+      }
+    }
   }
 }

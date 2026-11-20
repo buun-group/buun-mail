@@ -17,6 +17,7 @@
   "scripts": {
     "build": "tsx scripts/build.ts",
     "readme": "tsx scripts/readme.ts",
+    "installer": "tsx scripts/installer.ts",
     "preview": "vite --config preview/vite.config.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
