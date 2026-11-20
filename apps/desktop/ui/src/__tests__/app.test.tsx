@@ -1,5 +1,5 @@
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import { afterEach, beforeAll, describe, expect, it } from 'vitest'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import { App } from '../App'
 import { INTEGRATIONS } from '../constants/integrations'
@@ -384,5 +384,23 @@ describe('opening and closing smoothly', () => {
     await waitFor(() => expect(screen.queryByText('Inside')).toBeNull())
     rerender(<Fold open>Inside</Fold>)
     expect(screen.getByText('Inside').closest('.fold')?.getAttribute('data-phase')).toBe('opening')
+  })
+})
+
+describe('tooltips', () => {
+  it('closes an open tip when a dialog opens or the page is pressed, and shows none on focus given back by a dialog', async () => {
+    vi.useFakeTimers()
+    const { TipButton } = await import('../components/Tooltip/TipButton')
+    render(<TipButton tip="Reply to everyone">Reply all</TipButton>)
+    const button = screen.getByRole('button', { name: 'Reply all' })
+    fireEvent.mouseEnter(button)
+    act(() => vi.advanceTimersByTime(500))
+    expect(screen.getByRole('tooltip').textContent).toBe('Reply to everyone')
+    fireEvent.pointerDown(document.body)
+    expect(screen.queryByRole('tooltip')).toBeNull()
+    document.documentElement.dataset['input'] = 'pointer'
+    fireEvent.focus(button)
+    expect(screen.queryByRole('tooltip')).toBeNull()
+    vi.useRealTimers()
   })
 })

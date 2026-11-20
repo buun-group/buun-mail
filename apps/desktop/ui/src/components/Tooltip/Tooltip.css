@@ -16,8 +16,65 @@
   animation: tooltip-in var(--duration-fast) var(--ease-out);
 }
 
+/* The arrow: a small square of the tip's colour, turned to a point on the edge facing the button, at --tip-arrow. */
+.tooltip::before {
+  content: '';
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 1px;
+  background: inherit;
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+.tooltip[data-side='below']::before {
+  top: 0;
+  left: var(--tip-arrow);
+}
+.tooltip[data-side='above']::before {
+  top: 100%;
+  left: var(--tip-arrow);
+}
+.tooltip[data-side='right']::before {
+  top: var(--tip-arrow);
+  left: 0;
+}
+
 @keyframes tooltip-in {
   from {
     opacity: 0;
+  }
+}
+
+/* It also drifts a few pixels in from its button, so it reads as coming out of it. */
+.tooltip[data-side='below'] {
+  animation-name: tooltip-in-below;
+}
+.tooltip[data-side='above'] {
+  animation-name: tooltip-in-above;
+}
+.tooltip[data-side='right'] {
+  animation-name: tooltip-in-right;
+}
+@keyframes tooltip-in-below {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+}
+@keyframes tooltip-in-above {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+}
+@keyframes tooltip-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(-3px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tooltip {
+    animation: none;
   }
 }
