@@ -637,3 +637,36 @@ button.identity-card__row:focus-visible .identity-card__copy {
   gap: var(--space-3);
   padding: var(--space-4);
 }
+/* A drawer opened for an identity just made: a soft orange ring that fades, so the eye finds it. */
+.identity-drawer--fresh {
+  animation: identity-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both, identity-fresh 1.8s ease-out 220ms;
+}
+@keyframes identity-fresh {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--action-primary) 55%, transparent), 0 12px 40px rgba(0, 0, 0, 0.22);
+  }
+  30% {
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--action-primary) 30%, transparent), 0 12px 40px rgba(0, 0, 0, 0.22);
+  }
+  100% {
+    box-shadow: 0 0 0 12px transparent, 0 12px 40px rgba(0, 0, 0, 0.22);
+  }
+}
+/* A row just copied: its copy glyph turns into a green tick for a moment. */
+.identity-card__copy--done {
+  color: var(--status-success-fg);
+  opacity: 1;
+  animation: busy-pop 260ms var(--ease-out);
+}
+@media (prefers-reduced-motion: reduce) {
+  .identity-drawer--fresh,
+  .identity-card__copy--done {
+    animation: none;
+  }
+}
+/* In a narrow list the extension count gives way, so the bar's buttons fit on one line under the address. */
+@container message-list (max-width: 30rem) {
+  .dissolve-bar__count {
+    display: none;
+  }
+}

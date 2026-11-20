@@ -6,9 +6,10 @@ import { useTranslation } from 'react-i18next'
 
 import { addDissolveIdentity, connectDissolve, dissolveIdentity, regenerateDissolveIdentity, revealSecret, revealStatus } from '../../api/client'
 import type { DissolveIdentities, DissolveIdentity, DissolveInbox, DissolveStatus, Persona } from '../../api/types'
-import { IconAddress, IconAt, IconBirthday, IconAdd, IconCollapseRight, IconCopy, IconHide, IconIdentity, IconInfo, IconPassword, IconPhone, IconRegenerate, IconShow, IconUsername } from '../../icons'
+import { IconAddress, IconAt, IconBirthday, IconAdd, IconCheck, IconCollapseRight, IconCopy, IconHide, IconIdentity, IconInfo, IconPassword, IconPhone, IconRegenerate, IconShow, IconUsername } from '../../icons'
 import { STORAGE_KEYS } from '../../constants/ui'
 import { copyWithToast } from '../../lib/copy'
+import { useNarrowWindow } from '../../hooks/useNarrowWindow'
 import { useReaderSlot } from '../../lib/readerSlot'
 import { toast } from '../../lib/feedback'
 import { BusyButton } from '../Busy/BusyButton'
@@ -24,6 +25,9 @@ const SHOWN_MS = 30_000
 
 /** Stands for the hidden password: asterisks, never its length. */
 const HIDDEN = '************'
+
+/** How long a row shows its tick after a copy. */
+const COPIED_MS = 1_400
 
 /** How far the pointer moves before pressing the tab becomes dragging it. */
 const DRAG_PX = 4
@@ -126,17 +130,40 @@ function readableDate(iso: string): string {
 }
 
 /** One value: a row whose whole width copies it, with the copy glyph at the end to say so. */
+/** True for a moment after a copy, so the row can show a tick where its copy glyph was. */
+function useCopied(): [boolean, () => void] {
+  const [copied, setCopied] = useState(false)
+  const timer = useRef<number | undefined>(undefined)
+  useEffect(() => () => window.clearTimeout(timer.current), [])
+  const mark = (): void => {
+    setCopied(true)
+    window.clearTimeout(timer.current)
+    timer.current = window.setTimeout(() => setCopied(false), COPIED_MS)
+  }
+  return [copied, mark]
+}
+
 function Row({ glyph: Glyph, label, value, shown }: { glyph: IconType; label: string; value: string | null | undefined; shown?: string }): ReactNode {
   const { t } = useTranslation('mail')
+  const [copied, markCopied] = useCopied()
   if (value === null || value === undefined || value === '') return null
   return (
-    <button type="button" className="identity-card__row" aria-label={t('identity.copyField', { field: label })} onClick={(event) => void copyWithToast(value, t('identity.copied', { field: label }), event.currentTarget)}>
+    <button
+      type="button"
+      className="identity-card__row"
+      data-copied={copied}
+      aria-label={t('identity.copyField', { field: label })}
+      onClick={(event) => {
+        markCopied()
+        void copyWithToast(value, t('identity.copied', { field: label }), event.currentTarget)
+      }}
+    >
       <Glyph className="identity-card__glyph" aria-hidden="true" />
       <span className="identity-card__text">
         <span className="identity-card__label">{label}</span>
         <span className="identity-card__value">{shown ?? value}</span>
       </span>
-      <IconCopy className="identity-card__copy" aria-hidden="true" />
+      {copied ? <IconCheck className="identity-card__copy identity-card__copy--done" aria-hidden="true" /> : <IconCopy className="identity-card__copy" aria-hidden="true" />}
     </button>
   )
 }
@@ -251,12 +278,15 @@ export function IdentityDrawer({
   inbox,
   identities,
   open,
+  fresh = false,
   onToggle,
   onStatus,
 }: {
   inbox: DissolveInbox
   identities: DissolveIdentities
   open: boolean
+  /** Just made with a new address: the drawer glows for a moment so it is clear where the identity went. */
+  fresh?: boolean
   onToggle: () => void
   onStatus: (status: DissolveStatus) => void
 }): ReactNode {
@@ -270,6 +300,8 @@ export function IdentityDrawer({
   // Inside the reading pane, clear of the title bar and the list. With the pane hidden (the wide list), inside the
   // list instead, starting below its header and this bar, so it never covers the top of the window.
   const slot = useReaderSlot()
+  // Read so the drawer moves between the pane and the list as the window crosses the narrow width.
+  useNarrowWindow()
   // The wide list keeps the reader mounted but hidden, so a pane counts only while it is on screen.
   const pane = slot !== null && slot.getClientRects().length > 0 ? slot : null
   const list = pane === null ? document.querySelector<HTMLElement>('.message-list') : null
@@ -277,7 +309,7 @@ export function IdentityDrawer({
   const below = list?.querySelector('.dissolve-banner')
   const top = list !== null && below instanceof HTMLElement ? below.getBoundingClientRect().bottom - list.getBoundingClientRect().top + 8 : null
   const place = top === null ? undefined : { top: `${Math.round(top)}px` }
-  const drawerClass = pane === null && list === null ? 'identity-drawer identity-drawer--window identity-card' : 'identity-drawer identity-card'
+  const drawerClass = `identity-drawer identity-card${pane === null && list === null ? ' identity-drawer--window' : ''}${fresh ? ' identity-drawer--fresh' : ''}`
 
   useEffect(() => {
     if (!identities.granted) return undefined
@@ -313,6 +345,30 @@ export function IdentityDrawer({
       throw cause
     }
   }
+  // Every value as labelled lines, for notes or a password manager. The password comes through the reveal lock like
+  // anywhere else; while a reveal code is needed it is left out, and the toast says so.
+  const copyAll = async (): Promise<void> => {
+    if (identity == null) return
+    const known = identity
+    let password: string | null = null
+    if (known.hasPassword) {
+      const lock = await revealStatus()
+      if (!(lock.codeSet && lock.openFor === 0)) password = await revealSecret('identity', inbox.id, null).catch(() => null)
+    }
+    const who = known.persona
+    const lines: [string, string | null | undefined][] = [
+      [t('identity.email'), known.email],
+      [t('identity.password'), password],
+      [t('identity.name'), who?.fullName],
+      [t('identity.username'), who?.username],
+      [t('identity.birthday'), who?.dateOfBirth],
+      [t('identity.phone'), who?.phone],
+      [t('identity.address'), who === null ? null : [who.address.street, who.address.city, [who.address.state, who.address.zip].filter(Boolean).join(' ')].filter(Boolean).join(', ')],
+    ]
+    const text = lines.filter((line): line is [string, string] => line[1] != null && line[1] !== '').map(([label, value]) => `${label}: ${value}`).join('\n')
+    await copyWithToast(text, password === null && known.hasPassword ? t('identity.copiedAllNoPassword') : t('identity.copiedAll'))
+  }
+
   const regenerate = (): void =>
     setConfirming({
       title: t('identity.regenerateTitle'),
@@ -320,8 +376,8 @@ export function IdentityDrawer({
       action: t('identity.regenerate'),
       run: () => {
         regenerateDissolveIdentity(inbox.id)
-          .then((fresh) => {
-            setIdentity(fresh)
+          .then((renewed) => {
+            setIdentity(renewed)
             setTurn((value) => value + 1)
             toast({ text: t('identity.regenerated'), detail: inbox.address, tone: 'done', glyph: IconRegenerate })
           })
@@ -390,6 +446,9 @@ export function IdentityDrawer({
           </h3>
           <span>{t('identity.title')}</span>
         </div>
+        <TipButton tip={t('identity.copyAll')} className="identity-card__tool" aria-label={t('identity.copyAll')} onClick={() => void copyAll()}>
+          <IconCopy aria-hidden="true" />
+        </TipButton>
         {!inbox.ended && (
           <TipButton tip={t('identity.regenerate')} className="identity-card__tool" aria-label={t('identity.regenerate')} onClick={regenerate}>
             <IconRegenerate aria-hidden="true" />
