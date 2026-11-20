@@ -6,12 +6,13 @@ import type { Contact, Message, MessageDetail, Recipients, Workspace } from '../
 import { Attachments } from './Attachments'
 import { Conversation } from './Conversation'
 import { SenderCheck } from './SenderCheck'
+import type { HtmlMenu } from './MessageHtml'
 import { Verification } from './Verification'
 import { MessageHtml } from './MessageHtml'
 import { Avatar } from '../Avatar/Avatar'
 import type { Theme } from '../../constants/ui'
 import type { MessageActions } from '../../hooks/useMessageActions'
-import { EXPORT_GLYPHS, IconArchive, IconBack, IconCopy, IconExport, IconForward, IconReplyAll, IconSnooze, IconDelete, IconExternal, IconInbox, IconMarkRead, IconPutBack, IconReply, IconRoute, IconStar, IconStarred, IconText } from '../../icons'
+import { EXPORT_GLYPHS, IconArchive, IconBack, IconCopy, IconExport, IconForward, IconReplyAll, IconSnooze, IconDelete, IconExternal, IconInbox, IconMarkRead, IconPutBack, IconReply, IconRoute, IconStar, IconStarred, IconText, IconImage, IconCode } from '../../icons'
 import { openExternal } from '../../api/client'
 import { copyWithToast } from '../../lib/copy'
 import type { ComposeMode } from '../../lib/compose'
@@ -191,6 +192,36 @@ export function Reader({ message, body, recipients, detail, workspace, theme, on
     setMenu({ x: event.clientX, y: event.clientY, label: t('copy.menuLabel'), items: [...items, ...(first === undefined ? [] : [{ ...first, separated: true }, ...forMessage.slice(1)])] })
   }
 
+  /** What the menu offers for a right click in the HTML view: the selection, the link, picture or word, then the message. */
+  const openHtmlMenu = (open: Message, found: HtmlMenu): void => {
+    const items: MenuItem[] = []
+    if (found.selected !== '') items.push({ id: 'copy-selection', label: t('copy.copySelection'), glyph: IconCopy, onSelect: () => void copyWithToast(found.selected) })
+    const link = found.link
+    if (link !== null && /^mailto:/iu.test(link)) {
+      const address = decodeURIComponent(link.replace(/^mailto:/iu, '').split('?')[0] ?? '')
+      items.push({ id: 'copy-email', label: t('copy.copyEmail'), glyph: IconCopy, onSelect: () => void copyWithToast(address) })
+    } else if (link !== null && /^https?:/iu.test(link)) {
+      items.push({ id: 'open-link', label: t('copy.openLink'), glyph: IconExternal, onSelect: () => void openExternal(link) }, { id: 'copy-link', label: t('copy.copyLink'), glyph: IconCopy, onSelect: () => void copyWithToast(link) })
+      if (found.linkText !== null && found.linkText !== link) items.push({ id: 'copy-link-text', label: t('copy.copyLinkText'), glyph: IconText, onSelect: () => void copyWithToast(found.linkText ?? '') })
+    }
+    const image = found.image
+    if (image !== null && /^https?:/iu.test(image)) {
+      items.push({ id: 'open-image', label: t('copy.openImage'), glyph: IconImage, onSelect: () => void openExternal(image) }, { id: 'copy-image', label: t('copy.copyImageAddress'), glyph: IconCopy, onSelect: () => void copyWithToast(image) })
+    }
+    const word = found.word
+    if (word !== null && link === null && !items.some((item) => item.id === 'copy-selection' && found.selected === word.text)) {
+      items.push({ id: 'copy-word', label: word.kind === 'email' ? t('copy.copyEmail') : word.kind === 'link' ? t('copy.copyLink') : t('copy.copyCode', { code: word.text }), glyph: IconCopy, onSelect: () => void copyWithToast(word.text) })
+    }
+    items.push(
+      { id: 'select-all', label: t('copy.selectAll'), glyph: IconText, separated: items.length > 0, onSelect: found.selectAll },
+      { id: 'copy-body', label: t('copy.copyBody'), glyph: IconCopy, onSelect: () => void copyWithToast(found.text.trim() || (body ?? open.preview)) },
+      { id: 'copy-html', label: t('copy.copyHtml'), glyph: IconCode, onSelect: () => void copyWithToast(detail?.html?.html ?? '', t('copy.htmlCopied')) },
+    )
+    const forMessage = actions.menu(open).filter((item) => item.id !== 'open')
+    const first = forMessage[0]
+    setMenu({ x: found.x, y: found.y, label: t('copy.menuLabel'), items: [...items, ...(first === undefined ? [] : [{ ...first, separated: true }, ...forMessage.slice(1)])] })
+  }
+
   useLayoutEffect(() => {
     onMenu.current = message === null ? () => {} : (event) => openMenu(message, event)
   })
@@ -303,7 +334,7 @@ export function Reader({ message, body, recipients, detail, workspace, theme, on
         {detail !== null && <Attachments messageId={message.id} attachments={detail.attachments} />}
         {detail?.html != null && !asText ? (
           <>
-            <MessageHtml key={message.id} html={detail.html.html} remote={detail.html.remote} />
+            <MessageHtml key={message.id} html={detail.html.html} remote={detail.html.remote} onMenu={(found) => openHtmlMenu(message, found)} />
             <button type="button" className="reader__switch" onClick={() => setAsText(true)}>
               {t('html.showText')}
             </button>

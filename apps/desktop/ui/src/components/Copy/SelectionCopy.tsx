@@ -45,6 +45,11 @@ export function SelectionCopy({ within }: { within: RefObject<HTMLElement | null
   }, [within])
 
   if (spot === null) return null
+  return <SelectionCopyButton spot={spot} label={t('copy.copy')} onDone={() => setSpot(null)} />
+}
+
+/** The floating Copy button itself, at a point in the window, for a selection in the page or in a sealed frame. */
+export function SelectionCopyButton({ spot, label, onDone }: { spot: { left: number; top: number; text: string }; label: string; onDone: () => void }): ReactNode {
   return createPortal(
     <button
       type="button"
@@ -53,11 +58,11 @@ export function SelectionCopy({ within }: { within: RefObject<HTMLElement | null
       onPointerDown={(event) => event.preventDefault()}
       onClick={(event) => {
         void copyWithToast(spot.text, undefined, event.currentTarget)
-        setSpot(null)
+        onDone()
       }}
     >
       <IconCopy aria-hidden="true" />
-      {t('copy.copy')}
+      {label}
     </button>,
     document.body,
   )

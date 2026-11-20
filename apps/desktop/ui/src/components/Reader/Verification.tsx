@@ -5,10 +5,13 @@ import { useTranslation } from 'react-i18next'
 import { openExternal } from '../../api/client'
 import { IconCode, IconCopy, IconExternal, IconLink } from '../../icons'
 import { copyWithToast } from '../../lib/copy'
-import { extractVerification } from '../../lib/verification'
+import { extractVerification, SUBJECT_KEYWORDS, VERIFICATION_SENDER } from '../../lib/verification'
 
 /** A code is offered from this confidence up: labelled, prefixed, emphasised or spaced, never a lone number. */
 const CODE_CONFIDENCE = 0.8
+
+/** A labelled code ("verification code is"), certain enough to show without any other sign. */
+const LABELLED_CONFIDENCE = 0.93
 
 /** A link is offered from this confidence up: its address or its words say it verifies. */
 const LINK_CONFIDENCE = 0.85
@@ -30,7 +33,10 @@ function hostOf(url: string): string | null {
 export function Verification({ subject, from, text, html }: { subject: string; from: string; text: string | null; html: string | null }): ReactNode {
   const { t } = useTranslation('mail')
   const found = useMemo(() => extractVerification({ subject, fromAddress: from, bodyText: text, bodyHtml: html }), [subject, from, text, html])
-  const code = found.find((match) => match.type === 'code' && match.confidence >= CODE_CONFIDENCE)
+  // A labelled code ("your code is 482913") always shows. A weaker find (a bold or prefixed number) can be an invoice or
+  // order number (INV-2026-11), so it shows only when the subject or sender says the mail is about verifying.
+  const context = SUBJECT_KEYWORDS.test(subject) || VERIFICATION_SENDER.test(from)
+  const code = found.find((match) => match.type === 'code' && (match.confidence >= LABELLED_CONFIDENCE || (context && match.confidence >= CODE_CONFIDENCE)))
   const link = found.find((match) => match.type === 'link' && match.confidence >= LINK_CONFIDENCE && hostOf(match.value) !== null)
   if (code === undefined && link === undefined) return null
   return (

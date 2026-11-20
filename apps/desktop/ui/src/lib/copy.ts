@@ -7,7 +7,7 @@ import { toast } from './feedback'
 const SHOWN = 60
 
 /** How long the tick stays, in milliseconds; matches the `copy-flash` animation. */
-const TICK_MS = 900
+const TICK_MS = 800
 
 const SVG = 'http://www.w3.org/2000/svg'
 

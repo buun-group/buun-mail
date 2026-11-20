@@ -161,7 +161,12 @@
     "copySelection": "Copy selected text",
     "selectAll": "Select the message text",
     "copyBody": "Copy message text",
-    "menuLabel": "Message"
+    "menuLabel": "Message",
+    "copyLinkText": "Copy link text",
+    "openImage": "Open image in browser",
+    "copyImageAddress": "Copy image address",
+    "copyHtml": "Copy message HTML",
+    "htmlCopied": "Message HTML copied"
   },
   "export": {
     "eml": "Original (.eml)",

@@ -182,3 +182,13 @@ describe('dissolve.email overview', () => {
     expect(opened).toEqual([{ workspace: 'dissolve', folder: 'signup-7k2@dissolve.email' }])
   })
 })
+
+describe('verification code look-alikes', () => {
+  it('does not take an invoice number for a code, but keeps a prefixed code in a sign-in mail', async () => {
+    const { Verification } = await import('../components/Reader/Verification')
+    const { container } = render(<Verification subject="Your invoice for November is ready" from="invoices@stripe.com" text="Invoice INV-2026-11 is now available." html={null} />)
+    expect(container.textContent).toBe('')
+    render(<Verification subject="Your sign-in code" from="no-reply@accounts.example" text="Use G-847293 to sign in." html={null} />)
+    expect(screen.getByText('G-847293')).toBeTruthy()
+  })
+})

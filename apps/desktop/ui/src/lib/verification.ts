@@ -41,11 +41,11 @@ function* capped<T>(it: Iterable<T>): Generator<T> {
 
 // ── Subject / sender heuristics ──────────────────────────────────────
 
-const SUBJECT_KEYWORDS =
+export const SUBJECT_KEYWORDS =
   /verif|confirm|activate|one.?time|otp|security.?code|sign.?in|log.?in|2fa|mfa|passcode|magic|authenticat/i
 
 /** Senders that strongly signal a verification email */
-const VERIFICATION_SENDER =
+export const VERIFICATION_SENDER =
   /^(?:no-?reply|verify|security|auth|confirm|noreply|account|support)@/i
 
 // ── Code patterns ────────────────────────────────────────────────────

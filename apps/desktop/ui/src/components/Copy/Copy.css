@@ -37,22 +37,22 @@
   cursor: pointer;
 }
 
-/* The glyph floats just above the word's end, so it never covers words on the same line or moves the text. */
+/* The glyph sits just after the word, centred on its line, small, so it reads as part of the word rather than a
+   badge over it. Its ground hides whatever text it covers for the moment it shows. */
 .copyable__glyph {
   position: absolute;
-  bottom: calc(100% + 2px);
-  right: -4px;
+  top: 50%;
+  left: calc(100% + 2px);
   display: grid;
   place-items: center;
-  width: 1.375rem;
-  height: 1.375rem;
+  width: 1.125rem;
+  height: 1.125rem;
   border-radius: var(--radius-sm);
   background: var(--surface-card-hover);
-  box-shadow: 0 0 0 1px var(--alpha-12);
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
   opacity: 0;
-  transform: translateY(3px) scale(0.9);
+  transform: translate(-2px, -50%);
   transition:
     opacity var(--duration-fast) var(--ease-out),
     transform var(--duration-fast) var(--ease-out);
@@ -64,7 +64,7 @@
 .copyable:focus-visible .copyable__glyph,
 .copyable:focus-within .copyable__glyph {
   opacity: 1;
-  transform: translateY(0) scale(1);
+  transform: translate(0, -50%);
   pointer-events: auto;
 }
 
