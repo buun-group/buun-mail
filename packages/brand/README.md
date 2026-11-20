@@ -37,6 +37,7 @@ rests and the loader only fades.
 | Command | Does |
 |---|---|
 | `pnpm brand:build` | Outlines the wordmark from Geist SemiBold, writes `src/svg/` and rasterises `assets/` with resvg |
+| `pnpm --filter @buun-mail/brand readme` | Draws the README's animated hero and routing pictures into `.github/assets/readme/`, every word outlined from Geist Medium |
 | `pnpm dev:brand` | The preview on http://localhost:28610: every file, size and motion on dark and light |
 | `pnpm exec tauri icon packages/brand/assets/app-icon-1024.png -o src-tauri/icons` (in `apps/desktop`) | The desktop icon set for macOS, Windows and Linux |
 
@@ -60,5 +61,5 @@ Code here follows:
 | `src/react/` | `Mark`, `Logo`, `Loader`, `Splash`, `RouteFlow` |
 | `src/svg/` | Built SVG files: marks, lockups, favicon, app icon, social card |
 | `assets/` | Built PNGs, `favicon.ico`, `site.webmanifest` |
-| `scripts/` | `build.ts` and the ICO writer |
+| `scripts/` | `build.ts`, the ICO writer, and `readme.ts` with the Simple Icons paths its chips use (`readme-icons.json`) |
 | `preview/` | The local preview page |
