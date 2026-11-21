@@ -8,6 +8,9 @@ name: Beta
 #   2. builds the installers on every platform and attaches them (build.yml)
 #   3. publishes the pre-release once every build has passed. It is never marked latest, and the app's update check
 #      never offers a beta.
+#   4. the phone apps, when something they are built from changed: Android to Play internal testing and then closed
+#      testing (mobile-android.yml, mobile-play-promote.yml), its APK attached to the pre-release, and iOS to
+#      TestFlight (mobile-ios.yml). docs/mobile.md has the secrets and the switches.
 #
 # Merging dev into main (with a merge commit, so the stable release can tell what dev already released) is what
 # release.yml turns into the stable release.
@@ -87,3 +90,99 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ needs.plan.outputs.tag }}
         run: gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --prerelease --latest=false
+
+  # The phone apps, once the pre-release exists. Each is skipped when its repository variable is "false"
+  # (SHIP_ANDROID, SHIP_IOS), when its secrets are missing, or when nothing the app is built from changed since the
+  # last beta that shipped it (tools/mobile-impact.mjs against the android-beta and ios-beta tags). A phone failure
+  # shows red but never touches the desktop beta, which is already out.
+  mobile-changes:
+    name: Phone apps changed?
+    needs: [plan, publish]
+    if: vars.SHIP_ANDROID != 'false' || vars.SHIP_IOS != 'false'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      android: ${{ steps.android.outputs.impacted }}
+      ios: ${{ steps.ios.outputs.impacted }}
+    steps:
+      # Full history and tags: the comparison is with the tag each platform's last beta was built from.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Android, since android-beta
+        id: android
+        run: node tools/mobile-impact.mjs android --base android-beta --head "$GITHUB_SHA"
+      - name: iOS, since ios-beta
+        id: ios
+        run: node tools/mobile-impact.mjs ios --base ios-beta --head "$GITHUB_SHA"
+
+  # Play internal testing first: no review, testers have it within minutes. The universal APK goes on the release.
+  android:
+    name: Android to Play internal testing
+    needs: [plan, publish, mobile-changes]
+    # A failed check means doubt, and doubt builds.
+    if: >-
+      always() && needs.publish.result == 'success' && vars.SHIP_ANDROID != 'false'
+      && (needs.mobile-changes.outputs.android == 'true' || needs.mobile-changes.result == 'failure')
+    uses: ./.github/workflows/mobile-android.yml
+    secrets: inherit
+    with:
+      tag: ${{ needs.plan.outputs.tag }}
+      track: internal
+      skip-without-secrets: true
+
+  # Then the same bundle on closed testing (alpha), with no second build, unless SHIP_BETA_CLOSED is "false". It also
+  # runs when the Android step was skipped: it does nothing when closed testing already has the newest release, and
+  # so catches closed testing up after an earlier failure.
+  android-closed:
+    name: Android to Play closed testing
+    needs: [publish, android]
+    if: >-
+      always() && needs.publish.result == 'success' && vars.SHIP_ANDROID != 'false' && vars.SHIP_BETA_CLOSED != 'false'
+      && (needs.android.outputs.published == 'true' || needs.android.result == 'skipped')
+    uses: ./.github/workflows/mobile-play-promote.yml
+    secrets: inherit
+    with:
+      from: internal
+      to: alpha
+      skip-without-secrets: true
+
+  ios:
+    name: iOS to TestFlight
+    needs: [plan, publish, mobile-changes]
+    if: >-
+      always() && needs.publish.result == 'success' && vars.SHIP_IOS != 'false'
+      && (needs.mobile-changes.outputs.ios == 'true' || needs.mobile-changes.result == 'failure')
+    uses: ./.github/workflows/mobile-ios.yml
+    secrets: inherit
+    with:
+      tag: ${{ needs.plan.outputs.tag }}
+      skip-without-secrets: true
+
+  # What the next beta is compared with. Moved only after a publish that reached the store, so a skipped or failed
+  # one leaves the tag where it was and the changes since keep counting.
+  mobile-tags:
+    name: Record what the phone apps were built from
+    needs: [android, ios]
+    if: always() && (needs.android.outputs.published == 'true' || needs.ios.outputs.uploaded == 'true')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Move android-beta and ios-beta
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ANDROID: ${{ needs.android.outputs.published == 'true' }}
+          IOS: ${{ needs.ios.outputs.uploaded == 'true' }}
+        run: |
+          move() {
+            if gh api "repos/$GITHUB_REPOSITORY/git/refs/tags/$1" > /dev/null 2>&1; then
+              gh api -X PATCH "repos/$GITHUB_REPOSITORY/git/refs/tags/$1" -f sha="$GITHUB_SHA" -F force=true > /dev/null || return 1
+            else
+              gh api "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/tags/$1" -f sha="$GITHUB_SHA" > /dev/null || return 1
+            fi
+            echo "$1 is now $GITHUB_SHA."
+          }
+          # Bookkeeping only: if a tag cannot move, the next beta builds that app again, so it must not fail the run.
+          if [ "$ANDROID" = "true" ]; then move android-beta || echo "::warning::Could not move android-beta. The next beta builds Android again."; fi
+          if [ "$IOS" = "true" ]; then move ios-beta || echo "::warning::Could not move ios-beta. The next beta builds iOS again."; fi
