@@ -1,0 +1,235 @@
+/*
+ * The phone shell (html[data-shell='phone'], set in main.tsx): one pane at a time on a narrow touch screen.
+ *
+ * - The list fills the screen; an open message covers it (the reading pane is always off on a phone).
+ * - The sidebar is a drawer the menu slides out over a scrim, and slides away once a place is picked.
+ * - Settings and compose fill the screen; a round compose button floats over the list.
+ * - Every control is at least 44 px square, and nothing waits on a pointer hovering.
+ *
+ * The Android app pads the page clear of the system bars and the keyboard itself (MainActivity); on iOS the safe area
+ * insets do the same.
+ */
+
+:root[data-shell='phone'] {
+  --titlebar-height: 3.25rem;
+  --phone-tap: 2.75rem;
+  --phone-drawer: min(20rem, 86vw);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  -webkit-tap-highlight-color: transparent;
+}
+
+:root[data-shell='phone'] body {
+  padding-top: var(--safe-top);
+  padding-bottom: var(--safe-bottom);
+  overscroll-behavior: none;
+}
+
+/* One column: no sidebar beside the list, and the reading pane over it. */
+:root[data-shell='phone'] .app,
+:root[data-shell='phone'] .app[data-sidebar='collapsed'],
+:root[data-shell='phone'] .app[data-reading='off'],
+:root[data-shell='phone'] .app[data-reading='off'][data-sidebar='collapsed'] {
+  grid-template-columns: 0 minmax(0, 1fr) 0;
+}
+
+/* Nothing scrolls the panes sideways, even a focused control at the edge. */
+:root[data-shell='phone'] .app {
+  overflow: clip;
+}
+
+/* The top bar. */
+:root[data-shell='phone'] .title-bar {
+  gap: var(--space-1);
+  padding: 0 var(--space-1);
+}
+
+:root[data-shell='phone'] .title-bar__brand {
+  margin: 0 0 0 var(--space-1);
+  font-size: var(--text-lg);
+}
+
+:root[data-shell='phone'] .title-bar__tools {
+  padding-right: 0;
+}
+
+:root[data-shell='phone'] .title-bar__button {
+  width: var(--phone-tap);
+  height: var(--phone-tap);
+  font-size: 1.375rem;
+}
+
+/* The drawer. Closed, the rail is gone altogether; open, it slides over the list from the left. */
+:root[data-shell='phone'] .sidebar-slot {
+  z-index: 40;
+}
+
+:root[data-shell='phone'] .sidebar {
+  width: var(--phone-drawer);
+  border-right: 0;
+  box-shadow: var(--shadow-dialog);
+  transform: translateX(0);
+  transition: transform var(--duration-normal) var(--ease-out), visibility 0s;
+}
+
+:root[data-shell='phone'] .sidebar[data-rail='true'] {
+  visibility: hidden;
+  box-shadow: none;
+  transform: translateX(-100%);
+  transition: transform var(--duration-normal) var(--ease-out), visibility 0s var(--duration-normal);
+}
+
+:root[data-shell='phone'] .sidebar :is(.sidebar__folder, .sidebar__workspace-name) {
+  min-height: var(--phone-tap);
+}
+
+:root[data-shell='phone'] .sidebar__compose {
+  height: var(--phone-tap);
+}
+
+.app__scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  background: var(--surface-overlay);
+  animation: backdrop-in var(--duration-normal) var(--ease-out);
+}
+
+/* The compose button, over the list's bottom right corner. */
+.app__compose {
+  position: fixed;
+  right: var(--space-5);
+  bottom: calc(var(--space-5) + var(--safe-bottom));
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: var(--radius-lg);
+  background: var(--action-primary);
+  color: var(--action-primary-text);
+  font-size: 1.5rem;
+  box-shadow: var(--shadow-dialog);
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+
+.app__compose:active {
+  transform: scale(0.94);
+}
+
+/* Settings fills the screen: the sections become a row of tabs along the top that scrolls sideways. */
+:root[data-shell='phone'] .settings {
+  width: 100vw;
+  max-width: 100vw;
+  height: 100dvh;
+  max-height: 100dvh;
+  margin: 0;
+  padding-top: var(--safe-top);
+  padding-bottom: var(--safe-bottom);
+  border-radius: 0;
+}
+
+:root[data-shell='phone'] .settings[open] {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+:root[data-shell='phone'] .settings__nav {
+  flex-direction: row;
+  gap: var(--space-1);
+  overflow-x: auto;
+  padding: var(--space-2);
+  border-right: 0;
+  border-bottom: 1px solid var(--border-faint);
+  scrollbar-width: none;
+}
+
+:root[data-shell='phone'] .settings__nav h2 {
+  display: none;
+}
+
+:root[data-shell='phone'] .settings__tab {
+  flex: none;
+  height: var(--phone-tap);
+  padding: 0 var(--space-3);
+  white-space: nowrap;
+}
+
+:root[data-shell='phone'] .settings__close {
+  width: var(--phone-tap);
+  height: var(--phone-tap);
+}
+
+/* Compose fills the screen, and minimised it is a bar along the bottom. */
+:root[data-shell='phone'] .compose {
+  inset: var(--safe-top) 0 var(--safe-bottom) 0;
+  grid-template-columns: minmax(0, 1fr);
+  width: 100vw;
+  height: auto;
+  border-radius: 0;
+}
+
+:root[data-shell='phone'] .compose__foot {
+  flex-wrap: wrap;
+  row-gap: var(--space-2);
+}
+
+:root[data-shell='phone'] .compose--min {
+  top: auto;
+  width: 100vw;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+/* Rows are taller to tap, and the shortcut hints a keyboard would use are hidden. */
+:root[data-shell='phone'] .message-row {
+  min-height: 4.5rem;
+}
+
+:root[data-shell='phone'] kbd {
+  display: none;
+}
+
+/* An open message: its tools scroll sideways in one row under the top bar, Back held at the left edge. */
+:root[data-shell='phone'] .reader {
+  min-width: 0;
+}
+
+:root[data-shell='phone'] .reader__toolbar {
+  overflow-x: auto;
+  padding: var(--space-1);
+  scrollbar-width: none;
+}
+
+:root[data-shell='phone'] .reader__tool {
+  flex: none;
+  width: var(--phone-tap);
+  height: var(--phone-tap);
+}
+
+:root[data-shell='phone'] .reader__toolbar > :first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  flex: none;
+  background: var(--surface-reading);
+}
+
+/* The column headings belong to a wide list; a phone's rows carry their own sender, subject and date. */
+:root[data-shell='phone'] .list-header {
+  display: none;
+}
+
+/* An inbox's agent identity: a sheet across the foot of the open message instead of a panel at its side, and its
+   tab wide enough for a thumb. */
+:root[data-shell='phone'] .identity-drawer {
+  top: auto;
+  right: var(--space-2);
+  bottom: var(--space-2);
+  left: var(--space-2);
+  width: auto;
+  max-height: 72%;
+}
+
+:root[data-shell='phone'] .identity-drawer__tab {
+  width: var(--phone-tap);
+}

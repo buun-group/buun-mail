@@ -1,6 +1,8 @@
 .empty-state {
   display: grid;
   justify-items: center;
+  /* In a tall pane the rows keep their own heights, gathered in the middle, rather than stretching the button. */
+  align-content: center;
   gap: var(--space-2);
   padding: var(--space-8) var(--space-6);
   text-align: center;
