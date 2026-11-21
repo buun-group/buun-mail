@@ -60,6 +60,9 @@ pub fn run() {
     // Phones update through their app stores.
     #[cfg(desktop)]
     let builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
+    // A phone comes back from signing in through the app's own link.
+    #[cfg(mobile)]
+    let builder = builder.plugin(tauri_plugin_deep_link::init());
     builder
         .setup(start)
         .invoke_handler(tauri::generate_handler![
@@ -196,6 +199,15 @@ fn catch_up(mailbox: Arc<Mailbox>, app: tauri::AppHandle) {
 
 /// Opens the mailbox and starts every service, before the window shows.
 fn start(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
+    #[cfg(mobile)]
+    {
+        use tauri_plugin_deep_link::DeepLinkExt as _;
+        app.deep_link().on_open_url(|event| {
+            for link in event.urls() {
+                dissolve::deliver_app_link(link.as_str());
+            }
+        });
+    }
     let paths = AppPaths::resolve(app.handle())?;
     // A restore staged last time goes in before anything opens the folders it replaces.
     let backup_paths = backup::BackupPaths { config: paths.config.clone(), store: paths.store.clone() };
