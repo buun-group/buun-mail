@@ -14,9 +14,35 @@ val tauriProperties = Properties().apply {
     }
 }
 
+// Release signing: gen/android/keystore.properties (gitignored) on a laptop, or the ANDROID_KEYSTORE_PATH,
+// ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS and ANDROID_KEY_PASSWORD environment variables on CI. Without either,
+// the release build is unsigned. docs/mobile.md has the steps.
+val keystoreProperties = Properties().apply {
+    val propFile = rootProject.file("keystore.properties")
+    if (propFile.exists()) {
+        propFile.inputStream().use { load(it) }
+    }
+}
+
+fun signingValue(property: String, variable: String): String? =
+    keystoreProperties.getProperty(property)?.takeIf { it.isNotBlank() }
+        ?: System.getenv(variable)?.takeIf { it.isNotBlank() }
+
+val releaseStoreFile = signingValue("storeFile", "ANDROID_KEYSTORE_PATH")
+
 android {
     compileSdk = 37
     namespace = "com.buungroup.mail"
+    signingConfigs {
+        if (releaseStoreFile != null) {
+            create("release") {
+                storeFile = rootProject.file(releaseStoreFile)
+                storePassword = signingValue("storePassword", "ANDROID_KEYSTORE_PASSWORD")
+                keyAlias = signingValue("keyAlias", "ANDROID_KEY_ALIAS")
+                keyPassword = signingValue("keyPassword", "ANDROID_KEY_PASSWORD")
+            }
+        }
+    }
     defaultConfig {
         manifestPlaceholders["usesCleartextTraffic"] = "false"
         applicationId = "com.buungroup.mail"
@@ -39,6 +65,7 @@ android {
             }
         }
         getByName("release") {
+            signingConfigs.findByName("release")?.let { signingConfig = it }
             optimization {
                enable = true
             }
