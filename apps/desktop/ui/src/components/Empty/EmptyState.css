@@ -11,7 +11,7 @@
 .empty-state[data-compact='true'] {
   padding: var(--space-8) var(--space-4) var(--space-6);
 }
-/* A round pad the letter lands on, with a faint dashed track under it. */
+/* A round pad the letter lands on. */
 .empty-state__art {
   position: relative;
   display: grid;
@@ -26,13 +26,6 @@
 .empty-state[data-compact='true'] .empty-state__art {
   width: 3.5rem;
   height: 3.5rem;
-}
-.empty-state__art::after {
-  position: absolute;
-  bottom: -0.625rem;
-  width: 60%;
-  border-bottom: 1px dashed var(--alpha-12);
-  content: '';
 }
 .empty-state__words {
   max-width: 28rem;
