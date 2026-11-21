@@ -52,9 +52,11 @@ Settings, General can check that page once a day and say when a newer version is
 | Windows | `Buun.Mail_<version>_x64-setup.exe` or `.msi` | Unsigned for now: SmartScreen asks, choose More info, then Run anyway |
 | macOS, Apple silicon | `Buun.Mail_<version>_aarch64.dmg` | Unsigned for now: right-click the app, then Open |
 | macOS, Intel | `Buun.Mail_<version>_x64.dmg` | As above |
+| Android | Google Play testing, or `Buun.Mail_<version>_android.apk` | Ask to join the testers; or allow installs from your browser and open the APK |
+| iPhone, iPad | TestFlight | Ask for a TestFlight invite, then install TestFlight and accept it |
 
-[packaging/README.md](packaging/README.md) has more on which file to pick, and [CHANGELOG.md](CHANGELOG.md) what
-each release changed.
+[packaging/README.md](packaging/README.md) has more on which file to pick, [docs/mobile.md](docs/mobile.md) how the
+phone apps are built and published, and [CHANGELOG.md](CHANGELOG.md) what each release changed.
 
 ## Features
 
@@ -232,6 +234,8 @@ pnpm build      # this machine's installers, into target/release/bundle/
 | `pnpm dev:ui` | The UI alone in a browser on a preview mailbox, no Rust build; the fastest way to tune the look |
 | `pnpm check` | `cargo fmt --check`, oxlint, clippy (pedantic, warnings fail), `tsc`, vitest, `cargo test`; CI runs the same |
 | `pnpm build` | This machine's installers, into `target/release/bundle/` |
+| `pnpm dev:android`, `pnpm build:android` | The Android app on a phone or emulator, or its release `.aab` and `.apk` ([docs/mobile.md](docs/mobile.md)) |
+| `pnpm dev:ios`, `pnpm build:ios` | The same for iOS, on a Mac with Xcode 26 |
 | `pnpm dev:brand` | The brand preview on http://localhost:28610 |
 | `pnpm brand:build` | Rebuilds the brand kit from the mark's geometry |
 
@@ -246,6 +250,7 @@ pnpm build      # this machine's installers, into target/release/bundle/
 | [`apps/desktop`](apps/desktop/README.md) | The Tauri app: Rust shell in `src-tauri`, React UI in `ui` |
 | [`packages/brand`](packages/brand/README.md) | The brand kit: mark, lockups, icons, social card, motion |
 | [`packaging`](packaging/README.md) | Arch PKGBUILD, the Linux desktop entry, which installer to pick |
+| [`docs/mobile.md`](docs/mobile.md) | The Android and iOS apps: building them, the store pipeline, its secrets and one-time set-up |
 | [`config/workspaces.example.toml`](config/workspaces.example.toml) | The routing file a fresh install starts from, with comments |
 | `.github/assets/readme` | The pictures on this page; `how-it-works.diagram` is the diagram's [Plotwork](https://plotwork.dev) source |
 
@@ -267,6 +272,10 @@ Betas are built the same way from `dev` but never committed: the version is stam
 ever holds stable versions. They skip `.rpm` and `.msi`, which do not accept a pre-release version, are never marked as
 the latest release, and are never offered by the app's update check. Someone running a beta is told once the stable
 version ships. To build an existing release again, run Actions, Release, Run workflow with its tag.
+
+Once a release is out, the phone apps follow when something they are built from changed: a beta goes to Google Play
+internal and closed testing and to TestFlight, a stable release to Play open testing and TestFlight, and the release
+carries a signed Android APK. [docs/mobile.md](docs/mobile.md) has the pipeline and its one-time set-up.
 
 A watchdog workflow re-runs a failed CI, Beta or Release run on `main` or `dev` once, opens an issue labelled
 `ci-failure` when it fails again, and closes that issue when the workflow passes.
