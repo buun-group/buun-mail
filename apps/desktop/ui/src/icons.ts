@@ -86,6 +86,7 @@ export {
   PiImageLight as IconImage,
   PiArrowCounterClockwiseLight as IconReset,
   PiSidebarSimpleLight as IconSidebar,
+  PiListLight as IconMenu,
   PiBellLight as IconBell,
   PiTagLight as IconTag,
   PiPlusLight as IconAdd,

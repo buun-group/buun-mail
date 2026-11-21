@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/mobile-schema.json",
   "identifier": "mobile",
-  "description": "The phone app: core events, picking files to import and where to save an export or an attachment, notifications, and opening the web and mailto links a person clicks in a message. A phone draws its own title bar, so there are no window controls.",
+  "description": "The phone app: core events, picking files to import and where to save an export or an attachment, notifications, leaving the app when Android's back has nothing left to close, and opening the web and mailto links a person clicks in a message. A phone draws its own title bar, so there are no window controls.",
   "platforms": [
     "android",
     "iOS"
@@ -11,6 +11,7 @@
   ],
   "permissions": [
     "core:default",
+    "core:app:allow-exit",
     "notification:default",
     "dialog:allow-open",
     "dialog:allow-save",

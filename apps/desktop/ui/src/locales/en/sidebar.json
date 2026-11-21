@@ -3,7 +3,9 @@
     "openSidebar": "Keep the sidebar open",
     "collapseSidebar": "Collapse the sidebar",
     "themeTip": "{{theme}} theme",
-    "themeLabel": "Theme: {{theme}}. Switch to {{next}}"
+    "themeLabel": "Theme: {{theme}}. Switch to {{next}}",
+    "openMenu": "Open the menu",
+    "closeMenu": "Close the menu"
   },
   "window": {
     "minimise": "Minimise",

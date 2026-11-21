@@ -3,6 +3,8 @@
  * losing focus, or a dialog opening or closing. Without this a tip whose button a dialog covered never hears the
  * pointer leave, and stays up after the dialog closes.
  */
+import { isPhone } from '../api/window'
+
 const hiders = new Set<() => void>()
 let watching = false
 
@@ -38,10 +40,10 @@ export function onHideTips(hide: () => void): () => void {
 
 /**
  * True when a tip may show for `element` now: it is still on the page, no open dialog covers it, and for focus, the
- * keyboard put it there.
+ * keyboard put it there. A phone has no hover: the mouse events a tap fakes never show a tip there.
  */
 export function tipAllowed(element: Element, by: 'hover' | 'focus'): boolean {
-  if (!element.isConnected) return false
+  if (!element.isConnected || (by === 'hover' && isPhone)) return false
   if (by === 'focus' && (document.documentElement.dataset['input'] !== 'keyboard' || !element.matches(':focus-visible'))) return false
   const dialogs = [...document.querySelectorAll('dialog[open]')]
   const top = dialogs.at(-1)

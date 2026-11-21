@@ -5,13 +5,15 @@ import { useTranslation } from 'react-i18next'
 
 import { DissolveBar } from './components/Dissolve/DissolveBar'
 import { useNarrowWindow } from './hooks/useNarrowWindow'
+import { usePhoneBack } from './hooks/usePhoneBack'
+import { isPhone } from './api/window'
 import { setLocalOffset } from './api/client'
 import { onReminderDue } from './api/events'
 import { notify } from './api/notify'
 import { toast } from './lib/feedback'
 import { useWorkspaceDeletion } from './hooks/useWorkspaceDeletion'
 import { useUpdateCheck } from './hooks/useUpdateCheck'
-import { IconSnooze } from './icons'
+import { IconCompose, IconSnooze } from './icons'
 import { Overview } from './components/Dissolve/Overview'
 import { DISSOLVE_WORKSPACE } from './lib/dissolve'
 
@@ -47,10 +49,11 @@ import { useShortcut } from './hooks/useShortcut'
 import { useWorkspaceLooks } from './hooks/useWorkspaceLooks'
 
 import './styles/app.css'
+import './styles/phone.css'
 
 /** Three panes (workspaces, the open folder, the open message) and settings over them. */
 export function App(): ReactNode {
-  const { t } = useTranslation(['mail', 'common'])
+  const { t } = useTranslation(['mail', 'common', 'sidebar'])
   const preferences = usePreferences()
   // Read once at start: where the person left off, when they want that.
   const [restore] = useState(() => (preferences.rememberPlace ? readLastPlace() : null))
@@ -143,8 +146,10 @@ export function App(): ReactNode {
     else document.documentElement.dataset['composing'] = compose.minimized ? 'min' : 'true'
   }, [compose.open, compose.minimized])
   // A narrow window folds the sidebar to its rail and opens messages over the list, whatever the settings say; the
-  // sidebar can still be peeked open from the title bar, and folds again once a place is picked.
-  const narrow = useNarrowWindow()
+  // sidebar can still be peeked open from the title bar, and folds again once a place is picked. A phone is always
+  // narrow, and its sidebar is a drawer the menu slides out.
+  const narrowWindow = useNarrowWindow()
+  const narrow = isPhone || narrowWindow
   const [peek, setPeek] = useState(false)
   const sidebarCollapsed = narrow ? !peek : preferences.sidebarCollapsed
   const setSidebarCollapsed = narrow ? (collapsed: boolean) => setPeek(!collapsed) : preferences.setSidebarCollapsed
@@ -156,6 +161,15 @@ export function App(): ReactNode {
     reply: (mode, message) => {
       if (mode === 'forward' ? sending.any : sending.can(message.to)) composeFor(mode, message)
     },
+  })
+
+  usePhoneBack(() => {
+    if (compose.open !== null && !compose.minimized) compose.setMinimized(true)
+    else if (settingsOpen) setSettingsOpen(false)
+    else if (peek) setPeek(false)
+    else if (mailbox.selected !== null) mailbox.close()
+    else return false
+    return true
   })
 
   const openIntegrations = (): void => {
@@ -260,7 +274,7 @@ export function App(): ReactNode {
         onQuery={mailbox.setQuery}
         scope={mailbox.scope}
         onScope={mailbox.setScope}
-        wide={readingPane === 'off'}
+        wide={readingPane === 'off' && !isPhone}
         details={preferences.senderChecks}
         emptyState={workspace?.id === DISSOLVE_WORKSPACE && mailbox.view === null && mailbox.place?.folder === null ? <Overview workspace={workspace} onOpen={mailbox.open} /> : undefined}
         banner={workspace?.id === DISSOLVE_WORKSPACE && mailbox.view === null && mailbox.place !== null ? <DissolveBar key={mailbox.place.folder ?? ''} place={mailbox.place} onOpen={mailbox.open} /> : undefined}
@@ -307,6 +321,12 @@ export function App(): ReactNode {
         onSendersChanged={sending.refresh}
         updates={updates}
       />
+      {isPhone && peek && <button type="button" className="app__scrim" aria-label={t('sidebar:titleBar.closeMenu')} onClick={() => setPeek(false)} />}
+      {isPhone && !peek && mailbox.selected === null && compose.open === null && (
+        <button type="button" className="app__compose" aria-label={t('sidebar:nav.compose')} onClick={() => (sending.any ? compose.start('new', null) : openIntegrations())}>
+          <IconCompose aria-hidden="true" />
+        </button>
+      )}
       <Compose compose={compose} workspaces={mailbox.workspaces} sendable={sending.sendable} />
       <Toasts toasts={notifications.toasts} workspaceName={workspaceName} onOpen={(message) => (notifications.isTest(message.id) ? undefined : mailbox.reveal(message))} onDismiss={notifications.dismissToast} pinned={<UpdatePrompt updates={updates} />} />
       <Confirm request={actions.confirmation} cancelLabel={t('actions.cancel')} onClose={actions.closeConfirmation} />

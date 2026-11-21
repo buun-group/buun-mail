@@ -5,7 +5,8 @@ import { Mark } from '@buun-mail/brand/react'
 
 import { THEME_PREFERENCES } from '../../constants/ui'
 import type { ThemePreference } from '../../constants/ui'
-import { IconSettings, IconSidebar, THEME_GLYPHS } from '../../icons'
+import { isPhone } from '../../api/window'
+import { IconMenu, IconSettings, IconSidebar, THEME_GLYPHS } from '../../icons'
 import { TipButton } from '../Tooltip/TipButton'
 import { WindowControls } from '../WindowControls/WindowControls'
 
@@ -32,7 +33,8 @@ interface TitleBarProps {
 /**
  * The bar along the top of the window: the mark and the sidebar toggle on the left, the app-wide buttons on the
  * right, then the window's own minimise, maximise and close. The whole bar drags the window; double-click maximises.
- * On macOS the native traffic lights sit at its left edge and the mark moves clear of them.
+ * On macOS the native traffic lights sit at its left edge and the mark moves clear of them. On a phone it is the top
+ * bar: the menu that slides the sidebar out, the name, the bell and settings (the theme is in settings there).
  */
 export function TitleBar({ themePreference, onThemePreference, sidebarCollapsed, onSidebarCollapsed, onSettings, bell }: TitleBarProps): ReactNode {
   const { t } = useTranslation(['sidebar', 'common'])
@@ -40,6 +42,28 @@ export function TitleBar({ themePreference, onThemePreference, sidebarCollapsed,
   const upcoming = nextTheme(themePreference)
   const sidebarWords = sidebarCollapsed ? t('titleBar.openSidebar') : t('titleBar.collapseSidebar')
   const theme = t(THEME_NAMES[themePreference])
+
+  if (isPhone) {
+    const menuWords = sidebarCollapsed ? t('titleBar.openMenu') : t('titleBar.closeMenu')
+    return (
+      <header className="title-bar">
+        <button type="button" className="title-bar__button" aria-label={menuWords} aria-expanded={!sidebarCollapsed} onClick={() => onSidebarCollapsed(!sidebarCollapsed)}>
+          <IconMenu aria-hidden="true" />
+        </button>
+        <span className="title-bar__brand">
+          <Mark size={20} />
+          <span>{t('common:appName')}</span>
+        </span>
+        <span className="title-bar__fill" />
+        <span className="title-bar__tools">
+          {bell}
+          <button type="button" className="title-bar__button" aria-label={t('common:settings')} onClick={onSettings}>
+            <IconSettings aria-hidden="true" />
+          </button>
+        </span>
+      </header>
+    )
+  }
 
   return (
     <header className="title-bar" data-tauri-drag-region>

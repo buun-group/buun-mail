@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -19,11 +19,15 @@ const TICK_MS = 1_200
 export function Copyable({ text, kind, className }: { text: string; kind: CopyKind; className?: string }): ReactNode {
   const { t } = useTranslation('mail')
   const [ticked, setTicked] = useState(false)
+  // The tick goes after a moment, and its timer with the word when the word goes first.
+  useEffect(() => {
+    if (!ticked) return undefined
+    const timer = window.setTimeout(() => setTicked(false), TICK_MS)
+    return () => window.clearTimeout(timer)
+  }, [ticked])
   const copy = (): void => {
     void copyWithToast(text).then((copied) => {
-      if (!copied) return
-      setTicked(true)
-      window.setTimeout(() => setTicked(false), TICK_MS)
+      if (copied) setTicked(true)
     })
   }
   const Glyph = ticked ? IconCheck : IconCopy
