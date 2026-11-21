@@ -7,6 +7,11 @@ rust-version.workspace = true
 license.workspace = true
 publish.workspace = true
 
+[lib]
+name = "buun_mail_desktop"
+# A static and a dynamic library as well, for the Android and iOS apps, which load the same code.
+crate-type = ["staticlib", "cdylib", "rlib"]
+
 [[bin]]
 name = "buun-mail"
 path = "src/main.rs"
@@ -32,7 +37,6 @@ tauri.workspace = true
 tauri-plugin-dialog.workspace = true
 tauri-plugin-notification.workspace = true
 tauri-plugin-opener.workspace = true
-tauri-plugin-updater.workspace = true
 thiserror.workspace = true
 tiny_http.workspace = true
 toml.workspace = true
@@ -40,6 +44,10 @@ toml_edit.workspace = true
 tungstenite.workspace = true
 ureq.workspace = true
 webpki-roots.workspace = true
+
+# Phones update through their app stores, so the updater is built for the desktop only.
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+tauri-plugin-updater.workspace = true
 
 [lints]
 workspace = true

@@ -64,6 +64,7 @@ pub fn updates_in_place() -> bool {
 
 /// Where a release's updater manifest lives: the `latest.json` the release workflow attaches to every release.
 #[must_use]
+#[cfg_attr(mobile, allow(dead_code, reason = "phones update through their app stores"))]
 pub fn manifest_url(version: &str) -> String {
     download_url(&format!("v{version}"), "latest.json")
 }
@@ -279,6 +280,7 @@ fn asset_name(version: &str, beta: bool) -> Option<String> {
 /// # Errors
 ///
 /// A sentence for the person when the version has no installer here, or the download or the file fails.
+#[cfg_attr(mobile, allow(dead_code, reason = "phones update through their app stores"))]
 pub fn download(version: &str, folder: &Path) -> Result<(PathBuf, bool), String> {
     let parsed = Version::parse(version).ok_or_else(|| format!("`{version}` is not a version."))?;
     let asset = asset_name(version, parsed.is_beta()).ok_or_else(|| "Buun Mail has no installer for this system.".to_owned())?;

@@ -1,7 +1,12 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "The main window: core events, drawing its own title bar, picking files to import and where to save an export or an attachment, desktop notifications, and opening links in the browser: the Buun Group product sites, and the web and mailto links a person clicks in a message.",
+  "description": "The desktop window: core events, drawing its own title bar, picking files to import and where to save an export or an attachment, desktop notifications, and opening links in the browser: the Buun Group product sites, and the web and mailto links a person clicks in a message.",
+  "platforms": [
+    "linux",
+    "macOS",
+    "windows"
+  ],
   "windows": [
     "main"
   ],

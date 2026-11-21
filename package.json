@@ -9,6 +9,10 @@
   },
   "scripts": {
     "dev": "node tools/with-rustup.mjs tauri dev --config apps/desktop/src-tauri/tauri.conf.json",
+    "dev:android": "node tools/with-rustup.mjs tauri android dev --config apps/desktop/src-tauri/tauri.conf.json",
+    "build:android": "node tools/with-rustup.mjs tauri android build --config apps/desktop/src-tauri/tauri.conf.json",
+    "dev:ios": "node tools/with-rustup.mjs tauri ios dev --config apps/desktop/src-tauri/tauri.conf.json",
+    "build:ios": "node tools/with-rustup.mjs tauri ios build --config apps/desktop/src-tauri/tauri.conf.json",
     "dev:ui": "pnpm --filter @buun-mail/ui dev",
     "build": "node tools/with-rustup.mjs tauri build --config apps/desktop/src-tauri/tauri.conf.json",
     "lint": "oxlint --deny-warnings && node tools/with-rustup.mjs cargo clippy --workspace --all-targets -- -D warnings",
