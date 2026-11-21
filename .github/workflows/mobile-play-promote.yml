@@ -1,0 +1,79 @@
+name: Mobile Play promote
+run-name: Play ${{ inputs.from || 'internal' }} to ${{ inputs.to || 'alpha' }}
+
+# Puts the release already on one Google Play track onto another. No build: the same bundle (same version code)
+# moves, so closed testers get exactly what internal testers got. beta.yml uses it to follow every internal release
+# with closed testing (unless SHIP_BETA_CLOSED is "false"), and it runs by hand (Actions, Mobile Play promote, Run
+# workflow), for example to catch closed testing up after a failed run.
+#
+# Idempotent: when the target track already has that release it does nothing. Google reviews closed, open and
+# production releases, so a promoted one reaches testers once that passes.
+#
+# Needs only PLAY_SERVICE_ACCOUNT_JSON: nothing is built or signed. Without it a called run skips with a notice and
+# a hand run fails. Same script as an upload: tools/play-ship.mjs --promote-from.
+
+on:
+  workflow_call:
+    inputs:
+      from:
+        type: string
+        default: internal
+      to:
+        type: string
+        default: alpha
+      skip-without-secrets:
+        type: boolean
+        default: false
+  workflow_dispatch:
+    inputs:
+      from:
+        description: The track whose newest release is copied
+        type: choice
+        options: [internal, alpha, beta]
+        default: internal
+      to:
+        description: The track that receives it
+        type: choice
+        options: [alpha, beta, production]
+        default: alpha
+
+permissions:
+  contents: read
+
+jobs:
+  promote:
+    name: Promote ${{ inputs.from || 'internal' }} to ${{ inputs.to || 'alpha' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # The same group as the Play job in mobile-android.yml: two Play edits at once could overwrite each other.
+    concurrency:
+      group: mobile-play
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      - name: Promote on Play
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          FROM: ${{ inputs.from || 'internal' }}
+          TO: ${{ inputs.to || 'alpha' }}
+          SKIP: ${{ inputs.skip-without-secrets }}
+          HOLD: ${{ vars.PLAY_HOLD_FOR_REVIEW }}
+          NOTES_LANGUAGE: ${{ vars.PLAY_NOTES_LANGUAGE }}
+        run: |
+          if [ -z "$PLAY_SERVICE_ACCOUNT_JSON" ]; then
+            if [ "$SKIP" = "true" ]; then
+              echo "::notice title=Play skipped::PLAY_SERVICE_ACCOUNT_JSON is not set, so nothing is promoted on Google Play."
+              exit 0
+            fi
+            echo "::error title=Google Play::Missing secret PLAY_SERVICE_ACCOUNT_JSON (docs/mobile.md)."
+            exit 1
+          fi
+          args=(--promote-from "$FROM" --track "$TO")
+          [ "$HOLD" = "true" ] && args+=(--hold-for-review)
+          [ -n "$NOTES_LANGUAGE" ] && args+=(--notes-language "$NOTES_LANGUAGE")
+          node tools/play-ship.mjs "${args[@]}"
