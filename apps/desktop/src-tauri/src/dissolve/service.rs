@@ -288,23 +288,26 @@ impl DissolveService {
             server.trim_end_matches('/').clone_into(&mut saved.server);
         }
         let metadata = oauth::discover(saved.server()).map_err(|error| error.to_string())?;
-        if saved.client_id.is_empty() {
+        // A client registered for the other way back (a computer's settings restored on a phone) cannot come back here.
+        let registered_for = if saved.client_redirect.is_empty() { oauth::REDIRECT } else { saved.client_redirect.as_str() };
+        if saved.client_id.is_empty() || registered_for != oauth::REGISTERED_REDIRECT {
             saved.client_id = oauth::register(&metadata).map_err(|error| error.to_string())?;
+            oauth::REGISTERED_REDIRECT.clone_into(&mut saved.client_redirect);
             self.save(&saved).map_err(|error| error.to_string())?;
         }
-        let loopback = oauth::Loopback::open().map_err(|error| error.to_string())?;
+        let way_back = oauth::Return::open().map_err(|error| error.to_string())?;
         let pair = oauth::pkce().map_err(|error| error.to_string())?;
         let state = oauth::random(24).map_err(|error| error.to_string())?;
         (self.0.open_browser)(&oauth::authorize_url(
             &metadata,
             &saved.client_id,
-            &loopback.redirect,
+            way_back.redirect(),
             &state,
             &pair.challenge,
             &oauth::scopes(saved.identities),
         ))?;
-        let code = loopback.wait(&state, &metadata.issuer, SIGN_IN_WAIT).map_err(|error| error.to_string())?;
-        let tokens = oauth::exchange(&metadata, &saved.client_id, &code, &loopback.redirect, &pair.verifier, unix_now()).map_err(|error| error.to_string())?;
+        let code = way_back.wait(&state, &metadata.issuer, SIGN_IN_WAIT).map_err(|error| error.to_string())?;
+        let tokens = oauth::exchange(&metadata, &saved.client_id, &code, way_back.redirect(), &pair.verifier, unix_now()).map_err(|error| error.to_string())?;
         let me = Api::new(saved.server(), &tokens.access).me().map_err(|error| error.to_string())?;
         saved.account = Some(Account {
             email: me.email.clone(),

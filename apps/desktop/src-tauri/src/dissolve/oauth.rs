@@ -1,7 +1,10 @@
 //! OAuth 2.1 for an installed app (RFC 8252): the server's metadata (RFC 8414), registration as a public client
-//! when no client id is configured (RFC 7591), PKCE with S256, and a one-shot listener on 127.0.0.1 that catches the
-//! browser's redirect. Tokens are only ever handled here and in the Rust side, never by the window.
+//! when no client id is configured (RFC 7591), PKCE with S256, and a way back from the browser: on a computer a
+//! one-shot listener on 127.0.0.1 (RFC 8252 7.3), on a phone the app's own link scheme (RFC 8252 7.1), which the
+//! phone hands to the app. Tokens are only ever handled here and in the Rust side, never by the window.
 
+use std::sync::Mutex;
+use std::sync::mpsc::{Receiver, Sender, channel};
 use std::time::{Duration, Instant};
 
 use base64::Engine as _;
@@ -25,8 +28,16 @@ pub fn scopes(identities: bool) -> String {
     if identities { format!("{SCOPES} {IDENTITY_SCOPES}") } else { SCOPES.to_owned() }
 }
 
-/// The redirect registered for a dynamically registered client. Any port on 127.0.0.1 matches it (RFC 8252 7.3).
+/// The redirect registered for a dynamically registered client on a computer. Any port on 127.0.0.1 matches it
+/// (RFC 8252 7.3).
 pub const REDIRECT: &str = "http://127.0.0.1/callback";
+
+/// The redirect a phone registers: the app's private-use scheme, its reverse domain name (RFC 8252 7.1). The phone
+/// opens the app with it; `tauri.android.conf.json` and `tauri.ios.conf.json` claim the scheme.
+pub const APP_LINK: &str = "com.buungroup.mail:/oauth/callback";
+
+/// The redirect this build registers its client with.
+pub const REGISTERED_REDIRECT: &str = if cfg!(mobile) { APP_LINK } else { REDIRECT };
 
 /// How long the browser has to come back before connecting gives up.
 pub const SIGN_IN_WAIT: Duration = Duration::from_secs(300);
@@ -130,7 +141,7 @@ pub fn discover(base: &str) -> Result<Metadata, OAuthError> {
     answer(agent().get(format!("{}/.well-known/oauth-authorization-server", base.trim_end_matches('/'))).call())
 }
 
-/// Registers this app as a public client with the loopback redirect, and returns its client id.
+/// Registers this app as a public client with [`REGISTERED_REDIRECT`], and returns its client id.
 ///
 /// # Errors
 ///
@@ -141,7 +152,7 @@ pub fn register(metadata: &Metadata) -> Result<String, OAuthError> {
     };
     let body = json!({
         "client_name": "Buun Mail",
-        "redirect_uris": [REDIRECT],
+        "redirect_uris": [REGISTERED_REDIRECT],
         "token_endpoint_auth_method": "none",
         "grant_types": ["authorization_code", "refresh_token"],
     });
@@ -228,6 +239,24 @@ pub fn authorize_url(metadata: &Metadata, client_id: &str, redirect: &str, state
     )
 }
 
+/// The code in a redirect's query. Checks the state first, so a forged answer is never read, then the issuer when
+/// the server names one.
+///
+/// # Errors
+///
+/// [`OAuthError::Declined`], [`OAuthError::Mismatch`], or the server's refusal.
+pub fn read_answer(query: &str, state: &str, issuer: &str) -> Result<String, OAuthError> {
+    let field = |name: &str| query.split('&').find_map(|pair| pair.split_once('=').filter(|(key, _)| *key == name).map(|(_, value)| decode(value)));
+    let other_issuer = field("iss").is_some_and(|said| said.trim_end_matches('/') != issuer.trim_end_matches('/'));
+    if field("state").as_deref() != Some(state) || other_issuer {
+        Err(OAuthError::Mismatch)
+    } else if let Some(error) = field("error") {
+        Err(if error == "access_denied" { OAuthError::Declined } else { OAuthError::Refused(field("error_description").unwrap_or(error)) })
+    } else {
+        field("code").filter(|code| !code.is_empty()).ok_or_else(|| OAuthError::Refused("the answer carried no code".to_owned()))
+    }
+}
+
 /// A one-shot listener on 127.0.0.1, on a port the system picks, for the browser's redirect.
 pub struct Loopback {
     server: tiny_http::Server,
@@ -269,15 +298,7 @@ impl Loopback {
                 let _ = request.respond(tiny_http::Response::empty(404));
                 continue;
             };
-            let field = |name: &str| query.split('&').find_map(|pair| pair.split_once('=').filter(|(key, _)| *key == name).map(|(_, value)| decode(value)));
-            let other_issuer = field("iss").is_some_and(|said| said.trim_end_matches('/') != issuer.trim_end_matches('/'));
-            let outcome = if field("state").as_deref() != Some(state) || other_issuer {
-                Err(OAuthError::Mismatch)
-            } else if let Some(error) = field("error") {
-                Err(if error == "access_denied" { OAuthError::Declined } else { OAuthError::Refused(field("error_description").unwrap_or(error)) })
-            } else {
-                field("code").filter(|code| !code.is_empty()).ok_or_else(|| OAuthError::Refused("the answer carried no code".to_owned()))
-            };
+            let outcome = read_answer(query, state, issuer);
             let words = if outcome.is_ok() { "Connected." } else { "Not connected." };
             let page = tiny_http::Response::from_string(DONE_PAGE.replace("MESSAGE", words))
                 .with_header(tiny_http::Header::from_bytes("Content-Type", "text/html; charset=utf-8").map_err(|()| OAuthError::Mismatch)?);
@@ -285,6 +306,86 @@ impl Loopback {
             return outcome;
         }
     }
+}
+
+/// The way back from the browser this build waits on: the listener on a computer, the app link on a phone.
+pub enum Return {
+    /// A computer's one-shot listener on 127.0.0.1.
+    Loopback(Loopback),
+    /// A phone's app link.
+    AppLink(AppLink),
+}
+
+impl Return {
+    /// Starts waiting the way this build does.
+    ///
+    /// # Errors
+    ///
+    /// As for [`Loopback::open`].
+    pub fn open() -> Result<Self, OAuthError> {
+        if cfg!(mobile) { Ok(Self::AppLink(AppLink::open())) } else { Loopback::open().map(Self::Loopback) }
+    }
+
+    /// The redirect to send with the request.
+    #[must_use]
+    pub fn redirect(&self) -> &str {
+        match self {
+            Self::Loopback(loopback) => &loopback.redirect,
+            Self::AppLink(_) => APP_LINK,
+        }
+    }
+
+    /// Waits for the answer and returns its code.
+    ///
+    /// # Errors
+    ///
+    /// As for [`Loopback::wait`].
+    pub fn wait(&self, state: &str, issuer: &str, within: Duration) -> Result<String, OAuthError> {
+        match self {
+            Self::Loopback(loopback) => loopback.wait(state, issuer, within),
+            Self::AppLink(link) => link.wait(state, issuer, within),
+        }
+    }
+}
+
+/// Where the next app link goes: the sign-in waiting for one, if any.
+static WAITING: Mutex<Option<Sender<String>>> = Mutex::new(None);
+
+/// A phone's way back: the browser opens [`APP_LINK`], the phone hands it to the app, and [`deliver`] passes it on.
+pub struct AppLink {
+    links: Receiver<String>,
+}
+
+impl AppLink {
+    /// Starts waiting. A sign-in started again replaces the one before it.
+    #[must_use]
+    pub fn open() -> Self {
+        let (sender, links) = channel();
+        if let Ok(mut waiting) = WAITING.lock() {
+            *waiting = Some(sender);
+        }
+        Self { links }
+    }
+
+    /// Waits for the link and returns its code, checked as [`read_answer`] does.
+    ///
+    /// # Errors
+    ///
+    /// [`OAuthError::TimedOut`], or as for [`read_answer`].
+    pub fn wait(&self, state: &str, issuer: &str, within: Duration) -> Result<String, OAuthError> {
+        let link = self.links.recv_timeout(within).map_err(|_| OAuthError::TimedOut)?;
+        let query = link.strip_prefix(APP_LINK).map_or("", |rest| rest.trim_start_matches('?'));
+        read_answer(query, state, issuer)
+    }
+}
+
+/// Hands a link the phone opened the app with to the sign-in waiting for it. True when it was a sign-in answer.
+#[cfg_attr(desktop, allow(dead_code, reason = "a computer signs in through the loopback listener"))]
+pub fn deliver(link: &str) -> bool {
+    if !link.starts_with(APP_LINK) {
+        return false;
+    }
+    WAITING.lock().ok().and_then(|mut waiting| waiting.take()).is_some_and(|sender| sender.send(link.to_owned()).is_ok())
 }
 
 fn tokens_of(answer: TokenAnswer, now: i64, previous_refresh: Option<&str>) -> Result<Tokens, OAuthError> {
@@ -350,5 +451,24 @@ mod unit {
                 .contains("messages%3Awrite%20identities%3Aread%20identities%3Awrite&")
         );
         assert_eq!(decode("a%20b+c%3A"), "a b c:");
+    }
+
+    #[test]
+    fn a_phone_signs_in_through_its_app_link_and_ignores_other_links() {
+        let link = AppLink::open();
+        assert!(!deliver("com.buungroup.mail:/somewhere-else"), "only the sign-in link is taken");
+        assert!(deliver(&format!("{APP_LINK}?code=c%2B1&state=s1&iss=https%3A%2F%2Fapi.example%2F")));
+        assert_eq!(link.wait("s1", "https://api.example", Duration::from_secs(1)), Ok("c+1".to_owned()));
+        assert!(!deliver(&format!("{APP_LINK}?code=again&state=s1")), "a link with no sign-in waiting goes nowhere");
+
+        let declined = AppLink::open();
+        assert!(deliver(&format!("{APP_LINK}?error=access_denied&state=s2")));
+        assert_eq!(declined.wait("s2", "https://api.example", Duration::from_secs(1)), Err(OAuthError::Declined));
+
+        let forged = AppLink::open();
+        assert!(deliver(&format!("{APP_LINK}?code=x&state=other")));
+        assert_eq!(forged.wait("s3", "https://api.example", Duration::from_secs(1)), Err(OAuthError::Mismatch));
+
+        assert_eq!(AppLink::open().wait("s4", "https://api.example", Duration::from_millis(10)), Err(OAuthError::TimedOut));
     }
 }
