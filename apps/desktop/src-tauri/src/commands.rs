@@ -164,7 +164,16 @@ pub async fn check_for_update(early: bool) -> Result<crate::updates::UpdateDto, 
     tauri::async_runtime::spawn_blocking(move || crate::updates::check(early)).await.map_err(|error| error.to_string())?
 }
 
+/// Phones update through their app stores, so there is nothing to install from here.
+#[cfg(mobile)]
+#[tauri::command]
+#[allow(clippy::unused_async, reason = "the command has the desktop one's shape, which awaits")]
+pub async fn install_update(_version: String) -> Result<crate::updates::DownloadedDto, String> {
+    Err("Updates for this phone come from its app store.".to_owned())
+}
+
 /// Downloads a release's installer for this system into Downloads and opens it (an `.AppImage` is shown in its folder).
+#[cfg(desktop)]
 #[tauri::command]
 pub async fn install_update(app: AppHandle, version: String) -> Result<crate::updates::DownloadedDto, String> {
     use tauri::Manager as _;
@@ -193,12 +202,14 @@ pub async fn install_update(app: AppHandle, version: String) -> Result<crate::up
 }
 
 /// Why updating in place did not happen: the release has nothing to update from (fall back), or it went wrong.
+#[cfg(desktop)]
 enum InPlace {
     Unavailable,
     Failed(String),
 }
 
 /// Downloads and installs `version` over this copy through the updater, which verifies its signature first.
+#[cfg(desktop)]
 async fn install_in_place(app: &AppHandle, version: &str) -> Result<(), InPlace> {
     use tauri_plugin_updater::UpdaterExt as _;
     let manifest = crate::updates::manifest_url(version).parse().map_err(|_| InPlace::Unavailable)?;

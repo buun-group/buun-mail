@@ -54,12 +54,13 @@ pub use paths::AppPaths;
 /// Never on its own: a failure to start the window is reported by Tauri and ends the process.
 #[allow(clippy::expect_used, reason = "nothing can run if the window fails to start, and Tauri has already said why")]
 #[allow(clippy::too_many_lines, reason = "the command list is one registration, a line a command")]
+#[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
-        .plugin(tauri_plugin_opener::init())
-        .plugin(tauri_plugin_dialog::init())
-        .plugin(tauri_plugin_notification::init())
-        .plugin(tauri_plugin_updater::Builder::new().build())
+    let builder = tauri::Builder::default().plugin(tauri_plugin_opener::init()).plugin(tauri_plugin_dialog::init()).plugin(tauri_plugin_notification::init());
+    // Phones update through their app stores.
+    #[cfg(desktop)]
+    let builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
+    builder
         .setup(start)
         .invoke_handler(tauri::generate_handler![
             commands::list_workspaces,

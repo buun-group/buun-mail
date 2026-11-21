@@ -4,7 +4,8 @@
  * 1. Outlines "Buun Mail" from Geist SemiBold into src/generated/wordmark.ts, so no logo needs the font.
  * 2. Writes the SVG files into src/svg/ from the geometry: marks, lockups, favicon, tiles, the OG card.
  * 3. Rasterises favicons, app icons, the maskable icon, email logos and the OG card into assets/ with resvg, and packs
- *    favicon.ico. app-icon-1024.png feeds `tauri icon`, which writes the desktop set for every platform.
+ *    favicon.ico. app-icon-1024.png feeds `tauri icon`, which writes the desktop set for every platform;
+ *    mobile-icon-1024.png, full bleed with no corners (the phone rounds or masks it), feeds the Android and iOS sets.
  *
  * Everything it writes is committed. Run it again after changing the geometry, the colours or the font.
  */
@@ -116,6 +117,7 @@ write(path.join(assetDir, 'icon-192.png'), png(tileSvg(192), 192))
 write(path.join(assetDir, 'icon-512.png'), png(tileSvg(512), 512))
 write(path.join(assetDir, 'maskable-512.png'), png(tileSvg(512, { maskable: true }), 512))
 write(path.join(assetDir, 'app-icon-1024.png'), png(tileSvg(1024), 1024))
+write(path.join(assetDir, 'mobile-icon-1024.png'), png(tileSvg(1024, { maskable: true }), 1024))
 write(path.join(assetDir, 'og-default.png'), png(og, OG.width))
 for (const [name, tone] of [['email-logo-dark', 'on-dark'], ['email-logo-light', 'on-light']] as const) {
   const svg = lockupSvg('horizontal', tone, 32)
