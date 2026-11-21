@@ -49,6 +49,10 @@ webpki-roots.workspace = true
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-updater.workspace = true
 
+# A phone signs in to dissolve.email through the app's own link, which the phone opens the app with.
+[target.'cfg(any(target_os = "android", target_os = "ios"))'.dependencies]
+tauri-plugin-deep-link.workspace = true
+
 [lints]
 workspace = true
 

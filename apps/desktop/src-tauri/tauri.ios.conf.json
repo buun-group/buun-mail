@@ -10,5 +10,17 @@
   },
   "bundle": {
     "createUpdaterArtifacts": false
+  },
+  "plugins": {
+    "deep-link": {
+      "mobile": [
+        {
+          "scheme": [
+            "com.buungroup.mail"
+          ],
+          "appLink": false
+        }
+      ]
+    }
   }
 }

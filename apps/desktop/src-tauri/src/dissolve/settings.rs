@@ -23,6 +23,8 @@ pub struct DissolveSettings {
     pub server: String,
     /// The OAuth client id: a registered one, or the one this app registered for itself.
     pub client_id: String,
+    /// The redirect the app registered its client with; empty for a computer's loopback one or a configured client.
+    pub client_redirect: String,
     /// The signed-in account, while connected.
     pub account: Option<Account>,
     /// Keep an inbox's mail here after it ends on dissolve.email. Off by default: mail goes when its inbox does.
