@@ -7,6 +7,9 @@ name: Release
 #   1. tags the release and opens it as a draft with the changelog as its notes
 #   2. builds the installers on every platform and attaches them (build.yml)
 #   3. publishes the release once every build has passed; a failed build leaves the draft for a look
+#   4. the phone apps, when something they are built from changed: Android to the Play track PRODUCTION_APP_TRACK
+#      (open testing by default) with its APK attached to the release, and iOS to TestFlight. docs/mobile.md has the
+#      secrets and the switches. A hand run below rebuilds the installers only; the phone workflows run by hand too.
 #
 # Branches: feature branches merge into dev, where every merge with a feat or fix publishes a beta (beta.yml); dev
 # merges into main with a merge commit, which is what this workflow releases.
@@ -94,3 +97,84 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ needs.release-please.outputs.tag }}
         run: gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --title "Buun Mail $TAG" --draft=false --latest
+
+  # The phone apps, once the stable release is out. Each is skipped when its repository variable is "false"
+  # (SHIP_ANDROID, SHIP_IOS), when its secrets are missing, or when nothing the app is built from changed since the
+  # last stable release that shipped it (tools/mobile-impact.mjs against the android-stable and ios-stable tags).
+  mobile-changes:
+    name: Phone apps changed?
+    needs: [release-please, publish]
+    if: needs.publish.result == 'success' && (vars.SHIP_ANDROID != 'false' || vars.SHIP_IOS != 'false')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      android: ${{ steps.android.outputs.impacted }}
+      ios: ${{ steps.ios.outputs.impacted }}
+    env:
+      TAG: ${{ needs.release-please.outputs.tag }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Android, since android-stable
+        id: android
+        run: node tools/mobile-impact.mjs android --base android-stable --head "$TAG"
+      - name: iOS, since ios-stable
+        id: ios
+        run: node tools/mobile-impact.mjs ios --base ios-stable --head "$TAG"
+
+  # Open testing (beta) by default; PRODUCTION_APP_TRACK names another track, such as production once Google has
+  # granted production access. The universal APK goes on the release.
+  android:
+    name: Android to Play ${{ vars.PRODUCTION_APP_TRACK || 'beta' }}
+    needs: [release-please, publish, mobile-changes]
+    if: >-
+      always() && needs.publish.result == 'success' && vars.SHIP_ANDROID != 'false'
+      && (needs.mobile-changes.outputs.android == 'true' || needs.mobile-changes.result == 'failure')
+    uses: ./.github/workflows/mobile-android.yml
+    secrets: inherit
+    with:
+      tag: ${{ needs.release-please.outputs.tag }}
+      track: ${{ vars.PRODUCTION_APP_TRACK || 'beta' }}
+      skip-without-secrets: true
+
+  ios:
+    name: iOS to TestFlight
+    needs: [release-please, publish, mobile-changes]
+    if: >-
+      always() && needs.publish.result == 'success' && vars.SHIP_IOS != 'false'
+      && (needs.mobile-changes.outputs.ios == 'true' || needs.mobile-changes.result == 'failure')
+    uses: ./.github/workflows/mobile-ios.yml
+    secrets: inherit
+    with:
+      tag: ${{ needs.release-please.outputs.tag }}
+      skip-without-secrets: true
+
+  # What the next stable release is compared with, moved only after a publish that reached the store.
+  mobile-tags:
+    name: Record what the phone apps were built from
+    needs: [release-please, android, ios]
+    if: always() && (needs.android.outputs.published == 'true' || needs.ios.outputs.uploaded == 'true')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Move android-stable and ios-stable
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.release-please.outputs.tag }}
+          ANDROID: ${{ needs.android.outputs.published == 'true' }}
+          IOS: ${{ needs.ios.outputs.uploaded == 'true' }}
+        run: |
+          sha=$(gh api "repos/$GITHUB_REPOSITORY/commits/$TAG" --jq .sha)
+          move() {
+            if gh api "repos/$GITHUB_REPOSITORY/git/refs/tags/$1" > /dev/null 2>&1; then
+              gh api -X PATCH "repos/$GITHUB_REPOSITORY/git/refs/tags/$1" -f sha="$sha" -F force=true > /dev/null || return 1
+            else
+              gh api "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/tags/$1" -f sha="$sha" > /dev/null || return 1
+            fi
+            echo "$1 is now $sha ($TAG)."
+          }
+          # Bookkeeping only: if a tag cannot move, the next release builds that app again, so it must not fail the run.
+          if [ "$ANDROID" = "true" ]; then move android-stable || echo "::warning::Could not move android-stable. The next release builds Android again."; fi
+          if [ "$IOS" = "true" ]; then move ios-stable || echo "::warning::Could not move ios-stable. The next release builds iOS again."; fi
