@@ -1,0 +1,21 @@
+flow "How the gateway fits together" direction=down animate=on desc="Senders deliver to your domains. Cloudflare Email Routing hands each message to the mail gateway, an Email Worker in your account, which stores it in D1 with its envelope recipient and wakes a notifier. The notifier tells Buun Mail over a WebSocket, and the gateway hands the message over and then forgets it."
+
+node senders external "Senders" sub="Any mail server" icon=lucide:send
+
+group cf "Your Cloudflare account" type=account provider=cloudflare {
+  node routing gateway "Email Routing" sub="Catch-all" icon=cloudflare:email-routing
+  node gateway function "Mail gateway" sub="Email Worker" icon=cloudflare:workers
+  node d1 database "D1" sub="Up to 30 days" icon=cloudflare:d1
+  node notifier service "Notifier" sub="Durable Object" icon=cloudflare:durable-objects
+}
+
+group desktop "Your computer" type=client-side {
+  node app client "Buun Mail" sub="Files by recipient" icon=lucide:monitor
+}
+
+senders -> routing : "MX"
+routing -> gateway : "catch-all"
+gateway -> d1 : "stores" role=data
+gateway ..> notifier : "new mail" role=async
+notifier ..> app : "WebSocket" role=async
+gateway -> app : "hands over" role=data

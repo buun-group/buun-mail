@@ -1,0 +1,14 @@
+flow "Shipping an update" direction=down desc="Pull the new code and install it, migrate the database first because migrations only add, then upload a new version that takes no traffic. Check its health URL. If it answers, promote it; if it does not, or a promoted version misbehaves, roll back to the one before."
+
+node pull step "Pull and install" sub="git pull, pnpm install" icon=lucide:git-pull-request
+node migrate step "Migrate" sub="db:migrate" icon=cloudflare:d1
+node upload step "Upload" sub="No traffic yet" icon=cloudflare:workers
+node check decision "Health answers?" sub="/health on its URL"
+node promote terminal "Promote"
+node rollback terminal "Roll back"
+
+pull -> migrate
+migrate -> upload
+upload -> check
+check -> promote : "yes"
+check --> rollback : "no, or later trouble"

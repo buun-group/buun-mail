@@ -1,0 +1,20 @@
+sequence "Mail through a relay" desc="For a domain in a second Cloudflare account, that account's Email Routing hands the message to the relay, which posts it to your gateway with its relay key. A stored message is done. A refusal for good bounces to the sender. A wrong key, a rate limit, a gateway error or no answer tells the sending server to try again later, so no mail is lost."
+
+actor sender external "Sending server"
+actor routing gateway "Email Routing" sub="Second account" icon=cloudflare:email-routing
+actor relay function "Relay" icon=cloudflare:workers
+actor gw function "Gateway" sub="Your account" icon=cloudflare:workers
+
+sender -> routing : "mail to hi@other.example"
+routing -> relay : "catch-all"
+relay -> gw : "POST /v1/relay/messages, relay key"
+
+alt "2xx" {
+  gw --> relay : "stored"
+  relay --> routing : "accepted"
+} else "4xx, such as a domain the mailbox does not own" {
+  gw --> relay : "refused"
+  relay --> sender : "bounce"
+} else "401, 429, 5xx or no answer" {
+  relay --> sender : "try again later"
+}

@@ -1,0 +1,21 @@
+sequence "One message, start to finish" numbered=on desc="A sender delivers to an address on your domain. Email Routing passes it to the gateway with its envelope recipient. The gateway stores it in D1 and has the notifier tell the app. The app lists new mail, downloads the raw message, files it by recipient, then acknowledges it, and the gateway deletes its copy."
+
+actor sender external "Sender"
+actor routing gateway "Email Routing" icon=cloudflare:email-routing
+actor gw function "Gateway" icon=cloudflare:workers
+actor db database "D1" icon=cloudflare:d1
+actor notifier service "Notifier" icon=cloudflare:durable-objects
+actor app client "Buun Mail" icon=lucide:monitor
+
+sender -> routing : "to hi@example.com"
+routing -> gw : "catch-all"
+gw -> db : "store"
+gw ..> notifier : "new mail"
+notifier ..> app : "WebSocket"
+app -> gw : "list"
+gw --> app : "ids"
+app -> gw : "fetch raw"
+gw --> app : ".eml"
+note over app : "Filed by recipient"
+app -> gw : "ack"
+gw -> db : "delete"
