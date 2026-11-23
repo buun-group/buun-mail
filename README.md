@@ -158,8 +158,11 @@ dissolve.email inboxes go through the same router.
 | dissolve.email | Your disposable inboxes, synced after an OAuth sign-in | Settings, Integrations, dissolve.email |
 | Files | `.eml` and `.mbox` imports | Settings, General |
 
-The gateway's source is not published yet; until it is, IMAP and dissolve.email work without it. Several gateways can
-feed one app, and the app can list, add and remove the domains each gateway receives for.
+The gateway is in this repository ([`apps/gateway`](apps/gateway/README.md)), and you deploy it to your own Cloudflare
+account: [Self-hosting the mail gateway](docs/self-hosting.md) walks through it, and it runs on the free plan.
+A domain in a second Cloudflare account reaches it through the relay Worker ([`apps/relay`](apps/relay/README.md)).
+Several gateways can feed one app, and the app can list, add and remove the domains each gateway receives for. IMAP
+and dissolve.email work without a gateway.
 
 ## Workspaces and the routing file
 
@@ -248,6 +251,9 @@ pnpm build      # this machine's installers, into target/release/bundle/
 | [`crates/store`](crates/store/README.md) | The local store: SQLite index, raw `.eml` files, tags, rules, activity log |
 | [`crates/rules`](crates/rules/README.md) | Pure rules: when mail matches, tag, move, mark read or keep quiet |
 | [`apps/desktop`](apps/desktop/README.md) | The Tauri app: Rust shell in `src-tauri`, React UI in `ui` |
+| [`apps/gateway`](apps/gateway/README.md) | The mail gateway: a Cloudflare Email Worker that holds your domains' mail until the app collects it |
+| [`apps/relay`](apps/relay/README.md) | The relay: an Email Worker that hands a domain's mail from a second Cloudflare account to the gateway |
+| [`docs/self-hosting.md`](docs/self-hosting.md) | Deploying the gateway and the relay to your own Cloudflare account |
 | [`packages/brand`](packages/brand/README.md) | The brand kit: mark, lockups, icons, social card, motion |
 | [`packaging`](packaging/README.md) | Arch PKGBUILD, the Linux desktop entry, which installer to pick |
 | [`docs/mobile.md`](docs/mobile.md) | The Android and iOS apps: building them, the store pipeline, its secrets and one-time set-up |

@@ -20,6 +20,10 @@ This repository follows the [Buun Group coding standards](./.standards/docs/stan
   calling a mailbox method, never SQL or file access of its own. Tool names are a contract: never rename one.
 - Rules are JSON (`crates/rules`), the same shape for the UI and for agents. A rule's fields are `name`, `when` and
   `actions`.
+- `apps/gateway` and `apps/relay` are the Cloudflare Workers people deploy to their own account
+  ([docs/self-hosting.md](docs/self-hosting.md)). The gateway's `/v1` API is the contract with
+  `src-tauri/src/sync/gateway.rs` and `sync/push.rs`: change both together, and never break a shipped app. A schema
+  change is a new file in `apps/gateway/migrations`, never an edit to an old one.
 - `packages/brand` is the only place the mark is drawn. The app imports `Mark`, `Splash` and the motion CSS from it; the
   desktop icons are generated from its `app-icon-1024.png` with `tauri icon`.
 

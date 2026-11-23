@@ -1,0 +1,10 @@
+# Local secrets for `pnpm --filter @buun-mail/gateway dev`. Copy to .dev.vars (never committed).
+#
+# CLOUDFLARE_API_TOKEN: a token with Zone Read and Email Routing Rules Edit on the account's zones. Without it the
+#   domain routes answer that the gateway is not configured; mail still flows.
+# CLOUDFLARE_ACCOUNT_ID: the account whose zones a mailbox may claim.
+# CLOUDFLARE_WRITES: leave unset so local development only reads Cloudflare. Set to `on` to let it change routing for
+#   real, which points that domain's live mail at a Worker name that may not be deployed.
+CLOUDFLARE_API_TOKEN=
+CLOUDFLARE_ACCOUNT_ID=
+# CLOUDFLARE_WRITES=on

@@ -223,3 +223,23 @@ fn answer(result: Result<ureq::http::Response<ureq::Body>, ureq::Error>) -> Resu
 fn protocol(error: ureq::Error) -> GatewayError {
     GatewayError::Protocol(error.to_string())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::Refusal;
+
+    /// The gateway in `apps/gateway` answers every refusal with this envelope; only `message` is read here.
+    const ENVELOPE: &str = r#"{"error":true,"errorCode":"conflict","message":"That domain already belongs to a mailbox.","requestId":"8f00aa11bb22cc33-SYD"}"#;
+
+    /// The envelope gateways sent before it gained `errorCode` and `requestId`, which deployed gateways may still send.
+    const OLDER: &str = r#"{"error":"refused","message":"That domain already belongs to a mailbox."}"#;
+
+    #[test]
+    fn reads_the_words_of_both_refusal_shapes() -> Result<(), serde_json::Error> {
+        for body in [ENVELOPE, OLDER] {
+            let refusal: Refusal = serde_json::from_str(body)?;
+            assert_eq!(refusal.message, "That domain already belongs to a mailbox.");
+        }
+        Ok(())
+    }
+}

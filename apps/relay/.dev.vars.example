@@ -1,0 +1,5 @@
+# Local secrets for `pnpm --filter @buun-mail/relay dev`. Copy to .dev.vars (never committed).
+#
+# RELAY_KEY: the key `pnpm --filter @buun-mail/gateway mailbox add-relay <mbx_ id> --name <name>` prints. Without it
+#   every message is refused with a temporary failure, so senders retry.
+RELAY_KEY=

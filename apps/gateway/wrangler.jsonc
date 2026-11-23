@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json.schemastore.org/wrangler.json",
+  // The Buun Mail gateway. Email Routing sends each domain's catch-all here (the email handler); Buun Mail collects mail
+  // over /v1/* with a mailbox token and hears about new mail over /v1/stream. Mail waits in D1 until the app
+  // acknowledges it, then is deleted. The top level is local development; `--env production` is what you deploy, and
+  // `--env preview` is an optional second gateway with its own database, for trying a change before production (give
+  // it a spare domain to receive mail). docs/self-hosting.md walks through every value below.
+  "name": "buun-mail-gateway-dev",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-09-01",
+  "minify": true,
+  "workers_dev": false,
+  "preview_urls": false,
+  "observability": { "enabled": true, "head_sampling_rate": 1 },
+  "triggers": { "crons": ["17 3 * * *"] },
+  "vars": { "ENVIRONMENT": "dev", "WORKER_NAME": "buun-mail-gateway-dev" },
+  "d1_databases": [{ "binding": "DB", "database_name": "buun-mail-gateway-dev", "database_id": "00000000-0000-0000-0000-000000000000", "migrations_dir": "./migrations" }],
+  "durable_objects": { "bindings": [{ "name": "NOTIFIER", "class_name": "MailboxNotifier" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["MailboxNotifier"] }],
+  // Bindings, triggers and vars are not inherited, so each environment declares its own.
+  "env": {
+    "preview": {
+      "name": "buun-mail-gateway-preview",
+      "workers_dev": true,
+      "preview_urls": false,
+      "observability": { "enabled": true, "head_sampling_rate": 1 },
+      "triggers": { "crons": ["17 3 * * *"] },
+      "vars": { "ENVIRONMENT": "preview", "WORKER_NAME": "buun-mail-gateway-preview" },
+      // Secrets: CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID, set with `--env preview`; never production's values.
+      // PROVISION: replace the id with the one `pnpm exec wrangler d1 create buun-mail-gateway-preview` prints.
+      "d1_databases": [{ "binding": "DB", "database_name": "buun-mail-gateway-preview", "database_id": "00000000-0000-0000-0000-000000000000", "migrations_dir": "./migrations" }],
+      "durable_objects": { "bindings": [{ "name": "NOTIFIER", "class_name": "MailboxNotifier" }] }
+    },
+    "production": {
+      // The catch-all of every domain you add points at this name. If you change it, change WORKER_NAME with it.
+      "name": "buun-mail-gateway",
+      // On, so the gateway answers at https://buun-mail-gateway.<your-subdomain>.workers.dev with no set-up. To use your
+      // own hostname instead, add "routes": [{ "pattern": "mail-gateway.example.com", "custom_domain": true }].
+      "workers_dev": true,
+      "preview_urls": false,
+      "observability": { "enabled": true, "head_sampling_rate": 0.1 },
+      "triggers": { "crons": ["17 3 * * *"] },
+      "vars": { "ENVIRONMENT": "production", "WORKER_NAME": "buun-mail-gateway" },
+      // Secrets: CLOUDFLARE_API_TOKEN (Zone Read, Email Routing Rules Edit) and CLOUDFLARE_ACCOUNT_ID.
+      // PROVISION: replace the id with the one `pnpm exec wrangler d1 create buun-mail-gateway` prints.
+      "d1_databases": [{ "binding": "DB", "database_name": "buun-mail-gateway", "database_id": "00000000-0000-0000-0000-000000000000", "migrations_dir": "./migrations" }],
+      // Optional: raw mail in R2 instead of D1 (R2 needs a payment method on the account). Create the bucket, then add
+      // "r2_buckets": [{ "binding": "MAIL", "bucket_name": "buun-mail-gateway" }].
+      "durable_objects": { "bindings": [{ "name": "NOTIFIER", "class_name": "MailboxNotifier" }] }
+    }
+  }
+}

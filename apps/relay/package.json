@@ -1,0 +1,22 @@
+{
+  "name": "@buun-mail/relay",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The Buun Mail relay: an Email Worker for a domain in another Cloudflare account. It hands each message to your Buun Mail gateway and stores nothing.",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --port 28621 --inspector-port 28631",
+    "check:deploy": "wrangler deploy --dry-run --env preview && wrangler deploy --dry-run --env production",
+    "deploy": "wrangler deploy --env production",
+    "deploy:preview": "wrangler deploy --env preview",
+    "upload": "wrangler versions upload --env production",
+    "promote": "wrangler versions deploy --env production",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.4",
+    "vitest": "5.1.0",
+    "wrangler": "4.162.0"
+  }
+}

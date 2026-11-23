@@ -7,6 +7,9 @@ apps/desktop/src-tauri/gen/schemas
 apps/desktop/src-tauri/gen/apple
 .envrc
 .dev.vars*
+!.dev.vars.example
+# Wrangler's local state and build cache for the gateway and relay Workers.
+.wrangler
 *.local
 .claude/state/
 .claude/settings.local.json

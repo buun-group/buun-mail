@@ -1,0 +1,31 @@
+{
+  "name": "@buun-mail/gateway",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The Buun Mail gateway: a Cloudflare Email Worker that receives mail for the domains a mailbox owns, holds it until Buun Mail collects it over an authenticated API, and tells connected apps the moment it lands.",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler d1 migrations apply DB --local --persist-to .wrangler/state && wrangler dev --port 28620 --inspector-port 28630 --persist-to .wrangler/state",
+    "db:migrate": "wrangler d1 migrations apply DB --env production --remote",
+    "db:migrate:preview": "wrangler d1 migrations apply DB --env preview --remote",
+    "check:deploy": "wrangler deploy --dry-run --env preview && wrangler deploy --dry-run --env production",
+    "deploy": "wrangler deploy --env production",
+    "deploy:preview": "wrangler deploy --env preview",
+    "upload": "wrangler versions upload --env production",
+    "promote": "wrangler versions deploy --env production",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "mailbox": "tsx scripts/mailbox.ts"
+  },
+  "dependencies": {
+    "@hono/zod-openapi": "1.6.3",
+    "hono": "4.13.18",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.4",
+    "tsx": "4.23.15",
+    "vitest": "5.1.0",
+    "wrangler": "4.162.0"
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json.schemastore.org/wrangler.json",
+  // The Buun Mail relay. Deploy it into the Cloudflare account that holds a domain your gateway's account cannot route
+  // (Email Routing only hands a zone's mail to a Worker in the same account). Point that domain's catch-all here; every
+  // message goes on to the gateway (GATEWAY_URL) with this relay's key (the RELAY_KEY secret), and nothing is kept.
+  // The top level is local development; `--env production` is what you deploy, and `--env preview` hands mail to a
+  // preview gateway, for a spare domain. docs/self-hosting.md has the steps.
+  "name": "buun-mail-relay-dev",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-09-01",
+  "minify": true,
+  "workers_dev": false,
+  "preview_urls": false,
+  "observability": { "enabled": true, "head_sampling_rate": 1 },
+  "vars": { "GATEWAY_URL": "http://localhost:28620" },
+  "env": {
+    "preview": {
+      "name": "buun-mail-relay-preview",
+      "workers_dev": false,
+      "preview_urls": false,
+      "observability": { "enabled": true, "head_sampling_rate": 1 },
+      // Secret: RELAY_KEY, from `mailbox add-relay ... --env preview`; never production's key.
+      // PROVISION: replace with your preview gateway's address.
+      "vars": { "GATEWAY_URL": "https://buun-mail-gateway-preview.example.workers.dev" }
+    },
+    "production": {
+      // The name the domain's catch-all points at.
+      "name": "buun-mail-relay",
+      // The relay only receives mail, so it has no public URL.
+      "workers_dev": false,
+      "preview_urls": false,
+      "observability": { "enabled": true, "head_sampling_rate": 1 },
+      // Secret: RELAY_KEY, from `mailbox add-relay` against your gateway.
+      // PROVISION: replace with your gateway's address, such as https://buun-mail-gateway.<your-subdomain>.workers.dev.
+      "vars": { "GATEWAY_URL": "https://buun-mail-gateway.example.workers.dev" }
+    }
+  }
+}

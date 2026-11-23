@@ -1,11 +1,17 @@
 packages:
   - apps/desktop/ui
+  - apps/gateway
+  - apps/relay
   - packages/*
 
 # Refuse a release younger than seven days (in minutes): the supply-chain cooldown from the dependency standard.
 minimumReleaseAge: 10080
 # Exact versions only.
 saveExact: true
-onlyBuiltDependencies:
-  - esbuild
-  - '@resvg/resvg-js'
+# Which dependencies may run install scripts. Anything not listed may not.
+allowBuilds:
+  esbuild: true
+  '@resvg/resvg-js': true
+  # Wrangler's runtime. Its postinstall only checks that the platform binary is there, and downloads one if it is not;
+  # pnpm already installs that binary as an optional dependency (@cloudflare/workerd-<platform>), so the script stays off.
+  workerd: false
