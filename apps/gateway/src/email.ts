@@ -1,4 +1,4 @@
-import { MAX_MESSAGE_BYTES, REFUSALS } from './constants'
+import { MAX_MESSAGE_BYTES, NOTIFY_ATTEMPTS, REFUSALS } from './constants'
 import type { Runtime } from './lib/runtime'
 import { mailboxForAddress } from './services/mailboxes'
 import { receive } from './services/messages'
@@ -48,6 +48,21 @@ export async function handleEmail(runtime: Runtime, message: IncomingEmail): Pro
     return
   }
   const stored = await receive(runtime, mailbox.id, { from: message.from, to: message.to }, raw)
-  // An app that misses the push still finds the message on its next check; the push only makes it instant.
-  await runtime.notify(mailbox.id, stored.id).catch(() => undefined)
+  await notifyWithRetry(runtime, mailbox.id, stored.id)
+}
+
+/**
+ * Tells the mailbox's apps, trying up to [`NOTIFY_ATTEMPTS`] times. Apps collect only when told (or on reconnecting,
+ * or their hourly check), so a lost note means a late message. The message is already stored, so a note that never
+ * gets through is not an error for the sender.
+ */
+async function notifyWithRetry(runtime: Runtime, mailboxId: string, messageId: string): Promise<void> {
+  for (let attempt = 1; attempt <= NOTIFY_ATTEMPTS; attempt += 1) {
+    try {
+      await runtime.notify(mailboxId, messageId)
+      return
+    } catch {
+      // Try again; the last failure is left for the app's hourly check.
+    }
+  }
 }

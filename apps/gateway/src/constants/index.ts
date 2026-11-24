@@ -28,6 +28,15 @@ export const DOMAIN_ROUTES = ['catch_all', 'relay'] as const
 /** The most ids one acknowledgement may carry. */
 export const ACK_LIMIT = 500
 
+/** A collected message up to this size comes with its bytes, so the app needs no second request for it: 1 MiB. */
+export const INLINE_MESSAGE_MAX = 1024 * 1024
+
+/** The most bytes one collect answer carries inline, across its messages; the rest are fetched one by one: 8 MiB. */
+export const INLINE_TOTAL_MAX = 8 * 1024 * 1024
+
+/** How many times the email handler tries to tell a mailbox's apps about new mail before leaving it to their check. */
+export const NOTIFY_ATTEMPTS = 3
+
 /** Where the Cloudflare API lives. */
 export const CLOUDFLARE_API = 'https://api.cloudflare.com/client/v4'
 

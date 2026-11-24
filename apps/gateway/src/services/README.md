@@ -17,6 +17,6 @@ Code here follows:
 | Path | Purpose |
 |---|---|
 | `mailboxes.ts` | Making a mailbox, finding one by its token's hash or by an address on one of its domains, listing, renaming, and a new token |
-| `messages.ts` | Receiving a message, listing waiting mail, reading its raw bytes, acknowledging, and the daily clean-up |
+| `messages.ts` | Receiving a message, listing waiting mail, reading its raw bytes, acknowledging, collecting (acknowledge and list in one, small messages inline), and the daily clean-up |
 | `domains.ts` | Claiming a zone (keeping its old catch-all and pointing it here), recording a relayed domain, giving one back, and whether each really routes here |
 | `relays.ts` | Relay keys: making one, finding a relay by its key, listing and removing them, and whether the relay's mailbox owns an address |

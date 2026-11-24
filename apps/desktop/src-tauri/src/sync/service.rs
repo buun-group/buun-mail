@@ -1,23 +1,32 @@
-//! The sync loop: one thread that checks every gateway every half minute, or at once when woken.
+//! The sync loop, event-driven: it collects when a gateway's WebSocket says mail arrived or (re)connects, when the app
+//! starts, and on Check now. A timer runs only as a safety net: hourly while every socket is up, every five minutes while
+//! one is down (a network that blocks `WebSocket` connections still gets its mail).
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use std::sync::{Arc, Condvar, Mutex};
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use serde::Serialize;
 use tauri::AppHandle;
 
-use super::gateway::{AvailableZone, DomainRoute, GatewayClient, GatewayError, OwnedDomain};
+use super::collect::collect;
+use super::gateway::{AvailableZone, DomainRoute, GatewayClient, OwnedDomain};
+use super::push::{self, Heartbeat, Listener};
 use super::settings::{self, GatewaySettings};
-use crate::dto::MessageDto;
 use crate::error::AppError;
 use crate::events;
 use crate::mailbox::{Mailbox, unix_now};
 
-/// How long the loop waits between checks.
-const INTERVAL: Duration = Duration::from_secs(30);
+/// How often the safety check runs while every gateway's socket is up: notes can be lost, so mail never waits longer.
+const SAFETY_EVERY: Duration = Duration::from_hours(1);
+
+/// How often it runs while a socket is down, so a network that blocks `WebSocket` connections still gets mail.
+const DOWN_EVERY: Duration = Duration::from_mins(5);
+
+/// How often the listener thread looks for gateways added or removed. Local only, no request.
+const LISTENER_SCAN: Duration = Duration::from_secs(30);
 
 /// One gateway, as Settings shows it.
 #[derive(Debug, Clone, Default, Serialize, PartialEq, Eq)]
@@ -63,6 +72,10 @@ struct Shared {
     woken: Mutex<bool>,
     /// Held for the length of a check, so the loop and a check asked for now never collect at once.
     checking: Mutex<()>,
+    /// The gateways whose WebSocket is up now.
+    connected: Mutex<HashSet<String>>,
+    /// The gateways too old for the collect call, which use list, fetch and acknowledge instead.
+    legacy: Mutex<HashSet<String>>,
     mailbox: Arc<Mailbox>,
     app: Option<AppHandle>,
 }
@@ -104,6 +117,8 @@ impl SyncService {
             wake: Condvar::new(),
             woken: Mutex::new(true),
             checking: Mutex::new(()),
+            connected: Mutex::new(HashSet::new()),
+            legacy: Mutex::new(HashSet::new()),
             mailbox,
             app,
         });
@@ -166,6 +181,8 @@ impl SyncService {
             settings::save(&self.config_folder, &gateways)?;
         }
         self.shared.progress.lock()?.remove(id);
+        self.shared.connected.lock()?.remove(id);
+        self.shared.legacy.lock()?.remove(id);
         self.list()
     }
 
@@ -245,9 +262,10 @@ fn statuses(shared: &Shared) -> Result<Vec<GatewayStatusDto>, AppError> {
 }
 
 /// Keeps one live listener per gateway: started for a new gateway, ended when its gateway is removed or its token
-/// changes. Looks every [`INTERVAL`].
+/// changes. Looks every [`LISTENER_SCAN`]. Each listener wakes the loop on an arrival or a (re)connection, and keeps
+/// [`Shared::connected`] true to the socket, which sets how often the safety check runs.
 fn keep_listening(shared: &Arc<Shared>) {
-    let running: Arc<Mutex<std::collections::HashSet<String>>> = Arc::default();
+    let running: Arc<Mutex<HashSet<String>>> = Arc::default();
     loop {
         let gateways = shared.gateways.lock().map(|gateways| gateways.clone()).unwrap_or_default();
         for gateway in gateways {
@@ -264,26 +282,49 @@ fn keep_listening(shared: &Arc<Shared>) {
                         shared.wake.notify_all();
                     }
                 };
+                let mark = |up: bool| {
+                    if let Ok(mut connected) = shared.connected.lock() {
+                        if up {
+                            connected.insert(gateway.id.clone());
+                        } else {
+                            connected.remove(&gateway.id);
+                        }
+                    }
+                };
                 let still_here = || shared.gateways.lock().is_ok_and(|now| now.iter().any(|kept| kept.id == gateway.id && kept.token == gateway.token));
-                super::push::listen(&gateway.url, &gateway.token, &wake, &still_here);
+                push::listen(&gateway.url, &gateway.token, Heartbeat::default(), &Listener { on_arrival: &wake, on_state: &mark, keep_going: &still_here });
+                mark(false);
                 if let Ok(mut set) = running.lock() {
                     set.remove(&gateway.id);
                 }
             });
         }
-        thread::sleep(INTERVAL);
+        thread::sleep(LISTENER_SCAN);
     }
 }
 
-/// The loop: check every gateway when woken or every [`INTERVAL`].
+/// True when every saved gateway's WebSocket is up, so the safety check can wait the long [`SAFETY_EVERY`].
+fn all_connected(shared: &Shared) -> bool {
+    let Ok(gateways) = shared.gateways.lock() else { return false };
+    let Ok(connected) = shared.connected.lock() else { return false };
+    gateways.iter().all(|gateway| connected.contains(&gateway.id))
+}
+
+/// The loop: collects when woken (an arrival, a connection, the app starting, Check now), and otherwise only when the
+/// safety check is due. It wakes at least every [`DOWN_EVERY`] to look, which costs no request.
 fn run(shared: &Shared) {
+    let mut last_check: Option<Instant> = None;
     loop {
-        {
+        let woken = {
             let Ok(woken) = shared.woken.lock() else { return };
-            let Ok((mut woken, _)) = shared.wake.wait_timeout_while(woken, INTERVAL, |woken| !*woken) else { return };
-            *woken = false;
+            let Ok((mut woken, _)) = shared.wake.wait_timeout_while(woken, DOWN_EVERY, |woken| !*woken) else { return };
+            std::mem::take(&mut *woken)
+        };
+        let due = if all_connected(shared) { SAFETY_EVERY } else { DOWN_EVERY };
+        if woken || last_check.is_none_or(|at| at.elapsed() >= due) {
+            check_all(shared);
+            last_check = Some(Instant::now());
         }
-        check_all(shared);
     }
 }
 
@@ -293,7 +334,11 @@ fn check_all(shared: &Shared) -> usize {
     let gateways = shared.gateways.lock().map(|gateways| gateways.clone()).unwrap_or_default();
     let mut arrived = Vec::new();
     for gateway in gateways {
-        let outcome = collect(&GatewayClient::new(&gateway.url, &gateway.token), &shared.mailbox);
+        let mut legacy = shared.legacy.lock().is_ok_and(|set| set.contains(&gateway.id));
+        let outcome = collect(&GatewayClient::new(&gateway.url, &gateway.token), &shared.mailbox, &mut legacy);
+        if legacy && let Ok(mut set) = shared.legacy.lock() {
+            set.insert(gateway.id.clone());
+        }
         if let Ok(mut progress) = shared.progress.lock() {
             let entry = progress.entry(gateway.id.clone()).or_default();
             entry.last_checked = Some(buun_mail_message::rfc3339(unix_now()));
@@ -316,25 +361,4 @@ fn check_all(shared: &Shared) -> usize {
         }
     }
     arrived.len()
-}
-
-/// One check of one gateway: take in every waiting message, then acknowledge the ones now safe here. A message that
-/// cannot be read is acknowledged too, after it is logged, so one bad message never blocks the queue; the gateway would
-/// only offer it again forever. Returns what arrived and should be announced.
-pub(super) fn collect(client: &GatewayClient, mailbox: &Mailbox) -> Result<Vec<MessageDto>, GatewayError> {
-    let waiting = client.waiting()?;
-    let mut done = Vec::with_capacity(waiting.len());
-    let mut arrived = Vec::new();
-    for message in waiting {
-        let raw = client.raw(&message.id)?;
-        let received_at = message.received_at / 1000;
-        match mailbox.take_in(&raw, &message.envelope_to, received_at) {
-            Ok(Some(new)) => arrived.push(new),
-            Ok(None) => {}
-            Err(error) => mailbox.note_unreadable(&message.id, &error.to_string()),
-        }
-        done.push(message.id);
-    }
-    client.acknowledge(&done)?;
-    Ok(arrived)
 }

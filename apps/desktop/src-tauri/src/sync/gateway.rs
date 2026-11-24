@@ -10,8 +10,15 @@ use ureq::Agent;
 /// How long one call may take before the check gives up and tries again later.
 const TIMEOUT: Duration = Duration::from_secs(30);
 
-/// How many waiting messages one check asks for. The rest come on the next check.
+/// How many waiting messages one call asks for. A check keeps asking until nothing is left.
 const BATCH: u32 = 50;
+
+/// The largest collect answer read: the gateway inlines at most 8 MiB of mail, which base64 makes about 11 MiB, plus
+/// the list itself.
+const COLLECT_MOST_BYTES: u64 = 16 * 1024 * 1024;
+
+/// The largest single message read from `/raw`: the gateway takes up to 25 MiB.
+const RAW_MOST_BYTES: u64 = 26 * 1024 * 1024;
 
 /// Why a call to the gateway failed, in words for the settings screen.
 #[derive(Debug, Error)]
@@ -28,6 +35,28 @@ pub enum GatewayError {
     /// The gateway answered with something this client does not understand.
     #[error("the gateway answered unexpectedly: {0}")]
     Protocol(String),
+    /// The gateway predates `/v1/messages/collect`; the caller falls back to list, fetch and acknowledge.
+    #[error("the gateway is older than the collect call")]
+    NoCollect,
+}
+
+/// A waiting message from a collect, with its bytes when the gateway sent them inline.
+#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct Collected {
+    /// The gateway's id for it, `mml_...`.
+    pub id: String,
+    /// The exact address it was delivered to.
+    pub envelope_to: String,
+    /// When the gateway received it, milliseconds since the epoch.
+    pub received_at: i64,
+    /// The message as base64, when it was small enough to come inline; otherwise fetch it with [`GatewayClient::raw`].
+    pub raw: Option<String>,
+}
+
+#[derive(Deserialize)]
+struct CollectAnswer {
+    messages: Vec<Collected>,
 }
 
 /// A message waiting at the gateway.
@@ -138,7 +167,7 @@ impl GatewayClient {
     /// [`GatewayError`] as for [`GatewayClient::waiting`].
     pub fn raw(&self, id: &str) -> Result<Vec<u8>, GatewayError> {
         let mut response = answer(self.agent.get(format!("{}/v1/messages/{id}/raw", self.base)).header("Authorization", &self.bearer()).call())?;
-        response.body_mut().with_config().limit(26 * 1024 * 1024).read_to_vec().map_err(protocol)
+        response.body_mut().with_config().limit(RAW_MOST_BYTES).read_to_vec().map_err(protocol)
     }
 
     /// Tells the gateway these messages are stored here, so it forgets them. Returns how many it removed.
@@ -153,6 +182,25 @@ impl GatewayClient {
         let mut response =
             answer(self.agent.post(format!("{}/v1/messages/ack", self.base)).header("Authorization", &self.bearer()).send_json(json!({ "ids": ids })))?;
         Ok(response.body_mut().read_json::<Acknowledged>().map_err(protocol)?.acknowledged)
+    }
+
+    /// One round trip: the gateway forgets `ack`, then returns the next waiting messages, small ones with their bytes.
+    ///
+    /// # Errors
+    ///
+    /// [`GatewayError::NoCollect`] when the gateway is too old to have the call (it answers 404), or [`GatewayError`]
+    /// as for [`GatewayClient::waiting`].
+    pub fn collect(&self, ack: &[String]) -> Result<Vec<Collected>, GatewayError> {
+        let result = self
+            .agent
+            .post(format!("{}/v1/messages/collect", self.base))
+            .header("Authorization", &self.bearer())
+            .send_json(json!({ "ack": ack, "limit": BATCH }));
+        if result.as_ref().is_ok_and(|response| response.status().as_u16() == 404) {
+            return Err(GatewayError::NoCollect);
+        }
+        let mut response = answer(result)?;
+        Ok(response.body_mut().with_config().limit(COLLECT_MOST_BYTES).read_json::<CollectAnswer>().map_err(protocol)?.messages)
     }
 
     /// The domains this mailbox owns.

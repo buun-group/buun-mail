@@ -1,4 +1,4 @@
-import { ACK_LIMIT, LIST_LIMIT_DEFAULT, LIST_LIMIT_MAX, RETENTION_MS } from '../constants'
+import { ACK_LIMIT, INLINE_MESSAGE_MAX, INLINE_TOTAL_MAX, LIST_LIMIT_DEFAULT, LIST_LIMIT_MAX, RETENTION_MS } from '../constants'
 import { newId } from '../lib/ids'
 import type { Runtime } from '../lib/runtime'
 
@@ -74,6 +74,49 @@ export async function acknowledge(runtime: Runtime, mailboxId: string, ids: stri
   await runtime.db.prepare('DELETE FROM messages WHERE mailbox_id = ? AND id IN (SELECT value FROM json_each(?))').bind(mailboxId, list).run()
   await runtime.mail.delete(found.results.map((row) => row.object_key))
   return found.results.length
+}
+
+/** A waiting message as a collect answer carries it: the bytes inline, base64, when it was small enough. */
+export interface CollectedMessage extends WaitingMessage {
+  raw?: string
+}
+
+/** How many bytes [`base64Of`] turns into characters at once: small enough to pass as arguments, 32 KiB. */
+const BASE64_SLICE_BYTES = 0x8000
+
+/** Bytes as base64, a slice at a time, so a large message never builds one huge argument list. */
+function base64Of(bytes: Uint8Array): string {
+  let binary = ''
+  for (let at = 0; at < bytes.byteLength; at += BASE64_SLICE_BYTES) binary += String.fromCharCode(...bytes.subarray(at, at + BASE64_SLICE_BYTES))
+  return btoa(binary)
+}
+
+/**
+ * One round trip for the app: forgets `ack` (as [`acknowledge`]), then returns the next waiting messages, each up to
+ * [`INLINE_MESSAGE_MAX`] with its bytes inline while the answer stays under [`INLINE_TOTAL_MAX`]. A message without
+ * `raw` is fetched on its own. Acknowledging first means the answer never offers what the app just stored.
+ */
+export async function collectWaiting(runtime: Runtime, mailboxId: string, ack: string[], limit?: number): Promise<{ acknowledged: number; messages: CollectedMessage[] }> {
+  const acknowledged = ack.length === 0 ? 0 : await acknowledge(runtime, mailboxId, ack)
+  const rows = await runtime.db
+    .prepare('SELECT id, envelope_from, envelope_to, size, received_at, object_key FROM messages WHERE mailbox_id = ? ORDER BY received_at, id LIMIT ?')
+    .bind(mailboxId, Math.min(Math.max(limit ?? LIST_LIMIT_DEFAULT, 1), LIST_LIMIT_MAX))
+    .all<MessageRow & { object_key: string }>()
+  const messages: CollectedMessage[] = []
+  let budget = INLINE_TOTAL_MAX
+  // At most one store read per message, and only for the small ones; the list itself was one query.
+  for (const row of rows.results) {
+    const message = toWaiting(row)
+    const object = row.size <= INLINE_MESSAGE_MAX && row.size <= budget ? await runtime.mail.get(row.object_key) : null
+    if (object === null) {
+      messages.push(message)
+      continue
+    }
+    const bytes = new Uint8Array(await object.arrayBuffer())
+    budget -= bytes.byteLength
+    messages.push({ ...message, raw: base64Of(bytes) })
+  }
+  return { acknowledged, messages }
 }
 
 /**

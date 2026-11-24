@@ -17,6 +17,6 @@ Code here follows:
 
 | Path | Purpose |
 |---|---|
-| `messages.ts` | The app API for mail: list waiting messages, fetch one's bytes as `message/rfc822`, acknowledge what the app stored, and the `/v1/stream` WebSocket |
+| `messages.ts` | The app API for mail: list waiting messages, fetch one's bytes as `message/rfc822`, acknowledge what the app stored, collect (acknowledge and list in one request, small messages inline), and the `/v1/stream` WebSocket |
 | `domains.ts` | `/v1/domains`: the mailbox's domains, the zones it could claim, claiming one or recording a relayed one, and giving one back |
 | `relay.ts` | `POST /v1/relay/messages`, for a relay in another Cloudflare account, with its own key, the envelope in headers |

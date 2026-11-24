@@ -20,7 +20,7 @@ Code here follows:
 |---|---|
 | `worker.ts` | The entry: `fetch`, `email`, `scheduled` (the daily clean-up) and the Durable Object export |
 | `app.ts` | The HTTP app: the request id, the routes, `/openapi.json`, and the one error handler; `runtimeOf` builds the runtime per request, so tests hand in fakes |
-| `email.ts` | The email handler: find the mailbox, refuse or store the message within its size limit, notify |
+| `email.ts` | The email handler: find the mailbox, refuse or store the message within its size limit, notify (tried up to three times) |
 | `types.ts` | The slice of the Workers runtime the gateway uses, declared here so tests stand each one in with a small fake |
 | `constants/` | Limits, retention, token shapes, refusal words. [Its README](constants/README.md) |
 | `durable/` | `MailboxNotifier`. [Its README](durable/README.md) |

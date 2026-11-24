@@ -14,4 +14,4 @@ Code here follows:
 
 | Path | Purpose |
 |---|---|
-| `notifier.ts` | `MailboxNotifier`: holds a mailbox's app WebSockets on the hibernation API, sends `{"type":"arrived","id":...}` for each new message, and answers `ping` |
+| `notifier.ts` | `MailboxNotifier`: holds a mailbox's app WebSockets on the hibernation API, sends `{"type":"arrived","id":...}` for each new message, and answers `ping` with an auto-response that never wakes it |

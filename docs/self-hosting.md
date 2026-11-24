@@ -69,7 +69,7 @@ that address, and tells the gateway to forget it.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/self-hosting/one-message-dark.svg">
-  <img alt="A sender mails hi@example.com; Email Routing's catch-all hands it to the gateway, which stores it in D1 and tells the notifier, which nudges Buun Mail over a WebSocket; the app lists new ids, fetches the raw .eml, files it by recipient, acknowledges it, and the gateway deletes its copy" src="assets/self-hosting/one-message-light.svg" width="100%">
+  <img alt="A sender mails hi@example.com; Email Routing's catch-all hands it to the gateway, which stores it in D1 and tells the notifier, which nudges Buun Mail over a WebSocket; the app collects and gets the .eml inline in the same answer, files it by recipient, and its next collect acknowledges it, so the gateway deletes its copy" src="assets/self-hosting/one-message-light.svg" width="100%">
 </picture>
 
 Nothing stays on Cloudflare once the app has it. Mail nobody collects is deleted after 30 days by a daily clean-up.
@@ -96,11 +96,11 @@ These are rough sums from what the gateway does per message, not measurements:
 
 | Limit | What uses it | In practice |
 |---|---|---|
-| 100,000 Worker requests a day | About 4 per message: the delivery, then the app's list, fetch and acknowledge | Around 20,000 messages a day |
+| 100,000 Worker requests a day | The delivery, then two collect calls each time the app is told mail arrived, however many messages that brings. An idle app costs about 24 a day (its hourly safety check) plus one per reconnect | Tens of thousands of messages a day |
 | 100,000 D1 rows written a day | A few rows per message, plus one per 512 KiB of its raw size | Thousands of ordinary messages a day |
 | 500 MB per D1 database | Mail that is waiting to be collected | Only fills if the app stays offline for a long time while large mail arrives. Turn on R2, or move to Workers Paid |
 | 10 ms of CPU per request | Storing a message and answering the app | Ordinary mail fits. If `wrangler tail` shows `EXCEEDED_CPU` on very large messages, Workers Paid lifts it to 30 seconds |
-| WebSockets | The app keeps one open per gateway | The notifier hibernates while idle, so an idle connection costs no duration, and incoming WebSocket messages are billed at 20 to 1 |
+| WebSockets | The app keeps one open per gateway, and collects only when it says mail arrived or reconnects: no polling | The notifier hibernates while idle and answers the app's heartbeat by auto-response, which never wakes it, so an idle connection costs no duration |
 
 On the free plan, a limit that runs out makes requests fail until it resets at 00:00 UTC. `wrangler tail` shows it
 when it happens. If you get close to a limit, Workers Paid raises all of them at once.

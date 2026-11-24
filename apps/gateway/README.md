@@ -30,13 +30,14 @@ key (`bmr_...`). The desktop client is `apps/desktop/src-tauri/src/sync/gateway.
 | `GET /v1/messages?limit=50` | Waiting mail, oldest first: `id`, `envelopeFrom`, `envelopeTo` (the exact recipient), `size`, `receivedAt` |
 | `GET /v1/messages/:id/raw` | The message as `message/rfc822` |
 | `POST /v1/messages/ack` `{ "ids": [...] }` | Forgets messages the app has stored; ids from another mailbox are ignored |
+| `POST /v1/messages/collect` `{ "ack": [...], "limit": 50 }` | What current apps use: forgets `ack`, then returns waiting mail with each message up to 1 MiB inline as base64 `raw` (8 MiB an answer). One request per batch instead of one per message; a message without `raw` is fetched from `/raw`. Older apps keep the three calls above |
 | `GET /v1/domains` | The mailbox's domains, each with `via`, `routedHere` (does Cloudflare's catch-all point here) and `previously` |
 | `GET /v1/domains/available` | Zones in the gateway's Cloudflare account no mailbox owns, with what each catch-all does now |
 | `POST /v1/domains` `{ "domain": "acme.example" }` | Claims a zone: turns Email Routing on if needed, keeps the old catch-all, points it here |
 | `POST /v1/domains` `{ "domain": "other.example", "via": "relay" }` | Records a domain from another Cloudflare account, whose relay hands its mail over; nothing changes in Cloudflare |
 | `DELETE /v1/domains/:domain` | Gives a zone back: restores the catch-all it had before |
 | `POST /v1/relay/messages` | For a relay, with its key: the raw message as the body, `X-Envelope-From` and `X-Envelope-To` headers; taken only for a domain the relay's mailbox owns |
-| `GET /v1/stream` (WebSocket) | Sends `{"type":"arrived","id":"mml_..."}` for each new message; answers `ping` with a pong |
+| `GET /v1/stream` (WebSocket) | Sends `{"type":"arrived","id":"mml_..."}` for each new message (tried three times); answers `ping` with `{"type":"pong"}` by auto-response, which never wakes the Durable Object. Apps collect on each note and each connection, so they never need to poll |
 | `GET /health` | `{"ok":true}`, no token, reads nothing |
 | `GET /openapi.json` | The OpenAPI 3.1 document for every route above, no token, reads nothing |
 

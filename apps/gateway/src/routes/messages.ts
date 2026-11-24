@@ -6,7 +6,7 @@ import { requireMailbox } from '../lib/auth'
 import type { GatewayVariables } from '../lib/auth'
 import { ID_PREFIXES } from '../lib/ids'
 import { BEARER_SECURITY, errorResponse, router } from '../lib/openapi'
-import { acknowledge, listWaiting, rawMessage } from '../services/messages'
+import { acknowledge, collectWaiting, listWaiting, rawMessage } from '../services/messages'
 
 const WaitingMessageSchema = z
   .object({
@@ -21,6 +21,19 @@ const WaitingMessageSchema = z
 const MessageListSchema = z.object({ messages: z.array(WaitingMessageSchema) }).openapi('MessageList')
 const AckBodySchema = z.object({ ids: z.array(z.string().startsWith(ID_PREFIXES.mailMessage)).min(1).max(ACK_LIMIT) }).openapi('AckBody')
 const AckResultSchema = z.object({ acknowledged: z.number().int() }).openapi('AckResult')
+
+const CollectBodySchema = z
+  .object({
+    ack: z.array(z.string().startsWith(ID_PREFIXES.mailMessage)).max(ACK_LIMIT).default([]).openapi({ description: 'Ids now stored by the app, forgotten first' }),
+    limit: z.number().int().min(1).max(LIST_LIMIT_MAX).optional(),
+  })
+  .openapi('CollectBody')
+
+const CollectedMessageSchema = WaitingMessageSchema.extend({
+  raw: z.string().optional().openapi({ description: 'The message, base64, when it was small enough to come inline; otherwise fetch /raw' }),
+}).openapi('CollectedMessage')
+
+const CollectResultSchema = z.object({ acknowledged: z.number().int(), messages: z.array(CollectedMessageSchema) }).openapi('CollectResult')
 
 /**
  * @route GET /v1/messages
@@ -97,6 +110,33 @@ const ackMessagesRoute = createRoute({
 })
 
 /**
+ * @route POST /v1/messages/collect
+ * @summary Acknowledge stored mail and take the next waiting messages, in one request.
+ * @description Forgets `ack`, then lists waiting mail oldest first. Messages up to 1 MiB come with their bytes inline
+ * (base64), up to 8 MiB an answer; a larger one has no `raw` and is fetched from `/raw`. An app calls it until the list
+ * comes back empty, acknowledging each batch in the next call.
+ * @tags Mail
+ * @auth Bearer
+ * @param {CollectBody} body.body.required - The ids to forget (0 to 500) and how many to return (1 to 100, default 50).
+ * @returns {CollectResult} 200 - How many were forgotten, and the waiting mail.
+ * @returns {ErrorResponseSchema} 400 - The body is not valid.
+ * @returns {ErrorResponseSchema} 401 - No valid mailbox token.
+ */
+const collectMessagesRoute = createRoute({
+  method: 'post',
+  path: '/messages/collect',
+  middleware: [requireMailbox] as const,
+  request: { body: { content: { 'application/json': { schema: CollectBodySchema } }, required: true } },
+  responses: {
+    200: { content: { 'application/json': { schema: CollectResultSchema } }, description: 'How many were forgotten, and the waiting mail' },
+    400: errorResponse('The body is not valid'),
+    401: errorResponse('No valid mailbox token'),
+  },
+  tags: ['Mail'],
+  security: BEARER_SECURITY,
+})
+
+/**
  * @route GET /v1/stream
  * @summary Hear about new mail over a WebSocket.
  * @description Sends `{"type":"arrived","id":"mml_..."}` for each new message and answers `ping` with a pong.
@@ -119,7 +159,10 @@ const streamRoute = createRoute({
   security: BEARER_SECURITY,
 })
 
-/** The app API: list waiting mail, fetch one message's bytes, acknowledge what is stored, listen for new mail. */
+/**
+ * The app API: list waiting mail, fetch one message's bytes, acknowledge what is stored, collect (acknowledge and list
+ * in one, small messages inline), listen for new mail.
+ */
 export const messages = router<{ Variables: GatewayVariables }>()
   .openapi(listMessagesRoute, async (c) => {
     const { limit } = c.req.valid('query')
@@ -133,6 +176,10 @@ export const messages = router<{ Variables: GatewayVariables }>()
   .openapi(ackMessagesRoute, async (c) => {
     const { ids } = c.req.valid('json')
     return c.json({ acknowledged: await acknowledge(c.get('runtime'), c.get('mailbox').id, ids) }, 200)
+  })
+  .openapi(collectMessagesRoute, async (c) => {
+    const { ack, limit } = c.req.valid('json')
+    return c.json(await collectWaiting(c.get('runtime'), c.get('mailbox').id, ack, limit), 200)
   })
   .openapi(streamRoute, async (c) => {
     if (c.req.header('Upgrade')?.toLowerCase() !== 'websocket') throw new ApiError(426, ERROR_CODES.upgradeRequired, REFUSALS.upgrade)

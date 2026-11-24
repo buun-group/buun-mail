@@ -105,6 +105,7 @@ describe('the app API', () => {
       '/v1/domains/{domain}',
       '/v1/messages',
       '/v1/messages/ack',
+      '/v1/messages/collect',
       '/v1/messages/{id}/raw',
       '/v1/relay/messages',
       '/v1/stream',
