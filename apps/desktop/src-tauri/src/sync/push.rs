@@ -205,8 +205,10 @@ mod tests {
         thread::spawn(move || {
             let mut held = Vec::new();
             for stream in listener.incoming().take(2).flatten() {
+                // Counted before the handshake: the client cannot finish connecting until this side has accepted, so
+                // the count is never behind what the client saw.
+                accepted.fetch_add(1, Ordering::SeqCst);
                 if let Ok(socket) = tungstenite::accept(stream) {
-                    accepted.fetch_add(1, Ordering::SeqCst);
                     held.push(socket);
                 }
             }
