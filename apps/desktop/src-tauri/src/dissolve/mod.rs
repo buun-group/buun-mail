@@ -5,12 +5,14 @@
 //! - `oauth`: discovery, registration, PKCE, the way back from the browser (loopback or app link), tokens
 //! - `api`: the `/v1` calls this app makes
 //! - `settings`: the account, its tokens and what has been collected, in `dissolve.json`
-//! - `service`: connecting, the collection loop, and the inbox actions
+//! - `stream`: the account stream (Pro and up), which says the moment mail lands
+//! - `service`: connecting, the collection loop (the stream, the changes feed, or inbox by inbox), and the inbox actions
 
 mod api;
 mod oauth;
 mod service;
 mod settings;
+mod stream;
 #[cfg(test)]
 mod tests;
 

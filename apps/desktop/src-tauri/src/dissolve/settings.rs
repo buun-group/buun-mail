@@ -35,6 +35,8 @@ pub struct DissolveSettings {
     pub identities: bool,
     /// Make an agent identity with each new address; `None` means on, as dissolve.email's own default.
     pub identity_with_new: Option<bool>,
+    /// Where the changes feed was last read up to, so a restart carries on from it (dissolve.email keeps seven days).
+    pub cursor: Option<String>,
 }
 
 /// A signed-in account and its tokens.

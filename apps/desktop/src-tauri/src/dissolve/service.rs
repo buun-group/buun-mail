@@ -1,9 +1,14 @@
-//! Connecting a dissolve.email account, collecting its inboxes' mail every minute, and making, extending and
-//! burning inboxes. Each inbox is a folder of the dissolve.email workspace, named by its address.
+//! Connecting a dissolve.email account, collecting its inboxes' mail, and making, extending and burning inboxes. Each
+//! inbox is a folder of the dissolve.email workspace, named by its address.
+//!
+//! Collecting follows the plan, as the website does: on Pro and up, the account stream says the moment mail lands and
+//! the loop collects at once (with a check every ten minutes as a safety net); otherwise the loop checks every minute.
+//! A check reads the changes feed, one call for every inbox; a server without the feed is polled inbox by inbox.
 
 use std::collections::VecDeque;
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Condvar, Mutex};
 use std::time::{Duration, Instant};
 
 use buun_mail_message::{Contact, Outgoing, build, rfc3339, unix_of};
@@ -12,16 +17,33 @@ use serde::Serialize;
 use tauri::AppHandle;
 
 use super::WORKSPACE;
-use super::api::{Api, ApiError, Me, Meter, Persona, RemoteIdentity, RemoteInbox, RemoteMessage};
+use super::api::{Api, ApiError, Feed, Me, Meter, Persona, RemoteIdentity, RemoteInbox, RemoteMessage};
 use super::oauth::{self, Metadata, OAuthError, SIGN_IN_WAIT};
 use super::settings::{self, Account, DissolveSettings, Extensions, KnownInbox};
+use super::stream::{self, Ended, Heartbeat};
 use crate::dto::MessageDto;
 use crate::error::AppError;
 use crate::events;
 use crate::mailbox::{Actor, Mailbox, ProvidedWorkspace, unix_now};
 
-/// How often the inboxes are checked.
+/// How often the inboxes are checked without the live stream: dissolve.email's poll interval for the feed.
 const INTERVAL: Duration = Duration::from_secs(60);
+
+/// How often they are checked while the live stream is up, as a safety net for an event that was lost.
+const SAFETY_EVERY: Duration = Duration::from_mins(10);
+
+/// How long the stream waits before trying again after a plan without it, or a server without it, in seconds.
+const STREAM_RETRY_LATER: i64 = 15 * 60;
+
+/// How long a server without the changes feed is polled inbox by inbox before the feed is tried again, in seconds.
+const FEED_RETRY_LATER: i64 = 60 * 60;
+
+/// The first and the longest wait before the stream reconnects after a drop.
+const STREAM_RETRY_FIRST: Duration = Duration::from_secs(5);
+const STREAM_RETRY_MOST: Duration = Duration::from_mins(5);
+
+/// The most pages of the changes feed one check reads, 200 changes each; the rest come on the next.
+const FEED_PAGES: usize = 10;
 
 /// How many inboxes' messages one check lists. dissolve.email allows five message polls a minute from one address,
 /// so a check takes four and the rest come on the next, in turn, until it offers one call for every inbox.
@@ -170,6 +192,12 @@ struct Progress {
     hourly: Option<Meter>,
     /// When each API call of the last minute was made.
     calls: VecDeque<Instant>,
+    /// Until when (Unix seconds) the changes feed is not tried: the server has none.
+    feed_off_until: i64,
+    /// Until when (Unix seconds) the stream is not tried: the plan or the server has none.
+    stream_off_until: i64,
+    /// Inboxes still to poll one by one after the feed starts (or starts again), for mail from before its cursor.
+    sweep: Vec<String>,
 }
 
 type Opener = Box<dyn Fn(&str) -> Result<(), String> + Send + Sync>;
@@ -180,6 +208,11 @@ struct Inner {
     progress: Mutex<Progress>,
     metadata: Mutex<Option<Metadata>>,
     checking: Mutex<()>,
+    /// Set by the stream (or Check now) to collect at once; the loop waits on it.
+    woken: Mutex<bool>,
+    wake: Condvar,
+    /// True while the account stream is up, so the loop only checks as a safety net.
+    live: AtomicBool,
     mailbox: Arc<Mailbox>,
     app: Option<AppHandle>,
     open_browser: Opener,
@@ -205,12 +238,9 @@ impl DissolveService {
         });
         let service = Self::new(config_folder, mailbox, app, open_browser);
         let looping = service.clone();
-        std::thread::spawn(move || {
-            loop {
-                let _ = looping.check();
-                std::thread::sleep(INTERVAL);
-            }
-        });
+        std::thread::spawn(move || looping.run());
+        let streaming = service.clone();
+        std::thread::spawn(move || streaming.keep_streaming());
         service
     }
 
@@ -223,6 +253,9 @@ impl DissolveService {
             progress: Mutex::default(),
             metadata: Mutex::default(),
             checking: Mutex::new(()),
+            woken: Mutex::new(false),
+            wake: Condvar::new(),
+            live: AtomicBool::new(false),
             mailbox,
             app,
             open_browser,
@@ -309,6 +342,8 @@ impl DissolveService {
         let code = way_back.wait(&state, &metadata.issuer, SIGN_IN_WAIT).map_err(|error| error.to_string())?;
         let tokens = oauth::exchange(&metadata, &saved.client_id, &code, way_back.redirect(), &pair.verifier, unix_now()).map_err(|error| error.to_string())?;
         let me = Api::new(saved.server(), &tokens.access).me().map_err(|error| error.to_string())?;
+        // A new sign-in starts the changes feed again: the old cursor may be another account's.
+        saved.cursor = None;
         saved.account = Some(Account {
             email: me.email.clone(),
             plan: me.plan.clone(),
@@ -333,6 +368,7 @@ impl DissolveService {
     /// [`AppError`] when the settings or the store cannot be written.
     pub fn disconnect(&self, delete_mail: bool) -> Result<DissolveStatusDto, AppError> {
         let mut saved = self.0.settings.lock()?.clone();
+        saved.cursor = None;
         if let Some(account) = saved.account.take()
             && let Ok(metadata) = self.metadata(&saved)
         {
@@ -581,44 +617,37 @@ impl DissolveService {
                 self.0.mailbox.delete_forever(&known.messages.into_values().collect::<Vec<_>>(), &Actor::App).map_err(|error| error.to_string())?;
             }
         }
-        let turn = self.0.progress.lock().map_or(0, |progress| progress.turn);
-        let chosen: Vec<&RemoteInbox> = remote.iter().cycle().skip(turn % remote.len().max(1)).take(remote.len().min(POLLS_PER_CHECK)).collect();
-        if let Ok(mut progress) = self.0.progress.lock() {
-            progress.turn = turn.wrapping_add(chosen.len());
-        }
         let mut arrived: Vec<MessageDto> = Vec::new();
         let mut taken = 0;
+        let feed_on = self.0.progress.lock().map_or(true, |progress| unix_now() >= progress.feed_off_until);
+        let polled: Vec<&RemoteInbox> = if feed_on && self.read_feed(&remote, &mut saved, &mut arrived, &mut taken)? {
+            // The feed brings every new message; only inboxes still owed their sweep are polled one by one.
+            let owed: Vec<String> = self.0.progress.lock().map(|progress| progress.sweep.iter().take(POLLS_PER_CHECK).cloned().collect()).unwrap_or_default();
+            remote.iter().filter(|inbox| owed.contains(&inbox.id)).collect()
+        } else {
+            let turn = self.0.progress.lock().map_or(0, |progress| progress.turn);
+            let chosen: Vec<&RemoteInbox> = remote.iter().cycle().skip(turn % remote.len().max(1)).take(remote.len().min(POLLS_PER_CHECK)).collect();
+            if let Ok(mut progress) = self.0.progress.lock() {
+                progress.turn = turn.wrapping_add(chosen.len());
+            }
+            chosen
+        };
         let mut slowed = false;
-        for inbox in chosen {
+        for inbox in polled {
             let messages = match self.call(|api| api.messages(&inbox.id)) {
                 Ok(messages) => messages,
                 Err(ApiError::Slow) => {
                     slowed = true;
                     break;
                 }
-                Err(ApiError::Gone) => continue,
+                Err(ApiError::Gone) => Vec::new(),
                 Err(error) => return Err(error.to_string()),
             };
-            let placement = Placement { workspace: WORKSPACE.to_owned(), folder: Some(inbox.address.clone()) };
-            for message in messages {
-                if saved.inboxes.get(&inbox.id).is_some_and(|known| known.messages.contains_key(&message.id)) {
-                    continue;
-                }
-                let raw = match self.call(|api| api.source(&inbox.id, &message.id)).map_err(|error| error.to_string())? {
-                    Some(raw) => raw,
-                    None => stand_in(&message, &inbox.address),
-                };
-                let received = unix_of(&message.received_at).unwrap_or_else(unix_now);
-                match self.0.mailbox.take_in_placed(&raw, &inbox.address, &placement, received) {
-                    Ok((stored, announce)) => {
-                        if let Some(known) = saved.inboxes.get_mut(&inbox.id) {
-                            known.messages.insert(message.id.clone(), stored);
-                        }
-                        taken += 1;
-                        arrived.extend(announce);
-                    }
-                    Err(error) => self.0.mailbox.note_unreadable(&format!("dissolve.email {}", message.id), &error.to_string()),
-                }
+            for message in &messages {
+                taken += self.take_message(&inbox.id, &inbox.address, message, &mut saved, &mut arrived)?;
+            }
+            if let Ok(mut progress) = self.0.progress.lock() {
+                progress.sweep.retain(|id| id != &inbox.id);
             }
         }
         self.save(&saved).map_err(|error| error.to_string())?;
@@ -628,6 +657,152 @@ impl DissolveService {
             return Err(ApiError::Slow.to_string());
         }
         Ok(taken)
+    }
+
+    /// Reads the changes feed from the saved cursor and takes in what it brings. With no cursor, takes the feed's head
+    /// and owes every inbox one poll, for mail from before it. Returns false when the server has no feed, so the caller
+    /// polls inbox by inbox instead (and the feed is tried again in an hour).
+    fn read_feed(&self, remote: &[RemoteInbox], saved: &mut DissolveSettings, arrived: &mut Vec<MessageDto>, taken: &mut usize) -> Result<bool, String> {
+        for _ in 0..FEED_PAGES {
+            let cursor = saved.cursor.clone();
+            match self.call(|api| api.changes(cursor.as_deref())).map_err(|error| error.to_string())? {
+                Feed::Unsupported => {
+                    if let Ok(mut progress) = self.0.progress.lock() {
+                        progress.feed_off_until = unix_now() + FEED_RETRY_LATER;
+                    }
+                    return Ok(false);
+                }
+                Feed::Expired if cursor.is_some() => saved.cursor = None,
+                Feed::Expired => return Ok(false),
+                Feed::Page(page) if cursor.is_none() => {
+                    saved.cursor = Some(page.next_cursor);
+                    if let Ok(mut progress) = self.0.progress.lock() {
+                        progress.sweep = remote.iter().map(|inbox| inbox.id.clone()).collect();
+                    }
+                    return Ok(true);
+                }
+                Feed::Page(page) => {
+                    for item in &page.messages {
+                        match saved.inboxes.get(&item.inbox_id).map(|known| known.address.clone()) {
+                            Some(address) => *taken += self.take_message(&item.inbox_id, &address, &item.message, saved, arrived)?,
+                            // An inbox newer than the list read this check: the next check lists it and polls it once.
+                            None => {
+                                if let Ok(mut progress) = self.0.progress.lock()
+                                    && !progress.sweep.contains(&item.inbox_id)
+                                {
+                                    progress.sweep.push(item.inbox_id.clone());
+                                }
+                            }
+                        }
+                    }
+                    saved.cursor = Some(page.next_cursor);
+                    if !page.has_more {
+                        return Ok(true);
+                    }
+                }
+            }
+        }
+        Ok(true)
+    }
+
+    /// Takes in one message of an inbox unless it is already here: its original when dissolve.email kept it, otherwise
+    /// one rebuilt from the API's fields. Returns 1 when it was stored.
+    fn take_message(
+        &self,
+        inbox: &str,
+        address: &str,
+        message: &RemoteMessage,
+        saved: &mut DissolveSettings,
+        arrived: &mut Vec<MessageDto>,
+    ) -> Result<usize, String> {
+        if saved.inboxes.get(inbox).is_some_and(|known| known.messages.contains_key(&message.id)) {
+            return Ok(0);
+        }
+        let raw = match self.call(|api| api.source(inbox, &message.id)).map_err(|error| error.to_string())? {
+            Some(raw) => raw,
+            None => stand_in(message, address),
+        };
+        let placement = Placement { workspace: WORKSPACE.to_owned(), folder: Some(address.to_owned()) };
+        let received = unix_of(&message.received_at).unwrap_or_else(unix_now);
+        match self.0.mailbox.take_in_placed(&raw, address, &placement, received) {
+            Ok((stored, announce)) => {
+                if let Some(known) = saved.inboxes.get_mut(inbox) {
+                    known.messages.insert(message.id.clone(), stored);
+                }
+                arrived.extend(announce);
+                Ok(1)
+            }
+            Err(error) => {
+                self.0.mailbox.note_unreadable(&format!("dissolve.email {}", message.id), &error.to_string());
+                Ok(0)
+            }
+        }
+    }
+
+    /// The collection loop: a check, then a wait until the stream wakes it or the timer runs out (every minute
+    /// without the stream, every ten minutes with it).
+    fn run(&self) {
+        loop {
+            let _ = self.check();
+            let wait = if self.0.live.load(Ordering::SeqCst) { SAFETY_EVERY } else { INTERVAL };
+            let Ok(woken) = self.0.woken.lock() else { return };
+            let Ok((mut woken, _)) = self.0.wake.wait_timeout_while(woken, wait, |woken| !*woken) else { return };
+            *woken = false;
+        }
+    }
+
+    /// Wakes the loop for a check now.
+    fn wake_now(&self) {
+        if let Ok(mut woken) = self.0.woken.lock() {
+            *woken = true;
+            self.0.wake.notify_all();
+        }
+    }
+
+    /// Keeps the account stream open while connected and the plan has it: wakes the loop on connecting and on every
+    /// event, refreshes the token when the server ends it, and stands down for a while on a plan or server without it.
+    fn keep_streaming(&self) {
+        let mut wait = STREAM_RETRY_FIRST;
+        loop {
+            let off_until = self.0.progress.lock().map_or(0, |progress| progress.stream_off_until);
+            let Some((server, token)) = (if unix_now() < off_until { None } else { self.stream_token() }) else {
+                std::thread::sleep(STREAM_RETRY_FIRST);
+                continue;
+            };
+            let opened = AtomicBool::new(false);
+            let on_open = || {
+                opened.store(true, Ordering::SeqCst);
+                self.0.live.store(true, Ordering::SeqCst);
+                self.wake_now();
+            };
+            let connected = || self.0.settings.lock().is_ok_and(|saved| saved.account.is_some());
+            let ended = stream::hold(&server, &token, Heartbeat::default(), &on_open, &|| self.wake_now(), &connected);
+            self.0.live.store(false, Ordering::SeqCst);
+            if opened.load(Ordering::SeqCst) {
+                wait = STREAM_RETRY_FIRST;
+            }
+            match ended {
+                Ended::TokenRefused if self.refresh().is_ok() => {}
+                Ended::NotOnPlan | Ended::Unsupported | Ended::AccountGone => {
+                    if let Ok(mut progress) = self.0.progress.lock() {
+                        progress.stream_off_until = unix_now() + STREAM_RETRY_LATER;
+                    }
+                }
+                Ended::Stopped => {}
+                Ended::TokenRefused | Ended::Dropped => {
+                    std::thread::sleep(wait);
+                    wait = (wait * 2).min(STREAM_RETRY_MOST);
+                }
+            }
+        }
+    }
+
+    /// The server and a fresh access token for the stream, or `None` while not connected or when refreshing fails.
+    fn stream_token(&self) -> Option<(String, String)> {
+        let saved = self.0.settings.lock().ok()?.clone();
+        let account = saved.account.as_ref()?;
+        let token = if account.expires_at - unix_now() < REFRESH_AHEAD { self.refresh().ok()? } else { account.access_token.clone() };
+        Some((saved.server().to_owned(), token))
     }
 
     /// Runs one API call with a fresh token, refreshing once and trying again when the token was refused.

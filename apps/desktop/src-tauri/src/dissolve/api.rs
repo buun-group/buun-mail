@@ -12,6 +12,45 @@ const TIMEOUT: Duration = Duration::from_secs(30);
 /// The largest message source taken.
 const SOURCE_LIMIT: u64 = 30 * 1024 * 1024;
 
+/// How many changes one page of the feed asks for: dissolve.email's most.
+const FEED_PAGE: u32 = 200;
+
+/// A message from the changes feed: the inbox list's shape, with the inbox it is in.
+#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct FeedMessage {
+    /// The inbox it arrived in.
+    pub inbox_id: String,
+    /// The message itself.
+    #[serde(flatten)]
+    pub message: RemoteMessage,
+}
+
+/// One page of the changes feed, oldest first.
+#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct Changes {
+    /// New messages across every inbox the account reads.
+    #[serde(default)]
+    pub messages: Vec<FeedMessage>,
+    /// Where the next page starts; on an empty page, the feed's head.
+    pub next_cursor: String,
+    /// More changes wait past this page.
+    #[serde(default)]
+    pub has_more: bool,
+}
+
+/// What the changes feed answered.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Feed {
+    /// A page of changes.
+    Page(Changes),
+    /// The cursor is older than the feed remembers (seven days) or not the server's: start again from the inboxes.
+    Expired,
+    /// The server has no changes feed (an older or self-hosted one): poll each inbox instead.
+    Unsupported,
+}
+
 /// Why a call failed, in words for Settings and toasts.
 #[derive(Debug, Error, PartialEq, Eq)]
 pub enum ApiError {
@@ -349,6 +388,22 @@ impl Api {
         }
     }
 
+    /// The changes feed across every inbox: the page after `since`, or, with no cursor, the feed's head and no changes.
+    /// One call covers every inbox, where [`Api::messages`] takes one call per inbox.
+    ///
+    /// # Errors
+    ///
+    /// As for [`Api::me`]; an expired cursor and a server without the feed are answers, not errors.
+    pub fn changes(&self, since: Option<&str>) -> Result<Feed, ApiError> {
+        let path = since.map_or_else(|| format!("/messages?limit={FEED_PAGE}"), |cursor| format!("/messages?limit={FEED_PAGE}&since={}", cursor_param(cursor)));
+        let response = self.agent.get(self.url(&path)).header("Authorization", &self.bearer).call().map_err(unexpected)?;
+        match response.status().as_u16() {
+            404 => Ok(Feed::Unsupported),
+            400 | 410 => Ok(Feed::Expired),
+            _ => checked(Ok(response))?.body_mut().read_json().map(Feed::Page).map_err(unexpected),
+        }
+    }
+
     /// The domains inboxes can be made on, the default first.
     ///
     /// # Errors
@@ -462,6 +517,18 @@ fn refusal_of(status: u16, refusal: Refusal) -> ApiError {
 /// An id safe in a path: anything but letters, digits, `-` and `_` is dropped, so an id can never reach another route.
 fn segment(id: &str) -> String {
     id.chars().filter(|character| character.is_ascii_alphanumeric() || matches!(character, '-' | '_')).collect()
+}
+
+/// A cursor safe in a query: base64url passes as it is, padding is escaped, and anything else is dropped.
+fn cursor_param(cursor: &str) -> String {
+    cursor
+        .chars()
+        .filter_map(|character| match character {
+            'A'..='Z' | 'a'..='z' | '0'..='9' | '-' | '_' => Some(character.to_string()),
+            '=' => Some("%3D".to_owned()),
+            _ => None,
+        })
+        .collect()
 }
 
 #[allow(clippy::needless_pass_by_value, reason = "passed to map_err, which hands the error over")]

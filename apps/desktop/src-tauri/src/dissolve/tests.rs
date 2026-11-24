@@ -16,6 +16,7 @@ use crate::mailbox::Mailbox;
 use crate::paths::TEST_ROUTING;
 
 #[derive(Default)]
+#[allow(clippy::struct_excessive_bools, reason = "a test double: each flag is one way the fake server behaves")]
 struct Fake {
     /// id to (address, expiresAt).
     inboxes: BTreeMap<String, (String, String)>,
@@ -39,6 +40,37 @@ struct Fake {
     identity_cap: usize,
     /// Requests to make an inbox that asked for an identity too.
     asked_identity: usize,
+    /// The server has the changes feed; an older one answers 404.
+    feed: bool,
+    /// The change log: (inbox id, message id), its position the cursor.
+    log: Vec<(String, String)>,
+    /// Feed pages asked for.
+    feed_calls: usize,
+    /// The next feed read answers 410, as a cursor older than seven days does.
+    expire_cursor: bool,
+}
+
+impl Fake {
+    /// A new message in an inbox, kept with its source, and written to the change log.
+    fn deliver(&mut self, inbox: &str, id: &str, to: &str) {
+        self.messages.entry(inbox.to_owned()).or_default().push((id.to_owned(), Some(source(id, to))));
+        self.log.push((inbox.to_owned(), id.to_owned()));
+    }
+}
+
+/// The changes feed after `since` (`c<position>`), or its head with no cursor.
+fn feed_page(fake: &mut Fake, url: &str) -> tiny_http::Response<std::io::Cursor<Vec<u8>>> {
+    fake.feed_calls += 1;
+    if std::mem::take(&mut fake.expire_cursor) {
+        return json_response(410, &json!({ "error": { "code": "cursor_expired", "message": "Start again from the inboxes." } }));
+    }
+    let head = format!("c{}", fake.log.len());
+    let since =
+        url.split("since=").nth(1).and_then(|rest| rest.split('&').next()).and_then(|cursor| cursor.strip_prefix('c')).and_then(|n| n.parse::<usize>().ok());
+    let messages: Vec<Value> = since.map_or_else(Vec::new, |from| {
+        fake.log.iter().skip(from).map(|(inbox, id)| json!({ "inboxId": inbox, "id": id, "fromAddress": "hello@shop.example", "fromName": "Shop", "subject": format!("Your code {id}"), "receivedAt": "2026-11-20T10:00:00.000Z" })).collect()
+    });
+    json_response(200, &json!({ "messages": messages, "removed": [], "nextCursor": head, "hasMore": false }))
 }
 
 /// An identity as dissolve.email answers with it.
@@ -218,6 +250,7 @@ fn fake_server() -> (String, Arc<Mutex<Fake>>) {
                         ),
                     ),
                     ("GET", ["v1", "domains"]) => json_response(200, &domains()),
+                    ("GET", ["v1", "messages"]) if fake.feed => feed_page(&mut fake, &url),
                     ("POST", ["v1", "inboxes", id, "extend"]) => {
                         let id = (*id).to_owned();
                         match fake.inboxes.get_mut(&id) {
@@ -493,4 +526,56 @@ fn makes_an_agent_identity_with_a_new_address_once_allowed_on_a_plan_that_has_th
 
     // Making one with each new address can be turned off.
     assert!(allowing.set_identity_with_new(false).is_ok_and(|status| !status.identities.with_new));
+}
+
+#[test]
+fn reads_new_mail_from_the_changes_feed_in_one_call_after_one_sweep() {
+    let setup = setup();
+    if let Ok(mut fake) = setup.fake.lock() {
+        fake.feed = true;
+    }
+    // Connecting takes the feed's head, then polls each inbox once for the mail from before it.
+    let service = connected(&setup);
+    assert_eq!(folder_of(&setup, "signup@dissolve.test").len(), 2);
+    let polls = setup.fake.lock().map_or(0, |fake| fake.polls);
+    assert_eq!(polls, 1);
+    assert_eq!(settings::load(&setup.config).cursor.as_deref(), Some("c0"));
+
+    if let Ok(mut fake) = setup.fake.lock() {
+        fake.deliver("inb_a", "msg_3", "signup@dissolve.test");
+    }
+    assert_eq!(service.check(), Ok(1));
+    assert!(folder_of(&setup, "signup@dissolve.test").contains(&"Your code msg_3".to_owned()));
+    assert_eq!(setup.fake.lock().map_or(0, |fake| fake.polls), polls, "the feed brought it, no inbox was polled");
+    assert_eq!(settings::load(&setup.config).cursor.as_deref(), Some("c1"), "a restart carries on from here");
+    assert_eq!(service.check(), Ok(0), "nothing is taken twice");
+}
+
+#[test]
+fn starts_the_feed_again_when_its_cursor_expired() {
+    let setup = setup();
+    if let Ok(mut fake) = setup.fake.lock() {
+        fake.feed = true;
+    }
+    let service = connected(&setup);
+    if let Ok(mut fake) = setup.fake.lock() {
+        fake.deliver("inb_a", "msg_3", "signup@dissolve.test");
+        fake.expire_cursor = true;
+    }
+    // The 410 drops the cursor; the same check takes the head again and sweeps the inbox, which finds msg_3.
+    assert_eq!(service.check(), Ok(1));
+    assert_eq!(settings::load(&setup.config).cursor.as_deref(), Some("c1"));
+    assert_eq!(setup.fake.lock().map_or(0, |fake| fake.polls), 2);
+}
+
+#[test]
+fn polls_inbox_by_inbox_on_a_server_without_the_feed_and_asks_for_it_only_hourly() {
+    let setup = setup();
+    let service = connected(&setup);
+    if let Ok(mut fake) = setup.fake.lock() {
+        fake.messages.entry("inb_a".to_owned()).or_default().push(("msg_3".to_owned(), Some(source("msg_3", "signup@dissolve.test"))));
+    }
+    assert_eq!(service.check(), Ok(1));
+    assert_eq!(settings::load(&setup.config).cursor, None);
+    assert_eq!(setup.fake.lock().map_or(0, |fake| fake.feed_calls), 0, "the 404 route is not the feed handler");
 }
