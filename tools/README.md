@@ -12,4 +12,5 @@ Developer scripts the root `package.json` calls.
 | `mobile-version.mjs` | `node tools/mobile-version.mjs <android\|ios> <tag>`: the version name, code and build number a phone build carries, as Tauri `--config` JSON |
 | `mobile-impact.mjs` | Whether a release changed what a phone app is built from, since the `android-beta`, `ios-beta`, `android-stable` or `ios-stable` tag |
 | `play-ship.mjs` | Uploads an `.aab` to a Google Play track, or promotes the release on one track to another; `play-versions.mjs` holds its pure parts |
+| `updater-urls.mjs` | Rewrites a release's `latest.json` so each installer URL is its public download link, not a rate-limited GitHub API URL, for `build.yml` |
 | `apple-preflight.mjs` | The read-only App Store Connect check `mobile-ios.yml` runs first; `apple-checks.mjs` holds its pure parts |

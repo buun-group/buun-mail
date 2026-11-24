@@ -148,3 +148,36 @@ jobs:
           uploadUpdaterJson: true
           updaterJsonPreferNsis: true
 
+  # tauri-action writes each installer URL in latest.json as a GitHub API URL, and the API allows 60 unauthenticated
+  # calls an hour per address: past that, the app's in-place update fails with 403 Forbidden. Once every build has
+  # added its entry, the manifest is rewritten to the public download links, which have no such limit. The release is
+  # still a draft here, so nobody reads latest.json while it is replaced.
+  updater-urls:
+    name: Public links in latest.json
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      TAG: ${{ inputs.tag }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Rewrite latest.json
+        shell: bash
+        run: |
+          id=$(gh api "repos/$GITHUB_REPOSITORY/releases?per_page=30" --jq ".[] | select(.tag_name == \"$TAG\") | .id" | head -n1)
+          if [ -z "$id" ]; then echo "::error::No release for $TAG."; exit 1; fi
+          gh api "repos/$GITHUB_REPOSITORY/releases/$id/assets?per_page=100" > "$RUNNER_TEMP/assets.json"
+          manifest=$(jq -r '.[] | select(.name == "latest.json") | .id' "$RUNNER_TEMP/assets.json")
+          if [ -z "$manifest" ]; then echo "::error::The release for $TAG has no latest.json."; exit 1; fi
+          gh api -H 'Accept: application/octet-stream' "repos/$GITHUB_REPOSITORY/releases/assets/$manifest" > "$RUNNER_TEMP/latest.json"
+          node tools/updater-urls.mjs "$RUNNER_TEMP/latest.json" "$RUNNER_TEMP/assets.json" "$GITHUB_REPOSITORY" "$TAG" > "$RUNNER_TEMP/public.json"
+          if cmp -s "$RUNNER_TEMP/latest.json" "$RUNNER_TEMP/public.json"; then echo "latest.json already uses public links."; exit 0; fi
+          gh api -X DELETE "repos/$GITHUB_REPOSITORY/releases/assets/$manifest"
+          gh api -X POST -H 'Content-Type: application/json' --input "$RUNNER_TEMP/public.json" \
+            "https://uploads.github.com/repos/$GITHUB_REPOSITORY/releases/$id/assets?name=latest.json" > /dev/null
+          jq -r '.platforms | to_entries[] | "\(.key)  \(.value.url)"' "$RUNNER_TEMP/public.json"
+
