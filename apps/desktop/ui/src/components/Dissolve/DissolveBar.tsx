@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
-import type { ReactNode } from 'react'
+import type { FormEvent, ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { burnDissolveInbox, dissolveStatus, extendDissolveInbox } from '../../api/client'
-import type { DissolveStatus, MadeDissolveInbox, Place } from '../../api/types'
+import { addDissolveAlias, burnDissolveInbox, dissolveAliases, dissolveStatus, extendDissolveInbox, removeDissolveAlias } from '../../api/client'
+import type { DissolveAlias, DissolveInbox, DissolveStatus, MadeDissolveInbox, Place } from '../../api/types'
 import i18n from '../../i18n'
-import { IconAdd, IconBurn, IconCopy, IconExtend, IconIdentity, IconTimer } from '../../icons'
+import { IconAdd, IconAt, IconBurn, IconCopy, IconDelete, IconExtend, IconIdentity, IconTimer } from '../../icons'
 import { copyWithToast } from '../../lib/copy'
 import { STORAGE_KEYS } from '../../constants/ui'
 import { isBusy } from '../../hooks/useMailKeys'
@@ -13,8 +13,10 @@ import { DISSOLVE_WORKSPACE, formatTimeLeft, readMeter, timeLeft } from '../../l
 import { formatListed } from '../../lib/time'
 import { TipButton } from '../Tooltip/TipButton'
 import { toast } from '../../lib/feedback'
+import { Skeleton } from '../Busy/Skeleton'
 import { Confirm } from '../Confirm/Confirm'
 import type { Confirmation } from '../Confirm/Confirm'
+import { Popover } from '../Popover/Popover'
 import { IdentityDrawer } from './IdentityDrawer'
 import { NewAddress } from './NewAddress'
 
@@ -66,6 +68,7 @@ export function DissolveBar({ place, onOpen }: { place: Place; onOpen: (place: P
   const [busy, setBusy] = useState(false)
   const [confirming, setConfirming] = useState<Confirmation | null>(null)
   const [making, setMaking] = useState<HTMLElement | null>(null)
+  const [aliasing, setAliasing] = useState<HTMLElement | null>(null)
   // A folder opened straight after making its address with an identity shows the drawer, glowing for a moment.
   const [fresh] = useState(() => place.folder !== null && place.folder === openIdentityFor)
   const [showIdentity, setShowIdentity] = useState(() => fresh || drawerOpen())
@@ -152,7 +155,9 @@ export function DissolveBar({ place, onOpen }: { place: Place; onOpen: (place: P
   const plan = status.limits.plan ?? ''
   // Why Extend is off, when dissolve.email has said: none left, or not yet.
   const extendBlocked =
-    extensions?.canExtend === false
+    extensions?.lifetimeReached === true && extensions.lifetimeEndsAt !== null
+      ? t('dissolve.lifetimeReached', { time: formatListed(extensions.lifetimeEndsAt) })
+      : extensions?.canExtend === false
       ? extensions.availableAt !== null && Date.parse(extensions.availableAt) > now
         ? t('dissolve.extendFrom', { time: formatListed(extensions.availableAt) })
         : t('dissolve.extendUsed', { used: extensions.used ?? 0, limit: extensions.limit ?? 0, plan })
@@ -185,6 +190,8 @@ export function DissolveBar({ place, onOpen }: { place: Place; onOpen: (place: P
 
   // Identity shows once the plan has them or this address is known to have one; Free accounts never see it.
   const identityOn = inbox.identity || status.identities.plan === true
+  // Aliases are a Pro and Business feature; a live inbox on a paid plan offers them.
+  const aliasesOn = status.connected && !inbox.ended && status.limits.plan !== null && status.limits.plan !== 'free'
   // One element: the list gives its banner a single grid row. The identity drawer renders at the window's edge.
   return (
     <div className="dissolve-banner">
@@ -198,11 +205,18 @@ export function DissolveBar({ place, onOpen }: { place: Place; onOpen: (place: P
         {inbox.ended ? t('dissolve.endedKept') : formatTimeLeft(left)}
       </span>
       {extensions?.used != null && extensions.limit !== null && <span className="dissolve-bar__count">{t('dissolve.extensionsCount', { used: extensions.used, limit: extensions.limit })}</span>}
+      {!inbox.ended && extensions?.lifetimeEndsAt != null && extensions.lifetimeReached !== true && <span className="dissolve-bar__count">{t('dissolve.endsForGood', { time: formatListed(extensions.lifetimeEndsAt) })}</span>}
       {!inbox.ended && status.connected && (
         <TipButton tip={extendBlocked} className="dissolve-bar__button" aria-disabled={extendBlocked !== null || busy || undefined} onClick={extendBlocked === null && !busy ? extend : undefined}>
           <IconExtend aria-hidden="true" />
           {t('dissolve.extend')}
         </TipButton>
+      )}
+      {aliasesOn && (
+        <button type="button" className="dissolve-bar__button" aria-expanded={aliasing !== null} onClick={(event) => setAliasing(event.currentTarget)}>
+          <IconAt aria-hidden="true" />
+          {t('aliases.button')}
+        </button>
       )}
       {identityOn && (
         <button type="button" className="dissolve-bar__button" aria-expanded={showIdentity} onClick={toggleIdentity}>
@@ -215,8 +229,107 @@ export function DissolveBar({ place, onOpen }: { place: Place; onOpen: (place: P
         {inbox.ended ? t('dissolve.deleteHere') : t('dissolve.burn')}
       </button>
       <Confirm request={confirming} cancelLabel={t('actions.cancel')} onClose={() => setConfirming(null)} />
+      {aliasing !== null && <Aliases anchor={aliasing} inbox={inbox} onClose={() => setAliasing(null)} />}
     </div>
     {identityOn && <IdentityDrawer inbox={inbox} identities={status.identities} open={showIdentity} fresh={fresh} onToggle={toggleIdentity} onStatus={setStatus} />}
     </div>
+  )
+}
+
+/**
+ * An inbox's aliases (Pro and Business): other addresses on its domain that deliver into it, so their mail lands in
+ * the same folder. Lists them with Copy and Remove, and adds one by the part before the @.
+ */
+function Aliases({ anchor, inbox, onClose }: { anchor: HTMLElement; inbox: DissolveInbox; onClose: () => void }): ReactNode {
+  const { t } = useTranslation('mail')
+  const [aliases, setAliases] = useState<DissolveAlias[] | null>(null)
+  const [local, setLocal] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const domain = inbox.address.split('@')[1] ?? ''
+
+  useEffect(() => {
+    let live = true
+    dissolveAliases(inbox.id)
+      .then((found) => {
+        if (live) setAliases(found)
+      })
+      .catch((cause: unknown) => {
+        if (!live) return
+        setAliases([])
+        setError(reason(cause))
+      })
+    return () => {
+      live = false
+    }
+  }, [inbox.id])
+
+  const add = (event: FormEvent<HTMLFormElement>): void => {
+    event.preventDefault()
+    const wanted = local.trim().toLowerCase()
+    if (wanted === '') return
+    setBusy(true)
+    setError(null)
+    addDissolveAlias(inbox.id, wanted)
+      .then((next) => {
+        setAliases(next)
+        setLocal('')
+        const made = next.find((alias) => alias.address.startsWith(`${wanted}@`))
+        if (made !== undefined) void copyWithToast(made.address, t('aliases.added'))
+      })
+      .catch((cause: unknown) => setError(reason(cause)))
+      .finally(() => setBusy(false))
+  }
+  const remove = (alias: DissolveAlias): void => {
+    removeDissolveAlias(inbox.id, alias.id)
+      .then((next) => {
+        setAliases(next)
+        toast({ text: t('aliases.removed'), detail: alias.address, tone: 'done' })
+      })
+      .catch((cause: unknown) => toast({ text: t('aliases.failed'), detail: reason(cause), tone: 'problem' }))
+  }
+
+  return (
+    <Popover anchor={anchor} label={t('aliases.title', { address: inbox.address })} onClose={onClose}>
+      <div className="aliases">
+        <p className="aliases__hint">{t('aliases.hint')}</p>
+        {aliases === null ? (
+          <Skeleton rows={2} label={t('aliases.loading')} />
+        ) : aliases.length === 0 ? (
+          <p className="aliases__none">{t('aliases.none')}</p>
+        ) : (
+          <ul className="aliases__list">
+            {aliases.map((alias) => (
+              <li key={alias.id} className="aliases__row">
+                <span className="aliases__address">{alias.address}</span>
+                <TipButton tip={t('aliases.copy', { address: alias.address })} className="overview__tool" aria-label={t('aliases.copy', { address: alias.address })} onClick={(event) => void copyWithToast(alias.address, undefined, event.currentTarget)}>
+                  <IconCopy aria-hidden="true" />
+                </TipButton>
+                <TipButton tip={t('aliases.remove', { address: alias.address })} className="overview__tool overview__tool--danger" aria-label={t('aliases.remove', { address: alias.address })} onClick={() => remove(alias)}>
+                  <IconDelete aria-hidden="true" />
+                </TipButton>
+              </li>
+            ))}
+          </ul>
+        )}
+        <form className="new-address" onSubmit={add}>
+          <label className="new-address__field" htmlFor="alias-local">
+            {t('aliases.label')}
+          </label>
+          <div className="new-address__address new-address__address--wide">
+            <input id="alias-local" value={local} placeholder={t('aliases.placeholder')} onChange={(event) => setLocal(event.target.value)} autoComplete="off" spellCheck={false} />
+            <span aria-hidden="true">@{domain}</span>
+          </div>
+          {error !== null && (
+            <p role="alert" className="new-address__error">
+              {error}
+            </p>
+          )}
+          <button type="submit" className="new-address__make" disabled={busy || local.trim() === ''}>
+            {busy ? t('aliases.adding') : t('aliases.add')}
+          </button>
+        </form>
+      </div>
+    </Popover>
   )
 }

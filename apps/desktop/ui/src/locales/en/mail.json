@@ -317,7 +317,9 @@
     "extendFrom": "Can be extended from {{time}}",
     "extensionsCount": "{{used}} of {{limit}} extensions",
     "usageInboxes": "{{value}} inboxes",
-    "usageHourly": "{{value}} new this hour"
+    "usageHourly": "{{value}} new this hour",
+    "lifetimeReached": "Reached the plan's longest life; it ends {{time}}",
+    "endsForGood": "Ends for good {{time}}"
   },
   "identity": {
     "button": "Identity",
@@ -487,5 +489,42 @@
     "hint": "Only on this computer, never sent. Saves when you click away, or with Ctrl and Enter.",
     "saved": "Note saved",
     "removed": "Note removed"
+  },
+  "aliases": {
+    "button": "Aliases",
+    "title": "Aliases of {{address}}",
+    "hint": "Other addresses that deliver into this inbox. Their mail lands in this folder.",
+    "loading": "Loading aliases",
+    "none": "No aliases yet.",
+    "label": "New alias",
+    "placeholder": "billing",
+    "add": "Add alias",
+    "adding": "Adding...",
+    "added": "Alias added and copied",
+    "copy": "Copy {{address}}",
+    "remove": "Remove {{address}}",
+    "removed": "Alias removed",
+    "failed": "The alias was not changed"
+  },
+  "identityList": {
+    "title_one": "{{count}} agent identity",
+    "title_other": "{{count}} agent identities",
+    "loading": "Loading agent identities",
+    "none": "No agent identities yet. Make one with a new address, or from an address's Identity panel.",
+    "noLabel": "No label",
+    "elsewhere": "Not an inbox here",
+    "open": "Open {{email}}",
+    "rename": "Rename",
+    "renameTitle": "Label for {{email}}",
+    "labelPlaceholder": "GitHub test account",
+    "save": "Save",
+    "saved": "Identity renamed",
+    "extend": "Extend",
+    "extended": "Identity extended",
+    "delete": "Delete identity",
+    "deleteTitle": "Delete the identity for {{email}}?",
+    "deleteBody": "The identity and its saved password are deleted on dissolve.email. Its inbox and mail stay.",
+    "deleted": "Identity deleted",
+    "failed": "The identity was not changed"
   }
 }

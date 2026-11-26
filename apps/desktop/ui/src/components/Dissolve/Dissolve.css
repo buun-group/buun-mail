@@ -111,6 +111,48 @@
 .new-address__make:disabled {
   opacity: 0.6;
 }
+/* One field, with or without a fixed suffix such as the alias's @domain. */
+.new-address__address--wide {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+.aliases {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-2);
+  width: min(26rem, calc(100vw - 2rem));
+  padding: var(--space-3) var(--space-3) 0;
+  font-size: var(--text-sm);
+}
+.aliases .new-address {
+  width: auto;
+  padding: 0 0 var(--space-3);
+}
+.aliases__hint,
+.aliases__none {
+  margin: 0;
+  color: var(--text-muted);
+}
+.aliases__list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.aliases__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+.aliases__address {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-family: var(--font-mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .limits {
   display: grid;
   gap: var(--space-2);

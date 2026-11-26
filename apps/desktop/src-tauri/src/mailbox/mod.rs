@@ -71,6 +71,25 @@ pub struct Mailbox {
     routing_path: PathBuf,
     provided: RwLock<Vec<ProvidedWorkspace>>,
     alerts: Mutex<Option<std::sync::mpsc::Sender<Alerted>>>,
+    changes: Mutex<Option<std::sync::mpsc::Sender<Changed>>>,
+}
+
+/// A change made by a person, a rule or an agent that a mail source may mirror back to where the mail came from, such
+/// as dissolve.email deleting a message deleted for good here. The app's own changes are never sent, so a source that
+/// deletes mail because it ended there does not hear about it again.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Changed {
+    /// These messages were deleted for good.
+    Deleted(Vec<String>),
+    /// A tag was put on a message (`on`) or taken off it.
+    Tagged {
+        /// The message.
+        id: String,
+        /// The tag, as written.
+        tag: String,
+        /// True when it was added.
+        on: bool,
+    },
 }
 
 /// A message that arrived and the alert channels its rules asked to tell.
@@ -107,6 +126,7 @@ impl Mailbox {
             routing_path,
             provided: RwLock::default(),
             alerts: Mutex::default(),
+            changes: Mutex::default(),
         })
     }
 
@@ -114,6 +134,25 @@ impl Mailbox {
     pub fn on_alert(&self, sink: std::sync::mpsc::Sender<Alerted>) {
         if let Ok(mut alerts) = self.alerts.lock() {
             *alerts = Some(sink);
+        }
+    }
+
+    /// Where changes a mail source may mirror go: deletions for good and tags, by anyone but the app itself.
+    pub fn on_change(&self, sink: std::sync::mpsc::Sender<Changed>) {
+        if let Ok(mut changes) = self.changes.lock() {
+            *changes = Some(sink);
+        }
+    }
+
+    /// Hands a change to the source that watches for them, unless the app made it.
+    pub(crate) fn changed(&self, actor: &Actor, change: Changed) {
+        if matches!(actor, Actor::App) {
+            return;
+        }
+        if let Ok(changes) = self.changes.lock()
+            && let Some(sink) = changes.as_ref()
+        {
+            let _ = sink.send(change);
         }
     }
 

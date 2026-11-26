@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react'
-import type { ReactNode } from 'react'
+import type { FormEvent, ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { burnDissolveInbox, dissolveStatus, extendDissolveInbox } from '../../api/client'
-import type { DissolveInbox, DissolveStatus, Place, Workspace } from '../../api/types'
-import { IconBurn, IconCopy, IconExtend, IconFolder, IconTimer, IconUnread } from '../../icons'
+import { burnDissolveInbox, deleteDissolveIdentity, dissolveIdentities, dissolveStatus, extendDissolveInbox, updateDissolveIdentity } from '../../api/client'
+import type { DissolveIdentityRow, DissolveInbox, DissolveStatus, Place, Workspace } from '../../api/types'
+import { IconBurn, IconCopy, IconDelete, IconExtend, IconFolder, IconIdentity, IconRename, IconTimer, IconUnread } from '../../icons'
+import { Popover } from '../Popover/Popover'
 import { copyWithToast } from '../../lib/copy'
 import { DISSOLVE_WORKSPACE, formatTimeLeft, timeLeft } from '../../lib/dissolve'
 import { toast } from '../../lib/feedback'
+import { formatListed } from '../../lib/time'
 import { Confirm } from '../Confirm/Confirm'
 import type { Confirmation } from '../Confirm/Confirm'
 import { TipButton } from '../Tooltip/TipButton'
@@ -76,7 +78,11 @@ export function Overview({ workspace, onOpen }: { workspace: Workspace | undefin
   const row = ({ item: inbox, leaving }: { item: DissolveInbox; leaving: boolean }): ReactNode => {
     const left = timeLeft(inbox.expiresAt, now)
     const unread = unreadOf(inbox.address)
-    const blocked = inbox.extensions?.canExtend === false
+    const lifetimeReached = inbox.extensions?.lifetimeReached === true && inbox.extensions.lifetimeEndsAt !== null
+    const blocked = lifetimeReached || inbox.extensions?.canExtend === false
+    const blockedTip = lifetimeReached
+      ? t('dissolve.lifetimeReached', { time: formatListed(inbox.extensions?.lifetimeEndsAt ?? '') })
+      : t('dissolve.extendUsed', { used: inbox.extensions?.used ?? 0, limit: inbox.extensions?.limit ?? 0, plan: status.limits.plan ?? '' })
     return (
       <DissolveOut as="li" key={inbox.id} out={leaving} onDone={() => gone(inbox.id)}>
       <div className="overview__row">
@@ -106,7 +112,7 @@ export function Overview({ workspace, onOpen }: { workspace: Workspace | undefin
           </TipButton>
           {!inbox.ended && status.connected && (
             <TipButton
-              tip={blocked ? t('dissolve.extendUsed', { used: inbox.extensions?.used ?? 0, limit: inbox.extensions?.limit ?? 0, plan: status.limits.plan ?? '' }) : t('dissolve.extend')}
+              tip={blocked ? blockedTip : t('dissolve.extend')}
               className="overview__tool"
               aria-label={t('dissolve.extend')}
               aria-disabled={blocked || undefined}
@@ -140,7 +146,147 @@ export function Overview({ workspace, onOpen }: { workspace: Workspace | undefin
           )}
         </>
       )}
+      {status.connected && status.identities.plan === true && status.identities.granted && <IdentityList now={now} inboxes={status.inboxes} onOpen={onOpen} />}
       <Confirm request={confirming} cancelLabel={t('actions.cancel')} onClose={() => setConfirming(null)} />
     </div>
+  )
+}
+
+/**
+ * Every agent identity on the account (Pro and Business, once allowed for Buun Mail): its address, label and time
+ * left, with Rename, Extend and Delete (the identity only; its inbox and mail stay). One whose inbox is a folder here
+ * opens it.
+ */
+function IdentityList({ now, inboxes, onOpen }: { now: number; inboxes: DissolveInbox[]; onOpen: (place: Place) => void }): ReactNode {
+  const { t } = useTranslation('mail')
+  const [rows, setRows] = useState<DissolveIdentityRow[] | null>(null)
+  const [renaming, setRenaming] = useState<{ row: DissolveIdentityRow; anchor: HTMLElement } | null>(null)
+  const [confirming, setConfirming] = useState<Confirmation | null>(null)
+
+  useEffect(() => {
+    let live = true
+    dissolveIdentities()
+      .then((found) => {
+        if (live) setRows(found)
+      })
+      .catch(() => {
+        if (live) setRows([])
+      })
+    return () => {
+      live = false
+    }
+  }, [])
+
+  const extend = (row: DissolveIdentityRow): void => {
+    updateDissolveIdentity(row.id, { extend: true })
+      .then((next) => {
+        setRows(next)
+        toast({ text: t('identityList.extended'), detail: row.email, tone: 'done' })
+      })
+      .catch((cause: unknown) => toast({ text: t('identityList.failed'), detail: reason(cause), tone: 'problem' }))
+  }
+  const remove = (row: DissolveIdentityRow): void =>
+    setConfirming({
+      title: t('identityList.deleteTitle', { email: row.email }),
+      body: t('identityList.deleteBody'),
+      action: t('identityList.delete'),
+      run: () => {
+        deleteDissolveIdentity(row.id)
+          .then((next) => {
+            setRows(next)
+            toast({ text: t('identityList.deleted'), detail: row.email, tone: 'done', glyph: IconIdentity })
+          })
+          .catch((cause: unknown) => toast({ text: t('identityList.failed'), detail: reason(cause), tone: 'problem' }))
+      },
+    })
+
+  if (rows === null) return <Skeleton rows={2} label={t('identityList.loading')} />
+  return (
+    <>
+      <h2 className="overview__title">{t('identityList.title', { count: rows.length })}</h2>
+      {rows.length === 0 ? (
+        <p className="overview__empty">{t('identityList.none')}</p>
+      ) : (
+        <ul className="overview__rows">
+          {rows.map((row) => {
+            const folder = inboxes.find((inbox) => inbox.id === row.inbox)?.address ?? null
+            const left = row.expiresAt === null ? null : timeLeft(row.expiresAt, now)
+            return (
+              <li key={row.id}>
+                <div className="overview__row">
+                  <button type="button" className="overview__open" disabled={folder === null} aria-label={t('identityList.open', { email: row.email })} onClick={folder === null ? undefined : () => onOpen({ workspace: DISSOLVE_WORKSPACE, folder })}>
+                    <IconIdentity aria-hidden="true" className="overview__glyph" />
+                    <span className="overview__who">
+                      <span className="overview__address">{row.email}</span>
+                      <span className="overview__name">{row.label ?? (folder === null ? t('identityList.elsewhere') : t('identityList.noLabel'))}</span>
+                    </span>
+                    {left !== null && (
+                      <span className="overview__left" data-soon={left.soon}>
+                        <IconTimer aria-hidden="true" />
+                        {formatTimeLeft(left)}
+                      </span>
+                    )}
+                  </button>
+                  <span className="overview__tools">
+                    <TipButton tip={t('identityList.rename')} className="overview__tool" aria-label={t('identityList.rename')} onClick={(event) => setRenaming({ row, anchor: event.currentTarget })}>
+                      <IconRename aria-hidden="true" />
+                    </TipButton>
+                    <TipButton tip={t('identityList.extend')} className="overview__tool" aria-label={t('identityList.extend')} onClick={() => extend(row)}>
+                      <IconExtend aria-hidden="true" />
+                    </TipButton>
+                    <TipButton tip={t('identityList.delete')} className="overview__tool overview__tool--danger" aria-label={`${t('identityList.delete')} ${row.email}`} onClick={() => remove(row)}>
+                      <IconDelete aria-hidden="true" />
+                    </TipButton>
+                  </span>
+                </div>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+      {renaming !== null && <RenameIdentity row={renaming.row} anchor={renaming.anchor} onDone={setRows} onClose={() => setRenaming(null)} />}
+      <Confirm request={confirming} cancelLabel={t('actions.cancel')} onClose={() => setConfirming(null)} />
+    </>
+  )
+}
+
+/** A label for an agent identity, saved on dissolve.email; its expiry stays where it was. */
+function RenameIdentity({ row, anchor, onDone, onClose }: { row: DissolveIdentityRow; anchor: HTMLElement; onDone: (rows: DissolveIdentityRow[]) => void; onClose: () => void }): ReactNode {
+  const { t } = useTranslation('mail')
+  const [label, setLabel] = useState(row.label ?? '')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const save = (event: FormEvent<HTMLFormElement>): void => {
+    event.preventDefault()
+    setBusy(true)
+    setError(null)
+    updateDissolveIdentity(row.id, { label: label.trim() })
+      .then((next) => {
+        onDone(next)
+        toast({ text: t('identityList.saved'), detail: row.email, tone: 'done' })
+        onClose()
+      })
+      .catch((cause: unknown) => setError(reason(cause)))
+      .finally(() => setBusy(false))
+  }
+  return (
+    <Popover anchor={anchor} label={t('identityList.renameTitle', { email: row.email })} onClose={onClose}>
+      <form className="new-address" onSubmit={save}>
+        <label className="new-address__field" htmlFor="identity-label">
+          {t('identityList.renameTitle', { email: row.email })}
+        </label>
+        <div className="new-address__address new-address__address--wide">
+          <input id="identity-label" value={label} placeholder={t('identityList.labelPlaceholder')} onChange={(event) => setLabel(event.target.value)} autoComplete="off" />
+        </div>
+        {error !== null && (
+          <p role="alert" className="new-address__error">
+            {error}
+          </p>
+        )}
+        <button type="submit" className="new-address__make" disabled={busy}>
+          {t('identityList.save')}
+        </button>
+      </form>
+    </Popover>
   )
 }

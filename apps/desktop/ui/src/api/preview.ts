@@ -1,4 +1,4 @@
-import type { Activity, AgentStatus, AlertChannel, Profile, Template, Writing, Reminder, ScheduledMessage, AlertKind, Contact, RevealStatus, DissolveIdentities, DissolveIdentity, DissolveInbox, DissolveStatus, MadeDissolveInbox, Persona, Draft, ImapAccount, KnownContact, SmtpServer, MailView, Message, MessageDetail, Place, Rule, Sendable, Sender, TagCount, Workspace, WorkspaceEdit } from './types'
+import type { Activity, AgentStatus, AlertChannel, Profile, Template, Writing, Reminder, ScheduledMessage, AlertKind, Contact, RevealStatus, DissolveAlias, DissolveIdentities, DissolveIdentity, DissolveIdentityRow, DissolveInbox, DissolveStatus, MadeDissolveInbox, Persona, Draft, ImapAccount, KnownContact, SmtpServer, MailView, Message, MessageDetail, Place, Rule, Sendable, Sender, TagCount, Workspace, WorkspaceEdit } from './types'
 
 /**
  * A small stand-in mailbox for `pnpm dev:ui`, where there is no Rust side, so the layout can be tuned in a plain
@@ -151,6 +151,9 @@ const NO_IDENTITIES: DissolveIdentities = { plan: null, granted: false, live: NO
 const DISSOLVE: DissolveStatus = { connected: false, server: 'https://api.dissolve.email', email: null, plan: null, keepAfterExpiry: false, inboxes: [], lastChecked: null, problem: null, limits: NO_LIMITS, identities: NO_IDENTITIES }
 /** inbox id to its identity, and its password under `identity:<inbox id>` in SECRETS. */
 const IDENTITIES = new Map<string, DissolveIdentity>()
+/** inbox id to its aliases, and to its identity's label. */
+const ALIASES = new Map<string, DissolveAlias[]>()
+const LABELS = new Map<string, string>()
 const dissolveCopy = (): DissolveStatus => {
   const live = DISSOLVE.inboxes.filter((inbox) => !inbox.ended && IDENTITIES.has(inbox.id)).length
   const identities = { ...DISSOLVE.identities, live: { used: live, limit: DISSOLVE.identities.plan === true ? 10 : null, resetAt: null } }
@@ -178,7 +181,7 @@ const dissolve = {
     const pro = identities === true || previewPro()
     const granted = pro && (identities ?? DISSOLVE.identities.granted)
     Object.assign(DISSOLVE, { connected: true, email: 'you@example.com', plan: pro ? 'pro' : 'free', lastChecked: new Date().toISOString(), limits: pro ? { ...FREE_LIMITS, plan: 'pro', customNames: true } : FREE_LIMITS, identities: { ...DISSOLVE.identities, plan: pro, granted } })
-    if (DISSOLVE.inboxes.length === 0) DISSOLVE.inboxes.push({ id: 'inb_preview', address: 'signup-7k2@dissolve.email', name: 'Sign-ups', expiresAt: new Date(Date.now() + 5 * HOUR).toISOString(), ended: false, stored: 1, extensions: { used: 1, limit: 1, canExtend: false, availableAt: null }, identity: false })
+    if (DISSOLVE.inboxes.length === 0) DISSOLVE.inboxes.push({ id: 'inb_preview', address: 'signup-7k2@dissolve.email', name: 'Sign-ups', expiresAt: new Date(Date.now() + 5 * HOUR).toISOString(), ended: false, stored: 1, extensions: { used: 1, limit: 1, canExtend: false, availableAt: null, left: 0, lifetimeEndsAt: new Date(Date.now() + 5 * HOUR).toISOString(), lifetimeReached: false }, identity: false })
     return dissolveCopy()
   },
   disconnect: (deleteMail: boolean): DissolveStatus => {
@@ -224,6 +227,38 @@ const dissolve = {
     IDENTITIES.delete(id)
     SECRETS.delete(`identity:${id}`)
     return dissolveCopy()
+  },
+  aliases: (inboxId: string): DissolveAlias[] => [...(ALIASES.get(inboxId) ?? [])],
+  addAlias: (inboxId: string, local: string): DissolveAlias[] => {
+    if (DISSOLVE.limits.plan === 'free') throw new Error('Aliases are on Pro and Business.')
+    const inbox = DISSOLVE.inboxes.find((item) => item.id === inboxId)
+    const list = ALIASES.get(inboxId) ?? []
+    list.unshift({ id: `als_${list.length + 1}`, address: `${local.trim().toLowerCase()}@${inbox?.address.split('@')[1] ?? 'dissolve.email'}` })
+    ALIASES.set(inboxId, list)
+    return [...list]
+  },
+  removeAlias: (inboxId: string, aliasId: string): DissolveAlias[] => {
+    const list = (ALIASES.get(inboxId) ?? []).filter((alias) => alias.id !== aliasId)
+    ALIASES.set(inboxId, list)
+    return [...list]
+  },
+  identities: (): DissolveIdentityRow[] =>
+    DISSOLVE.inboxes
+      .filter((inbox) => IDENTITIES.has(inbox.id))
+      .map((inbox) => ({ id: IDENTITIES.get(inbox.id)?.id ?? inbox.id, email: inbox.address, label: LABELS.get(inbox.id) ?? null, expiresAt: inbox.expiresAt, inbox: inbox.id })),
+  updateIdentity: (id: string, extend: boolean, label?: string): DissolveIdentityRow[] => {
+    const inbox = DISSOLVE.inboxes.find((item) => IDENTITIES.get(item.id)?.id === id)
+    if (inbox !== undefined && extend) inbox.expiresAt = new Date(Date.parse(inbox.expiresAt) + HOUR).toISOString()
+    if (inbox !== undefined && label !== undefined) LABELS.set(inbox.id, label)
+    return dissolve.identities()
+  },
+  deleteIdentity: (id: string): DissolveIdentityRow[] => {
+    const inbox = DISSOLVE.inboxes.find((item) => IDENTITIES.get(item.id)?.id === id)
+    if (inbox !== undefined) {
+      IDENTITIES.delete(inbox.id)
+      SECRETS.delete(`identity:${inbox.id}`)
+    }
+    return dissolve.identities()
   },
 }
 

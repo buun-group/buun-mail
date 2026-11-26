@@ -202,25 +202,25 @@ struct Progress {
 
 type Opener = Box<dyn Fn(&str) -> Result<(), String> + Send + Sync>;
 
-struct Inner {
+pub(super) struct Inner {
     config_folder: PathBuf,
-    settings: Mutex<DissolveSettings>,
+    pub(super) settings: Mutex<DissolveSettings>,
     progress: Mutex<Progress>,
     metadata: Mutex<Option<Metadata>>,
-    checking: Mutex<()>,
+    pub(super) checking: Mutex<()>,
     /// Set by the stream (or Check now) to collect at once; the loop waits on it.
     woken: Mutex<bool>,
     wake: Condvar,
     /// True while the account stream is up, so the loop only checks as a safety net.
     live: AtomicBool,
-    mailbox: Arc<Mailbox>,
+    pub(super) mailbox: Arc<Mailbox>,
     app: Option<AppHandle>,
     open_browser: Opener,
 }
 
 /// The dissolve.email connection. Cheap to clone, so slow work runs away from the window's thread.
 #[derive(Clone)]
-pub struct DissolveService(Arc<Inner>);
+pub struct DissolveService(pub(super) Arc<Inner>);
 
 impl DissolveService {
     /// Loads the saved account, shows its workspace, and checks every minute while connected.
@@ -241,6 +241,7 @@ impl DissolveService {
         std::thread::spawn(move || looping.run());
         let streaming = service.clone();
         std::thread::spawn(move || streaming.keep_streaming());
+        service.watch_changes();
         service
     }
 
@@ -508,7 +509,7 @@ impl DissolveService {
     }
 
     /// Remembers which identity an inbox has, or that it has none.
-    fn note_identity(&self, inbox: &str, identity: Option<String>) -> Result<(), String> {
+    pub(super) fn note_identity(&self, inbox: &str, identity: Option<String>) -> Result<(), String> {
         let mut saved = self.0.settings.lock().map_err(|error| error.to_string())?.clone();
         let Some(known) = saved.inboxes.get_mut(inbox) else { return Ok(()) };
         if known.identity == identity {
@@ -695,6 +696,7 @@ impl DissolveService {
                             }
                         }
                     }
+                    self.apply_removals(&page.removed, saved).map_err(|error| error.to_string())?;
                     saved.cursor = Some(page.next_cursor);
                     if !page.has_more {
                         return Ok(true);
@@ -805,8 +807,13 @@ impl DissolveService {
         Some((saved.server().to_owned(), token))
     }
 
+    /// How long a new inbox lives on this plan, in minutes, as `/v1/me` last said.
+    pub(super) fn plan_inbox_minutes(&self) -> Option<i64> {
+        self.0.progress.lock().ok()?.me.as_ref()?.0.limits.inbox_duration_minutes
+    }
+
     /// Runs one API call with a fresh token, refreshing once and trying again when the token was refused.
-    fn call<T>(&self, run: impl Fn(&Api) -> Result<T, ApiError>) -> Result<T, ApiError> {
+    pub(super) fn call<T>(&self, run: impl Fn(&Api) -> Result<T, ApiError>) -> Result<T, ApiError> {
         let saved = self.0.settings.lock().map_err(|_| ApiError::NotConnected)?.clone();
         let Some(account) = &saved.account else { return Err(ApiError::NotConnected) };
         let token = if account.expires_at - unix_now() < REFRESH_AHEAD { self.refresh()? } else { account.access_token.clone() };
@@ -882,14 +889,14 @@ impl DissolveService {
         Ok(found)
     }
 
-    fn save(&self, saved: &DissolveSettings) -> Result<(), AppError> {
+    pub(super) fn save(&self, saved: &DissolveSettings) -> Result<(), AppError> {
         settings::save(&self.0.config_folder, saved)?;
         *self.0.settings.lock()? = saved.clone();
         Ok(())
     }
 
     /// Shows the workspace with a folder per inbox while connected or holding mail; takes it away otherwise.
-    fn show_workspace(&self) -> Result<(), AppError> {
+    pub(super) fn show_workspace(&self) -> Result<(), AppError> {
         let saved = self.0.settings.lock()?.clone();
         if saved.account.is_none() && saved.inboxes.is_empty() {
             return self.0.mailbox.withdraw_workspace(WORKSPACE);
@@ -906,7 +913,7 @@ impl DissolveService {
         })
     }
 
-    fn announce(&self, arrived: &[MessageDto]) {
+    pub(super) fn announce(&self, arrived: &[MessageDto]) {
         if let Some(app) = &self.0.app {
             events::mail_arrived(app, arrived);
             events::mail_changed(app);
@@ -928,12 +935,15 @@ fn remember(saved: &mut DissolveSettings, inbox: &RemoteInbox) {
 
 /// An inbox's extensions, when the answer reported any.
 fn extensions_of(inbox: &RemoteInbox) -> Option<Extensions> {
-    let reported = inbox.extension_count.is_some() || inbox.max_extensions.is_some() || inbox.can_extend.is_some();
+    let reported = inbox.extension_count.is_some() || inbox.max_extensions.is_some() || inbox.can_extend.is_some() || inbox.lifetime_ends_at.is_some();
     reported.then(|| Extensions {
         used: inbox.extension_count,
         limit: inbox.max_extensions,
         can_extend: inbox.can_extend,
         available_at: inbox.extend_available_at.clone(),
+        left: inbox.extends_left,
+        lifetime_ends_at: inbox.lifetime_ends_at.clone(),
+        lifetime_reached: inbox.lifetime_reached,
     })
 }
 

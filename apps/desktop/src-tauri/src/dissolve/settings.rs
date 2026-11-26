@@ -112,4 +112,10 @@ pub struct Extensions {
     pub can_extend: Option<bool>,
     /// When it can next be extended, RFC 3339.
     pub available_at: Option<String>,
+    /// Extensions left; `None` for unlimited or not reported.
+    pub left: Option<i64>,
+    /// When it ends for good, extensions or not, RFC 3339; `None` for no ceiling or not reported.
+    pub lifetime_ends_at: Option<String>,
+    /// True once it reached the plan's longest life, so no extension adds more.
+    pub lifetime_reached: Option<bool>,
 }

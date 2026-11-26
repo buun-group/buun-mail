@@ -2,7 +2,7 @@
 
 use buun_mail_store::{Placement, Shelf, Store};
 
-use super::{Actor, Mailbox, log, unix_now};
+use super::{Actor, Changed, Mailbox, log, unix_now};
 use crate::dto::MessageDto;
 use crate::error::AppError;
 
@@ -85,6 +85,10 @@ impl Mailbox {
             (message, alerts)
         };
         self.alert(&alerts, &message);
+        // Putting a tag on twice is harmless at a source, so every tag asked for is passed on.
+        for tag in tags {
+            self.changed(actor, Changed::Tagged { id: id.to_owned(), tag: tag.clone(), on: true });
+        }
         Ok(message.into())
     }
 
@@ -94,10 +98,14 @@ impl Mailbox {
     ///
     /// [`AppError`] for an unknown id, or when the store cannot be written.
     pub fn untag(&self, id: &str, tag: &str, actor: &Actor) -> Result<MessageDto, AppError> {
-        let store = self.store.lock()?;
-        store.remove_tag(id, tag)?;
-        let message = store.get(id)?;
-        log(&store, actor, "untag", format!("{tag} from \"{}\"", message.subject))?;
+        let message = {
+            let store = self.store.lock()?;
+            store.remove_tag(id, tag)?;
+            let message = store.get(id)?;
+            log(&store, actor, "untag", format!("{tag} from \"{}\"", message.subject))?;
+            message
+        };
+        self.changed(actor, Changed::Tagged { id: id.to_owned(), tag: tag.to_owned(), on: false });
         Ok(message.into())
     }
 
@@ -199,10 +207,22 @@ impl Mailbox {
     ///
     /// [`AppError`] when the store cannot be written.
     pub fn delete_forever(&self, ids: &[String], actor: &Actor) -> Result<usize, AppError> {
-        let store = self.store.lock()?;
-        let deleted = count(ids, |id| store.delete(id))?;
+        let gone = {
+            let store = self.store.lock()?;
+            let mut gone = Vec::new();
+            for id in ids {
+                if store.delete(id)? {
+                    gone.push(id.clone());
+                }
+            }
+            if !gone.is_empty() {
+                log(&store, actor, "delete", format!("{} deleted for good", gone.len()))?;
+            }
+            gone
+        };
+        let deleted = gone.len();
         if deleted > 0 {
-            log(&store, actor, "delete", format!("{deleted} deleted for good"))?;
+            self.changed(actor, Changed::Deleted(gone));
         }
         Ok(deleted)
     }

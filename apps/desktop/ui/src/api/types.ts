@@ -382,6 +382,29 @@ export interface DissolveExtensions {
   limit: number | null
   canExtend: boolean | null
   availableAt: string | null
+  /** Extensions left; null for unlimited or not reported. */
+  left: number | null
+  /** When the inbox ends for good, extensions or not, RFC 3339; null for no ceiling or not reported. */
+  lifetimeEndsAt: string | null
+  /** True once it reached the plan's longest life, so no extension adds more. */
+  lifetimeReached: boolean | null
+}
+
+/** Another address that delivers into a dissolve.email inbox. Mirrors `Alias`. */
+export interface DissolveAlias {
+  id: string
+  address: string
+}
+
+/** An agent identity in the account's list, never its password. Mirrors `IdentityRowDto`. */
+export interface DissolveIdentityRow {
+  id: string
+  email: string
+  label: string | null
+  /** When it ends, RFC 3339. */
+  expiresAt: string | null
+  /** The inbox it lives in, when that inbox is a folder here. */
+  inbox: string | null
 }
 
 /** A count against a limit. A negative limit is unlimited; null is not reported. Mirrors `Meter`. */

@@ -33,11 +33,25 @@ pub struct Changes {
     /// New messages across every inbox the account reads.
     #[serde(default)]
     pub messages: Vec<FeedMessage>,
+    /// Messages deleted and inboxes ended, across every inbox the account reads.
+    #[serde(default)]
+    pub removed: Vec<Removal>,
     /// Where the next page starts; on an empty page, the feed's head.
     pub next_cursor: String,
     /// More changes wait past this page.
     #[serde(default)]
     pub has_more: bool,
+}
+
+/// Something that left the feed's view: one message deleted, or a whole inbox expired or burned (no `message_id`).
+#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct Removal {
+    /// The inbox.
+    pub inbox_id: String,
+    /// The message, when one message was deleted.
+    #[serde(default)]
+    pub message_id: Option<String>,
 }
 
 /// What the changes feed answered.
@@ -247,6 +261,15 @@ pub struct RemoteInbox {
     /// When it can next be extended, when reported.
     #[serde(default)]
     pub extend_available_at: Option<String>,
+    /// Extensions left, `None` for unlimited or not reported.
+    #[serde(default)]
+    pub extends_left: Option<i64>,
+    /// When it ends for good, extensions or not, RFC 3339; `None` for no ceiling or not reported.
+    #[serde(default)]
+    pub lifetime_ends_at: Option<String>,
+    /// True once it has reached the plan's longest life, so no extension can add more.
+    #[serde(default)]
+    pub lifetime_reached: Option<bool>,
     /// The identity made with it, in the answer to making it.
     #[serde(default)]
     pub identity: Option<RemoteIdentity>,
@@ -321,8 +344,8 @@ struct Refusal {
 /// A client for one server and access token.
 pub struct Api {
     base: String,
-    bearer: String,
-    agent: Agent,
+    pub(super) bearer: String,
+    pub(super) agent: Agent,
 }
 
 impl Api {
@@ -333,11 +356,11 @@ impl Api {
         Self { base: base.trim_end_matches('/').to_owned(), bearer: format!("Bearer {}", access_token.trim()), agent }
     }
 
-    fn url(&self, path: &str) -> String {
+    pub(super) fn url(&self, path: &str) -> String {
         format!("{}/v1{path}", self.base)
     }
 
-    fn get(&self, path: &str) -> Result<ureq::http::Response<ureq::Body>, ApiError> {
+    pub(super) fn get(&self, path: &str) -> Result<ureq::http::Response<ureq::Body>, ApiError> {
         checked(self.agent.get(self.url(path)).header("Authorization", &self.bearer).call())
     }
 
@@ -515,7 +538,7 @@ fn refusal_of(status: u16, refusal: Refusal) -> ApiError {
 }
 
 /// An id safe in a path: anything but letters, digits, `-` and `_` is dropped, so an id can never reach another route.
-fn segment(id: &str) -> String {
+pub(super) fn segment(id: &str) -> String {
     id.chars().filter(|character| character.is_ascii_alphanumeric() || matches!(character, '-' | '_')).collect()
 }
 
@@ -532,12 +555,12 @@ fn cursor_param(cursor: &str) -> String {
 }
 
 #[allow(clippy::needless_pass_by_value, reason = "passed to map_err, which hands the error over")]
-fn unexpected<E: ToString>(error: E) -> ApiError {
+pub(super) fn unexpected<E: ToString>(error: E) -> ApiError {
     ApiError::Unreachable(error.to_string())
 }
 
 /// The response when it succeeded, otherwise what went wrong.
-fn checked(response: Result<ureq::http::Response<ureq::Body>, ureq::Error>) -> Result<ureq::http::Response<ureq::Body>, ApiError> {
+pub(super) fn checked(response: Result<ureq::http::Response<ureq::Body>, ureq::Error>) -> Result<ureq::http::Response<ureq::Body>, ApiError> {
     let mut response = response.map_err(unexpected)?;
     let status = response.status().as_u16();
     match status {

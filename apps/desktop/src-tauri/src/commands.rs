@@ -12,7 +12,7 @@ use tauri::{AppHandle, State};
 
 use crate::agent::{AgentState, AgentStatusDto};
 use crate::alerts::{AlertChannelDto, AlertService};
-use crate::dissolve::{DissolveService, DissolveStatusDto, IdentityDto, MadeInboxDto};
+use crate::dissolve::{Alias, DissolveService, DissolveStatusDto, IdentityDto, IdentityRowDto, MadeInboxDto};
 use crate::dto::{ActivityDto, ContactDto, ImportReportDto, KnownContactDto, MessageDetailDto, MessageDto, ShelfDto, TagCountDto, ViewDto, WorkspaceDto};
 use crate::error::AppError;
 use crate::events;
@@ -578,6 +578,53 @@ pub async fn extend_dissolve_inbox(dissolve: State<'_, DissolveService>, id: Str
 pub async fn burn_dissolve_inbox(dissolve: State<'_, DissolveService>, id: String) -> Result<DissolveStatusDto, String> {
     let service = dissolve.inner().clone();
     tauri::async_runtime::spawn_blocking(move || service.burn_inbox(&id)).await.map_err(|error| error.to_string())?
+}
+
+/// A dissolve.email inbox's aliases: other addresses that deliver into it.
+#[tauri::command]
+pub async fn dissolve_aliases(dissolve: State<'_, DissolveService>, inbox: String) -> Result<Vec<Alias>, String> {
+    let service = dissolve.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || service.aliases(&inbox)).await.map_err(|error| error.to_string())?
+}
+
+/// Adds an alias to a dissolve.email inbox (`local` is the part before the @). Returns its aliases.
+#[tauri::command]
+pub async fn add_dissolve_alias(dissolve: State<'_, DissolveService>, inbox: String, local: String) -> Result<Vec<Alias>, String> {
+    let service = dissolve.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || service.add_alias(&inbox, &local)).await.map_err(|error| error.to_string())?
+}
+
+/// Removes an alias from a dissolve.email inbox. Returns its aliases.
+#[tauri::command]
+pub async fn remove_dissolve_alias(dissolve: State<'_, DissolveService>, inbox: String, alias: String) -> Result<Vec<Alias>, String> {
+    let service = dissolve.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || service.remove_alias(&inbox, &alias)).await.map_err(|error| error.to_string())?
+}
+
+/// Every agent identity on the dissolve.email account, never a password.
+#[tauri::command]
+pub async fn dissolve_identities(dissolve: State<'_, DissolveService>) -> Result<Vec<IdentityRowDto>, String> {
+    let service = dissolve.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || service.identities()).await.map_err(|error| error.to_string())?
+}
+
+/// Extends a dissolve.email identity, relabels it, or both. Returns every identity.
+#[tauri::command]
+pub async fn update_dissolve_identity(
+    dissolve: State<'_, DissolveService>,
+    id: String,
+    extend: bool,
+    label: Option<String>,
+) -> Result<Vec<IdentityRowDto>, String> {
+    let service = dissolve.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || service.update_identity(&id, extend, label.as_deref())).await.map_err(|error| error.to_string())?
+}
+
+/// Deletes a dissolve.email identity, keeping its inbox and mail. Returns every identity.
+#[tauri::command]
+pub async fn delete_dissolve_identity(dissolve: State<'_, DissolveService>, id: String) -> Result<Vec<IdentityRowDto>, String> {
+    let service = dissolve.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || service.delete_identity(&id)).await.map_err(|error| error.to_string())?
 }
 
 /// Whether a reveal code is set, and how long reveals stay open.

@@ -5,7 +5,7 @@ import { openUrl } from '@tauri-apps/plugin-opener'
 import type { ExportFormat } from '../constants/ui'
 import { COMMANDS, IMPORT_EXTENSIONS } from './commands'
 import { preview, previewDetail, previewMessages, previewRouting, previewView, previewWorkspaces } from './preview'
-import type { Activity, AgentStatus, AlertChannel, Profile, Template, Writing, Reminder, ScheduledMessage, AlertKind, AvailableDomain, CheckReport, Contact, RevealStatus, SecretKind, DissolveIdentity, DissolveStatus, MadeDissolveInbox, Draft, FileToSend, ImapAccount, KnownContact, SmtpSecurity, SmtpServer, Sendable, Sender, GatewayDomain, GatewayStatus, ImportReport, MailView, Message, MessageDetail, Place, Rule, Shelf, TagCount, DownloadedUpdate, UpdateInfo, Workspace, WorkspaceEdit } from './types'
+import type { Activity, AgentStatus, AlertChannel, Profile, Template, Writing, Reminder, ScheduledMessage, AlertKind, AvailableDomain, CheckReport, Contact, RevealStatus, SecretKind, DissolveAlias, DissolveIdentity, DissolveIdentityRow, DissolveStatus, MadeDissolveInbox, Draft, FileToSend, ImapAccount, KnownContact, SmtpSecurity, SmtpServer, Sendable, Sender, GatewayDomain, GatewayStatus, ImportReport, MailView, Message, MessageDetail, Place, Rule, Shelf, TagCount, DownloadedUpdate, UpdateInfo, Workspace, WorkspaceEdit } from './types'
 
 /**
  * The one door to the Rust side. In the desktop app every call is a Tauri command; in a plain browser (`pnpm dev:ui`)
@@ -423,6 +423,38 @@ export async function extendDissolveInbox(id: string): Promise<DissolveStatus> {
 /** Burns a dissolve.email inbox: ended there, its mail deleted here. */
 export async function burnDissolveInbox(id: string): Promise<DissolveStatus> {
   return isTauri() ? invoke<DissolveStatus>(COMMANDS.burnDissolveInbox, { id }) : preview.dissolve.burn(id)
+}
+
+/** A dissolve.email inbox's aliases: other addresses that deliver into it. */
+export async function dissolveAliases(inboxId: string): Promise<DissolveAlias[]> {
+  return isTauri() ? invoke<DissolveAlias[]>(COMMANDS.dissolveAliases, { inbox: inboxId }) : preview.dissolve.aliases(inboxId)
+}
+
+/** Adds an alias to a dissolve.email inbox (`local` is the part before the @). Rejects with dissolve.email's reason. */
+export async function addDissolveAlias(inboxId: string, local: string): Promise<DissolveAlias[]> {
+  return isTauri() ? invoke<DissolveAlias[]>(COMMANDS.addDissolveAlias, { inbox: inboxId, local }) : preview.dissolve.addAlias(inboxId, local)
+}
+
+/** Removes an alias from a dissolve.email inbox. */
+export async function removeDissolveAlias(inboxId: string, aliasId: string): Promise<DissolveAlias[]> {
+  return isTauri() ? invoke<DissolveAlias[]>(COMMANDS.removeDissolveAlias, { inbox: inboxId, alias: aliasId }) : preview.dissolve.removeAlias(inboxId, aliasId)
+}
+
+/** Every agent identity on the dissolve.email account, never a password. */
+export async function dissolveIdentities(): Promise<DissolveIdentityRow[]> {
+  return isTauri() ? invoke<DissolveIdentityRow[]>(COMMANDS.dissolveIdentities) : preview.dissolve.identities()
+}
+
+/** Extends a dissolve.email identity (`extend`), relabels it (`label`), or both. */
+export async function updateDissolveIdentity(id: string, change: { extend?: boolean; label?: string }): Promise<DissolveIdentityRow[]> {
+  return isTauri()
+    ? invoke<DissolveIdentityRow[]>(COMMANDS.updateDissolveIdentity, { id, extend: change.extend ?? false, label: change.label ?? null })
+    : preview.dissolve.updateIdentity(id, change.extend ?? false, change.label)
+}
+
+/** Deletes a dissolve.email identity, keeping its inbox and mail. */
+export async function deleteDissolveIdentity(id: string): Promise<DissolveIdentityRow[]> {
+  return isTauri() ? invoke<DissolveIdentityRow[]>(COMMANDS.deleteDissolveIdentity, { id }) : preview.dissolve.deleteIdentity(id)
 }
 
 /** Whether a reveal code is set, and how long reveals stay open. */

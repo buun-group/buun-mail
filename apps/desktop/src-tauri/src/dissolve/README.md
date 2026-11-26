@@ -25,13 +25,29 @@ A check reads the changes feed from its saved cursor, so a restart carries on wh
 first sign-in, or one older than the feed's seven days) it takes the feed's head and polls each inbox once for the mail
 from before it. While the stream is up, a check also runs every ten minutes as a safety net.
 
+## Kept in step with the website
+
+| What | Website to app | App to website |
+|---|---|---|
+| Deleting a message | The feed's `removed` deletes it here | Deleted for good here (Delete forever, emptying the trash) deletes it there |
+| Labels and tags | Not possible: dissolve.email's messages do not carry their labels | A tag put on or taken off here moves the label of the same name (any case), if one exists |
+| Aliases | Listed from the inbox | Added and removed from an inbox's bar (Pro and Business) |
+| Agent identities | Listed on the workspace's page | Renamed, extended and deleted there; deleting keeps the inbox and its mail |
+
+Only changes made by a person, a rule or an agent are sent (the mailbox's `Changed` events); the app's own deletions,
+such as an inbox that ended, are never sent back. dissolve.email sets an identity's expiry to now plus the minutes it
+is sent, even for a rename, so the minutes are always worked out from its current expiry: a rename keeps it, Extend
+adds the plan's inbox time to what is left.
+
 ## Contents
 
 | Path | Purpose |
 |---|---|
 | `mod.rs` | The module and what it exports |
 | `oauth.rs` | Discovery, registration, PKCE, the way back from the browser (loopback or app link), tokens |
-| `api.rs` | The `/v1` calls, the changes feed included |
+| `api.rs` | The `/v1` calls for reading mail, the changes feed included |
+| `manage_api.rs` | The `/v1` calls for managing: deleting a message, aliases, labels, agent identities |
+| `manage.rs` | Deletions both ways, tags to labels, aliases and the identity list, for the commands |
 | `stream.rs` | The account stream: events that wake a check, the heartbeat, and what each ending means |
 | `settings.rs` | The account, its tokens, the feed's cursor and what has been collected, in `dissolve.json` |
 | `service.rs` | Connecting, the collection loop and the stream thread, and the inbox actions |

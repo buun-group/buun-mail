@@ -42,8 +42,18 @@ struct Fake {
     asked_identity: usize,
     /// The server has the changes feed; an older one answers 404.
     feed: bool,
-    /// The change log: (inbox id, message id), its position the cursor.
-    log: Vec<(String, String)>,
+    /// The change log: (inbox id, message id, deleted), its position the cursor.
+    log: Vec<(String, String, bool)>,
+    /// Messages deleted through the API, as (inbox id, message id).
+    deleted_messages: Vec<(String, String)>,
+    /// inbox id to its aliases, as (id, address).
+    aliases: BTreeMap<String, Vec<(String, String)>>,
+    /// Labels put on or taken off, as (message id, label id, on).
+    labelled: Vec<(String, String, bool)>,
+    /// The account's identities, as the identity list answers them.
+    identity_rows: Vec<Value>,
+    /// Identity changes asked for, as (id, body).
+    patched: Vec<(String, Value)>,
     /// Feed pages asked for.
     feed_calls: usize,
     /// The next feed read answers 410, as a cursor older than seven days does.
@@ -54,7 +64,15 @@ impl Fake {
     /// A new message in an inbox, kept with its source, and written to the change log.
     fn deliver(&mut self, inbox: &str, id: &str, to: &str) {
         self.messages.entry(inbox.to_owned()).or_default().push((id.to_owned(), Some(source(id, to))));
-        self.log.push((inbox.to_owned(), id.to_owned()));
+        self.log.push((inbox.to_owned(), id.to_owned(), false));
+    }
+
+    /// A message deleted on the website: gone from its inbox, and written to the change log.
+    fn delete_on_website(&mut self, inbox: &str, id: &str) {
+        if let Some(list) = self.messages.get_mut(inbox) {
+            list.retain(|(message, _)| message != id);
+        }
+        self.log.push((inbox.to_owned(), id.to_owned(), true));
     }
 }
 
@@ -67,10 +85,69 @@ fn feed_page(fake: &mut Fake, url: &str) -> tiny_http::Response<std::io::Cursor<
     let head = format!("c{}", fake.log.len());
     let since =
         url.split("since=").nth(1).and_then(|rest| rest.split('&').next()).and_then(|cursor| cursor.strip_prefix('c')).and_then(|n| n.parse::<usize>().ok());
-    let messages: Vec<Value> = since.map_or_else(Vec::new, |from| {
-        fake.log.iter().skip(from).map(|(inbox, id)| json!({ "inboxId": inbox, "id": id, "fromAddress": "hello@shop.example", "fromName": "Shop", "subject": format!("Your code {id}"), "receivedAt": "2026-11-20T10:00:00.000Z" })).collect()
-    });
-    json_response(200, &json!({ "messages": messages, "removed": [], "nextCursor": head, "hasMore": false }))
+    let after: Vec<&(String, String, bool)> = since.map_or_else(Vec::new, |from| fake.log.iter().skip(from).collect());
+    let messages: Vec<Value> = after
+        .iter()
+        .filter(|(_, _, deleted)| !deleted)
+        .map(|(inbox, id, _)| json!({ "inboxId": inbox, "id": id, "fromAddress": "hello@shop.example", "fromName": "Shop", "subject": format!("Your code {id}"), "receivedAt": "2026-11-20T10:00:00.000Z" }))
+        .collect();
+    let removed: Vec<Value> = after
+        .iter()
+        .filter(|(_, _, deleted)| *deleted)
+        .map(|(inbox, id, _)| json!({ "inboxId": inbox, "messageId": id, "reason": "deleted", "at": "2026-11-20T10:05:00.000Z" }))
+        .collect();
+    json_response(200, &json!({ "messages": messages, "removed": removed, "nextCursor": head, "hasMore": false }))
+}
+
+/// The routes for managing an account: deleting a message, aliases, labels and the identity list. `None` for any other.
+fn manage_route(fake: &mut Fake, method: &str, path: &[&str], body: &str) -> Option<tiny_http::Response<std::io::Cursor<Vec<u8>>>> {
+    let asked: Value = serde_json::from_str(body).unwrap_or(Value::Null);
+    let response = match (method, path) {
+        ("DELETE", ["v1", "inboxes", inbox, "messages", message]) => {
+            fake.deleted_messages.push(((*inbox).to_owned(), (*message).to_owned()));
+            json_response(200, &json!({ "success": true }))
+        }
+        ("GET", ["v1", "inboxes", inbox, "aliases"]) => {
+            let list = fake.aliases.get(*inbox).cloned().unwrap_or_default();
+            json_response(
+                200,
+                &Value::Array(list.iter().map(|(id, address)| json!({ "id": id, "aliasAddress": address, "createdAt": "2026-11-20T10:00:00.000Z" })).collect()),
+            )
+        }
+        ("POST", ["v1", "inboxes", inbox, "aliases"]) => {
+            let local = asked["alias"].as_str().unwrap_or_default().to_owned();
+            let list = fake.aliases.entry((*inbox).to_owned()).or_default();
+            let id = format!("als_{}", list.len() + 1);
+            let address = format!("{local}@dissolve.test");
+            list.push((id.clone(), address.clone()));
+            json_response(201, &json!({ "id": id, "aliasAddress": address, "inboxId": inbox }))
+        }
+        ("DELETE", ["v1", "inboxes", inbox, "aliases", alias]) => {
+            if let Some(list) = fake.aliases.get_mut(*inbox) {
+                list.retain(|(id, _)| id != alias);
+            }
+            json_response(200, &json!({ "success": true }))
+        }
+        ("GET", ["v1", "labels"]) => {
+            json_response(200, &json!({ "labels": [{ "id": "lbl_r", "name": "Receipts", "color": "#8b5cf6" }], "limit": 50, "used": 1 }))
+        }
+        ("PUT" | "DELETE", ["v1", "messages", message, "labels", label]) => {
+            fake.labelled.push(((*message).to_owned(), (*label).to_owned(), method == "PUT"));
+            json_response(200, &json!({ "success": true }))
+        }
+        ("GET", ["v1", "identities"]) => json_response(200, &json!({ "identities": fake.identity_rows })),
+        ("PATCH", ["v1", "identities", id]) => {
+            fake.patched.push(((*id).to_owned(), asked));
+            json_response(200, &json!({ "id": id }))
+        }
+        ("DELETE", ["v1", "identities", id]) => {
+            let id = (*id).to_owned();
+            fake.identity_rows.retain(|row| row["id"] != id.as_str());
+            json_response(200, &json!({ "deleted": true }))
+        }
+        _ => return None,
+    };
+    Some(response)
 }
 
 /// An identity as dissolve.email answers with it.
@@ -205,7 +282,8 @@ fn fake_server() -> (String, Arc<Mutex<Fake>>) {
             let Ok(mut fake) = shared.lock() else { return };
             let authorized = bearer == format!("Bearer {}", fake.accepted);
             let path: Vec<&str> = url.split('?').next().unwrap_or("").trim_start_matches('/').split('/').collect();
-            let identity = if authorized { identity_route(&mut fake, &method, &path, &body) } else { None };
+            let identity =
+                if authorized { identity_route(&mut fake, &method, &path, &body).or_else(|| manage_route(&mut fake, &method, &path, &body)) } else { None };
             let response = if let Some(response) = identity {
                 response
             } else {
@@ -578,4 +656,95 @@ fn polls_inbox_by_inbox_on_a_server_without_the_feed_and_asks_for_it_only_hourly
     assert_eq!(service.check(), Ok(1));
     assert_eq!(settings::load(&setup.config).cursor, None);
     assert_eq!(setup.fake.lock().map_or(0, |fake| fake.feed_calls), 0, "the 404 route is not the feed handler");
+}
+
+/// A connected service with the feed on and its first sweep done.
+fn with_feed() -> (Setup, DissolveService) {
+    let setup = setup();
+    if let Ok(mut fake) = setup.fake.lock() {
+        fake.feed = true;
+    }
+    let service = connected(&setup);
+    (setup, service)
+}
+
+/// The id stored here for a message of `inb_a`.
+fn stored_id(setup: &Setup, message: &str) -> String {
+    settings::load(&setup.config).inboxes.get("inb_a").and_then(|known| known.messages.get(message).cloned()).unwrap_or_default()
+}
+
+#[test]
+fn deletes_here_what_was_deleted_on_the_website() {
+    let (setup, service) = with_feed();
+    if let Ok(mut fake) = setup.fake.lock() {
+        fake.delete_on_website("inb_a", "msg_1");
+    }
+    assert_eq!(service.check(), Ok(0));
+    assert_eq!(folder_of(&setup, "signup@dissolve.test"), vec!["Your code msg_2".to_owned()]);
+    assert_eq!(stored_id(&setup, "msg_1"), "", "the link went with it");
+    assert!(setup.fake.lock().is_ok_and(|fake| fake.deleted_messages.is_empty()), "a deletion from the website is not sent back");
+}
+
+#[test]
+fn deletes_on_dissolve_what_was_deleted_for_good_here_and_never_takes_it_in_again() {
+    let (setup, service) = with_feed();
+    service.watch_changes();
+    let id = stored_id(&setup, "msg_1");
+    assert_eq!(setup.mailbox.delete_forever(std::slice::from_ref(&id), &crate::mailbox::Actor::You).ok(), Some(1));
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+    while setup.fake.lock().is_ok_and(|fake| fake.deleted_messages.is_empty()) && std::time::Instant::now() < deadline {
+        thread::sleep(std::time::Duration::from_millis(20));
+    }
+    assert!(setup.fake.lock().is_ok_and(|fake| fake.deleted_messages == vec![("inb_a".to_owned(), "msg_1".to_owned())]));
+    assert_eq!(stored_id(&setup, "msg_1"), "");
+    // The app's own deletions (an inbox that ended) are never sent.
+    let other = stored_id(&setup, "msg_2");
+    let _ = setup.mailbox.delete_forever(&[other], &crate::mailbox::Actor::App);
+    thread::sleep(std::time::Duration::from_millis(100));
+    assert_eq!(setup.fake.lock().map_or(0, |fake| fake.deleted_messages.len()), 1);
+}
+
+#[test]
+fn puts_the_label_named_like_a_tag_on_the_message_there() {
+    let (setup, service) = with_feed();
+    let id = stored_id(&setup, "msg_1");
+    service.mirror_tag(&id, "receipts", true);
+    service.mirror_tag(&id, "No such label", true);
+    service.mirror_tag(&id, "Receipts", false);
+    service.mirror_tag("not-from-dissolve", "Receipts", true);
+    let labelled = setup.fake.lock().map(|fake| fake.labelled.clone()).unwrap_or_default();
+    assert_eq!(labelled, vec![("msg_1".to_owned(), "lbl_r".to_owned(), true), ("msg_1".to_owned(), "lbl_r".to_owned(), false)]);
+}
+
+#[test]
+fn adds_lists_and_removes_an_inbox_alias() {
+    let (_setup, service) = with_feed();
+    assert_eq!(service.aliases("inb_a"), Ok(Vec::new()));
+    let added = service.add_alias("inb_a", " Billing ").unwrap_or_else(|error| unreachable!("add: {error}"));
+    assert_eq!(added.iter().map(|alias| alias.address.as_str()).collect::<Vec<_>>(), vec!["billing@dissolve.test"]);
+    assert!(service.add_alias("inb_a", "  ").is_err());
+    let id = added.first().map(|alias| alias.id.clone()).unwrap_or_default();
+    assert_eq!(service.remove_alias("inb_a", &id), Ok(Vec::new()));
+}
+
+#[test]
+fn extends_and_renames_an_identity_without_shortening_it_and_deletes_it_keeping_the_inbox() {
+    let (setup, service) = with_feed();
+    let ends = buun_mail_message::rfc3339(crate::mailbox::unix_now() + 2 * 60 * 60);
+    if let Ok(mut fake) = setup.fake.lock() {
+        fake.identity_rows = vec![json!({ "id": "idn_9", "email": "signup@dissolve.test", "inboxId": "inb_a", "label": null, "expiresAt": ends })];
+    }
+    let rows = service.identities().unwrap_or_else(|error| unreachable!("list: {error}"));
+    assert_eq!(rows.first().and_then(|row| row.inbox.clone()), Some("inb_a".to_owned()));
+
+    let _ = service.update_identity("idn_9", false, Some("GitHub"));
+    let _ = service.update_identity("idn_9", true, None);
+    let patched = setup.fake.lock().map(|fake| fake.patched.clone()).unwrap_or_default();
+    let minutes: Vec<i64> = patched.iter().filter_map(|(_, body)| body["ttlMinutes"].as_i64()).collect();
+    // About two hours left: a rename keeps them, Extend adds the free plan's ten minutes of inbox time.
+    assert!(minutes.first().is_some_and(|left| (119..=120).contains(left)), "{minutes:?}");
+    assert!(minutes.get(1).is_some_and(|more| (129..=130).contains(more)), "{minutes:?}");
+    assert_eq!(patched.first().map(|(_, body)| body["label"].clone()), Some(json!("GitHub")));
+
+    assert_eq!(service.delete_identity("idn_9"), Ok(Vec::new()));
 }
