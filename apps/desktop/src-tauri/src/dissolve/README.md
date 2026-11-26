@@ -13,6 +13,14 @@ Code here follows:
 | [Resilience](../../../../../.standards/docs/standards/core/resilience.md) | A time limit on every call, reconnecting with a growing wait, a fallback for every server |
 | [Error handling](../../../../../.standards/docs/standards/core/error-handling.md) | `ApiError` in words for Settings, a plan limit with its count |
 
+## Signing in
+
+On dissolve.email itself the app signs in as its own client, `sys_buun_mail`, which dissolve.email made as code (its
+migrations 071 and 073). It is first-party, so the approval page shows Buun Mail as verified, with both ways back
+allowed: the loopback redirect on a computer and the app link on a phone. Signing in with it after an older,
+registered client ends that client's connection. Any other server (self-hosted, local) gets a client registered at
+sign-in (RFC 7591), which dissolve.email labels unverified.
+
 ## How new mail arrives
 
 | Plan or server | How | How soon |

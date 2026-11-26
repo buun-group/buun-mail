@@ -311,6 +311,7 @@ impl DissolveService {
     /// Why it failed, in words for Settings.
     pub fn connect(&self, server: Option<&str>, identities: Option<bool>) -> Result<DissolveStatusDto, String> {
         let mut saved = self.0.settings.lock().map_err(|error| error.to_string())?.clone();
+        let before = (saved.client_id.clone(), saved.account.as_ref().map(|account| account.refresh_token.clone()));
         if let Some(identities) = identities {
             saved.identities = identities;
         }
@@ -324,7 +325,12 @@ impl DissolveService {
         let metadata = oauth::discover(saved.server()).map_err(|error| error.to_string())?;
         // A client registered for the other way back (a computer's settings restored on a phone) cannot come back here.
         let registered_for = if saved.client_redirect.is_empty() { oauth::REDIRECT } else { saved.client_redirect.as_str() };
-        if saved.client_id.is_empty() || registered_for != oauth::REGISTERED_REDIRECT {
+        if let Some(own) = oauth::first_party_client(saved.server()) {
+            // dissolve.email knows this app: its own client shows as verified, and needs no registration. Kept in
+            // memory only until the sign-in succeeds, so a failed one leaves the old client for refreshing its tokens.
+            own.clone_into(&mut saved.client_id);
+            oauth::REGISTERED_REDIRECT.clone_into(&mut saved.client_redirect);
+        } else if saved.client_id.is_empty() || registered_for != oauth::REGISTERED_REDIRECT {
             saved.client_id = oauth::register(&metadata).map_err(|error| error.to_string())?;
             oauth::REGISTERED_REDIRECT.clone_into(&mut saved.client_redirect);
             self.save(&saved).map_err(|error| error.to_string())?;
@@ -356,6 +362,14 @@ impl DissolveService {
             progress.me = Some((me, unix_now()));
         }
         self.save(&saved).map_err(|error| error.to_string())?;
+        // Signed in with another client (an unverified registered one, now Buun Mail's own): end the old connection,
+        // so dissolve.email's connected apps list Buun Mail once.
+        if let (old_client, Some(old_refresh)) = before
+            && !old_client.is_empty()
+            && old_client != saved.client_id
+        {
+            oauth::revoke(&metadata, &old_client, &old_refresh);
+        }
         *self.0.metadata.lock().map_err(|error| error.to_string())? = Some(metadata);
         let _ = self.check();
         self.status().map_err(|error| error.to_string())

@@ -39,6 +39,19 @@ pub const APP_LINK: &str = "com.buungroup.mail:/oauth/callback";
 /// The redirect this build registers its client with.
 pub const REGISTERED_REDIRECT: &str = if cfg!(mobile) { APP_LINK } else { REDIRECT };
 
+/// Buun Mail's own client on dissolve.email, made there as code (its migrations 071 and 073): first-party, so the
+/// approval page shows it as verified, with both ways back ([`REDIRECT`] and [`APP_LINK`]) already allowed.
+pub const FIRST_PARTY_CLIENT: &str = "sys_buun_mail";
+
+/// The server Buun Mail's own client lives on. Any other server (self-hosted, local) gets a registered client.
+pub const FIRST_PARTY_SERVER: &str = "https://api.dissolve.email";
+
+/// The client id to sign in with on `server` without registering: [`FIRST_PARTY_CLIENT`] on dissolve.email itself.
+#[must_use]
+pub fn first_party_client(server: &str) -> Option<&'static str> {
+    (server.trim_end_matches('/').eq_ignore_ascii_case(FIRST_PARTY_SERVER)).then_some(FIRST_PARTY_CLIENT)
+}
+
 /// How long the browser has to come back before connecting gives up.
 pub const SIGN_IN_WAIT: Duration = Duration::from_secs(300);
 
@@ -451,6 +464,16 @@ mod unit {
                 .contains("messages%3Awrite%20identities%3Aread%20identities%3Awrite&")
         );
         assert_eq!(decode("a%20b+c%3A"), "a b c:");
+    }
+
+    #[test]
+    fn signs_in_on_dissolve_email_as_its_own_verified_client_and_registers_anywhere_else() {
+        for server in ["https://api.dissolve.email", "https://api.dissolve.email/", "HTTPS://API.DISSOLVE.EMAIL"] {
+            assert_eq!(first_party_client(server), Some(FIRST_PARTY_CLIENT), "{server}");
+        }
+        for server in ["http://127.0.0.1:8787", "https://dissolve.example", "https://api.dissolve.email.evil"] {
+            assert_eq!(first_party_client(server), None, "{server}");
+        }
     }
 
     #[test]
