@@ -2,7 +2,8 @@
 //! link on a phone (RFC 8252 7.1), and reading the answer it carries, state first.
 
 use std::sync::Mutex;
-use std::sync::mpsc::{Receiver, Sender, channel};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::mpsc::{Receiver, RecvTimeoutError, Sender, channel};
 use std::time::{Duration, Instant};
 
 use super::{APP_LINK, OAuthError, unreachable};
@@ -79,9 +80,12 @@ impl Loopback {
     /// # Errors
     ///
     /// [`OAuthError::Declined`], [`OAuthError::Mismatch`], [`OAuthError::TimedOut`], or the server's refusal.
-    pub fn wait(&self, state: &str, issuer: &str, within: Duration) -> Result<String, OAuthError> {
+    pub fn wait(&self, state: &str, issuer: &str, within: Duration, cancel: &AtomicBool) -> Result<String, OAuthError> {
         let until = Instant::now() + within;
         loop {
+            if cancel.load(Ordering::Relaxed) {
+                return Err(OAuthError::Cancelled);
+            }
             let left = until.saturating_duration_since(Instant::now());
             if left.is_zero() {
                 return Err(OAuthError::TimedOut);
@@ -135,9 +139,18 @@ impl Return {
     ///
     /// As for [`Loopback::wait`].
     pub fn wait(&self, state: &str, issuer: &str, within: Duration) -> Result<String, OAuthError> {
+        self.wait_or_cancel(state, issuer, within, &AtomicBool::new(false))
+    }
+
+    /// Waits for the answer, giving up within a second once `cancel` is set.
+    ///
+    /// # Errors
+    ///
+    /// [`OAuthError::Cancelled`], or as for [`Loopback::wait`].
+    pub fn wait_or_cancel(&self, state: &str, issuer: &str, within: Duration, cancel: &AtomicBool) -> Result<String, OAuthError> {
         match self {
-            Self::Loopback(loopback) => loopback.wait(state, issuer, within),
-            Self::AppLink(link) => link.wait(state, issuer, within),
+            Self::Loopback(loopback) => loopback.wait(state, issuer, within, cancel),
+            Self::AppLink(link) => link.wait(state, issuer, within, cancel),
         }
     }
 }
@@ -166,8 +179,22 @@ impl AppLink {
     /// # Errors
     ///
     /// [`OAuthError::TimedOut`], or as for [`read_answer`].
-    pub fn wait(&self, state: &str, issuer: &str, within: Duration) -> Result<String, OAuthError> {
-        let link = self.links.recv_timeout(within).map_err(|_| OAuthError::TimedOut)?;
+    pub fn wait(&self, state: &str, issuer: &str, within: Duration, cancel: &AtomicBool) -> Result<String, OAuthError> {
+        let until = Instant::now() + within;
+        let link = loop {
+            if cancel.load(Ordering::Relaxed) {
+                return Err(OAuthError::Cancelled);
+            }
+            let left = until.saturating_duration_since(Instant::now());
+            if left.is_zero() {
+                return Err(OAuthError::TimedOut);
+            }
+            match self.links.recv_timeout(left.min(Duration::from_secs(1))) {
+                Ok(link) => break link,
+                Err(RecvTimeoutError::Timeout) => {}
+                Err(RecvTimeoutError::Disconnected) => return Err(OAuthError::TimedOut),
+            }
+        };
         let query = link.strip_prefix(APP_LINK).map_or("", |rest| rest.trim_start_matches('?'));
         read_answer(query, state, issuer)
     }
@@ -193,20 +220,30 @@ mod unit {
 
     #[test]
     fn a_phone_signs_in_through_its_app_link_and_ignores_other_links() {
+        let going = AtomicBool::new(false);
         let link = AppLink::open();
         assert!(!deliver("com.buungroup.mail:/somewhere-else"), "only the sign-in link is taken");
         assert!(deliver(&format!("{APP_LINK}?code=c%2B1&state=s1&iss=https%3A%2F%2Fapi.example%2F")));
-        assert_eq!(link.wait("s1", "https://api.example", Duration::from_secs(1)), Ok("c+1".to_owned()));
+        assert_eq!(link.wait("s1", "https://api.example", Duration::from_secs(1), &going), Ok("c+1".to_owned()));
         assert!(!deliver(&format!("{APP_LINK}?code=again&state=s1")), "a link with no sign-in waiting goes nowhere");
 
         let declined = AppLink::open();
         assert!(deliver(&format!("{APP_LINK}?error=access_denied&state=s2")));
-        assert_eq!(declined.wait("s2", "https://api.example", Duration::from_secs(1)), Err(OAuthError::Declined));
+        assert_eq!(declined.wait("s2", "https://api.example", Duration::from_secs(1), &going), Err(OAuthError::Declined));
 
         let forged = AppLink::open();
         assert!(deliver(&format!("{APP_LINK}?code=x&state=other")));
-        assert_eq!(forged.wait("s3", "https://api.example", Duration::from_secs(1)), Err(OAuthError::Mismatch));
+        assert_eq!(forged.wait("s3", "https://api.example", Duration::from_secs(1), &going), Err(OAuthError::Mismatch));
 
-        assert_eq!(AppLink::open().wait("s4", "https://api.example", Duration::from_millis(10)), Err(OAuthError::TimedOut));
+        assert_eq!(AppLink::open().wait("s4", "https://api.example", Duration::from_millis(10), &going), Err(OAuthError::TimedOut));
+        assert_eq!(AppLink::open().wait("s5", "https://api.example", Duration::from_secs(5), &AtomicBool::new(true)), Err(OAuthError::Cancelled));
+    }
+
+    #[test]
+    fn a_computer_stops_waiting_once_cancelled() {
+        let loopback = Loopback::open().unwrap_or_else(|error| unreachable!("{error}"));
+        let started = Instant::now();
+        assert_eq!(loopback.wait("s", "https://api.example", Duration::from_secs(30), &AtomicBool::new(true)), Err(OAuthError::Cancelled));
+        assert!(started.elapsed() < Duration::from_secs(2));
     }
 }

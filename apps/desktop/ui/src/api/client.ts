@@ -467,6 +467,21 @@ export async function connectCryptflare(): Promise<CryptFlareStatus> {
   return isTauri() ? invoke<CryptFlareStatus>(COMMANDS.connectCryptflare, { issuer: null, api: null }) : preview.cryptflare.connect()
 }
 
+/** The approval link of the CryptFlare sign-in waiting for the browser, or null; to copy into another browser. */
+export async function cryptflareSignInLink(): Promise<string | null> {
+  return isTauri() ? invoke<string | null>(COMMANDS.cryptflareSignInLink) : preview.cryptflare.signInLink()
+}
+
+/** Opens the waiting CryptFlare sign-in in the browser again, after its tab was closed. */
+export async function reopenCryptflareSignIn(): Promise<void> {
+  return isTauri() ? invoke<void>(COMMANDS.reopenCryptflareSignIn) : preview.cryptflare.reopen()
+}
+
+/** Stops waiting for the browser: the pending connect fails with "sign-in cancelled". */
+export async function cancelCryptflareSignIn(): Promise<void> {
+  return isTauri() ? invoke<void>(COMMANDS.cancelCryptflareSignIn) : preview.cryptflare.cancel()
+}
+
 /** Signs out of CryptFlare, dropping saves still waiting. */
 export async function disconnectCryptflare(): Promise<CryptFlareStatus> {
   return isTauri() ? invoke<CryptFlareStatus>(COMMANDS.disconnectCryptflare) : preview.cryptflare.disconnect()

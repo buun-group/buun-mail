@@ -12,6 +12,7 @@ use serde::{Deserialize, Serialize};
 use super::api::{Api, CfError, Named};
 use super::entry;
 use super::settings::{self, Account, CryptFlareSettings, Target};
+use super::sign_in::{SignIn, Waiting};
 use crate::dissolve::{IdentityChange, IdentityRecord};
 use crate::error::AppError;
 use crate::mailbox::unix_now;
@@ -41,7 +42,9 @@ pub(super) struct Inner {
     pub(super) problem: Mutex<Option<String>>,
     pub(super) woken: Mutex<bool>,
     pub(super) wake: Condvar,
-    open_browser: Opener,
+    pub(super) open_browser: Opener,
+    /// The sign-in waiting for the browser, if any (`sign_in`).
+    pub(super) signing_in: Mutex<Option<SignIn>>,
 }
 
 /// The `CryptFlare` connection. Cheap to clone, so slow work runs away from the window's thread.
@@ -128,6 +131,7 @@ impl CryptFlareService {
             woken: Mutex::new(false),
             wake: Condvar::new(),
             open_browser,
+            signing_in: Mutex::new(None),
         }))
     }
 
@@ -214,8 +218,12 @@ impl CryptFlareService {
             scopes: SCOPES,
             resource: Some(&api_base),
         };
-        (self.0.open_browser)(&oauth::authorize_url(&metadata, &request))?;
-        let code = way_back.wait(&state, &metadata.issuer, SIGN_IN_WAIT).map_err(|error| error.to_string())?;
+        // Kept while the browser is out, so the window can open it again, copy it or cancel; dropped on every way out.
+        let waiting = Waiting::start(self, oauth::authorize_url(&metadata, &request));
+        // A browser that will not open is not the end: the window offers the link to copy into one.
+        let _ = (self.0.open_browser)(waiting.url());
+        let code = way_back.wait_or_cancel(&state, &metadata.issuer, SIGN_IN_WAIT, waiting.cancel()).map_err(|error| error.to_string())?;
+        drop(waiting);
         let tokens = oauth::exchange(&metadata, &request, &code, &pair.verifier, unix_now()).map_err(|error| error.to_string())?;
         let who = Api::new(&api_base, &tokens.access).whoami().map_err(|error| error.to_string())?;
         // Another organisation: the workspace chosen before is not there.

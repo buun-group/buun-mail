@@ -26,6 +26,19 @@ const choose = async (field: string, option: string): Promise<void> => {
 const toggle = (): HTMLInputElement => screen.getByRole('switch', { name: 'Save agent identities automatically' }) as HTMLInputElement
 
 describe('CryptFlare in Settings', () => {
+  it('lets a sign-in whose tab was closed be opened again, copied, or cancelled without an error', async () => {
+    render(<CryptFlareConnect onConnected={() => undefined} />)
+    fireEvent.click(await screen.findByRole('button', { name: 'Connect CryptFlare' }))
+    const copy = await screen.findByRole('button', { name: 'Copy link' })
+    await waitFor(() => expect((copy as HTMLButtonElement).disabled).toBe(false))
+    expect((screen.getByRole('button', { name: 'Open again' }) as HTMLButtonElement).disabled).toBe(false)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(await screen.findByRole('button', { name: 'Connect CryptFlare' })).toBeTruthy()
+    expect(screen.queryByRole('alert')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Copy link' })).toBeNull()
+  })
+
   it('connects, chooses where saves go, then turns on saving identities', async () => {
     let connected = false
     render(<CryptFlareConnect onConnected={(next) => (connected = next)} />)

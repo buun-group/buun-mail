@@ -296,6 +296,45 @@ fn refreshes_once_even_when_two_saves_race_and_keeps_the_new_refresh_token() {
 }
 
 #[test]
+fn a_sign_in_whose_tab_was_closed_can_be_opened_again_copied_or_cancelled() {
+    let folder = tempfile::tempdir().unwrap_or_else(|error| unreachable!("temp: {error}"));
+    let (base, _fake) = fake_server();
+    let opened = Arc::new(Mutex::new(Vec::<String>::new()));
+    let seen = Arc::clone(&opened);
+    // A browser whose tab is closed at once: it never comes back.
+    let service = CryptFlareService::new(
+        folder.path().to_path_buf(),
+        Box::new(move |url: &str| {
+            if let Ok(mut urls) = seen.lock() {
+                urls.push(url.to_owned());
+            }
+            Ok(())
+        }),
+    );
+    assert_eq!(service.sign_in_link(), None);
+    let connecting = service.clone();
+    let waiting = thread::spawn(move || connecting.connect(Some(&base), Some(&base)));
+
+    let link = (0..100).find_map(|_| {
+        service.sign_in_link().or_else(|| {
+            thread::sleep(std::time::Duration::from_millis(20));
+            None
+        })
+    });
+    let Some(link) = link else { unreachable!("no link while waiting") };
+    assert!(link.contains("/oauth/authorize?") && link.contains("code_challenge_method=S256") && link.contains("resource="), "{link}");
+
+    assert_eq!(service.reopen_sign_in(), Ok(()));
+    assert_eq!(opened.lock().map(|urls| urls.clone()).unwrap_or_default(), vec![link.clone(), link]);
+
+    service.cancel_sign_in();
+    let outcome = waiting.join().unwrap_or_else(|_| unreachable!("the sign-in thread"));
+    assert_eq!(outcome.err().as_deref(), Some("sign-in cancelled"));
+    assert_eq!(service.sign_in_link(), None, "nothing waits once it ended");
+    assert!(service.reopen_sign_in().is_err());
+}
+
+#[test]
 fn saves_nothing_while_off_and_signing_out_hands_the_token_back_and_drops_waiting_saves() {
     let setup = setup();
     setup.service.set_save_identities(false).unwrap_or_else(|error| unreachable!("{error}"));

@@ -641,6 +641,24 @@ pub async fn connect_cryptflare(cryptflare: State<'_, CryptFlareService>, issuer
     tauri::async_runtime::spawn_blocking(move || service.connect(issuer.as_deref(), api.as_deref())).await.map_err(|error| error.to_string())?
 }
 
+/// The approval link of the `CryptFlare` sign-in waiting for the browser, to copy into another browser.
+#[tauri::command]
+pub fn cryptflare_sign_in_link(cryptflare: State<'_, CryptFlareService>) -> Option<String> {
+    cryptflare.sign_in_link()
+}
+
+/// Opens the waiting `CryptFlare` sign-in in the browser again.
+#[tauri::command]
+pub fn reopen_cryptflare_sign_in(cryptflare: State<'_, CryptFlareService>) -> Result<(), String> {
+    cryptflare.reopen_sign_in()
+}
+
+/// Stops waiting for the browser; the pending connect ends as cancelled.
+#[tauri::command]
+pub fn cancel_cryptflare_sign_in(cryptflare: State<'_, CryptFlareService>) {
+    cryptflare.cancel_sign_in();
+}
+
 /// Signs out of `CryptFlare`, dropping saves still waiting.
 #[tauri::command]
 pub async fn disconnect_cryptflare(cryptflare: State<'_, CryptFlareService>) -> Result<CryptFlareStatusDto, String> {

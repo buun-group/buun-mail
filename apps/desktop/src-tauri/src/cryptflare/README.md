@@ -42,5 +42,6 @@ One secret per identity, in the chosen environment:
 | `api.rs` | The REST calls: whoami, workspaces, environments, create, rotate, settings |
 | `entry.rs` | An identity as a secret: key, value, description, metadata; merging saves of the same key |
 | `service.rs` | Connecting with the REST API as the audience, choosing where saves go, hearing identity changes |
+| `sign_in.rs` | The sign-in waiting for the browser: its approval link to open again or copy into another browser, and Cancel |
 | `queue.rs` | Writing waiting saves with retries, and refreshing the token one at a time |
 | `tests.rs` | The integration against a fake server: sign-in, saves, versions, retries, refusals, one refresh, sign-out |

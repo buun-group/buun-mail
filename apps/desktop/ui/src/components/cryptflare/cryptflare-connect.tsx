@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { connectCryptflare, cryptflareEnvironments, cryptflareStatus, cryptflareWorkspaces, disconnectCryptflare, flushCryptflare, saveIdentitiesToCryptflare, setCryptflareSaveIdentities, setCryptflareTarget } from '../../api/client'
+import { cancelCryptflareSignIn, connectCryptflare, cryptflareEnvironments, cryptflareSignInLink, cryptflareStatus, cryptflareWorkspaces, disconnectCryptflare, flushCryptflare, reopenCryptflareSignIn, saveIdentitiesToCryptflare, setCryptflareSaveIdentities, setCryptflareTarget } from '../../api/client'
 import type { CryptFlareChoice, CryptFlareStatus } from '../../api/types'
-import { IconIdentity, IconRegenerate } from '../../icons'
+import { IconClose, IconCopy, IconExternal, IconIdentity, IconRegenerate } from '../../icons'
+import { copyWithToast } from '../../lib/copy'
 import { toast } from '../../lib/feedback'
 import { formatFull } from '../../lib/time'
 import { BusyButton } from '../Busy/BusyButton'
@@ -39,7 +40,8 @@ export function CryptFlareConnect({ onConnected }: { onConnected: (connected: bo
         onConnected(next.connected)
         toast({ text: t('cryptflare.connected'), ...(next.organisation === null ? {} : { detail: next.organisation }), tone: 'done' })
       })
-      .catch((cause: unknown) => setError(reason(cause)))
+      // Cancelling is the person's own choice, not a failure to show.
+      .catch((cause: unknown) => setError(reason(cause) === CANCELLED ? null : reason(cause)))
       .finally(() => setBusy(false))
   }
 
@@ -63,17 +65,19 @@ export function CryptFlareConnect({ onConnected }: { onConnected: (connected: bo
     return (
       <div className="connect">
         <p className="settings__hint">{t('cryptflare.intro')}</p>
-        {busy && <p className="settings__hint">{t('cryptflare.waiting')}</p>}
+        {busy && <Waiting />}
         {error !== null && (
           <p role="alert" className="settings__error">
             {error}
           </p>
         )}
-        <div className="connect__actions">
-          <button type="button" className="connect__submit" disabled={busy} onClick={connect}>
-            {busy ? t('cryptflare.waitingButton') : t('cryptflare.connect')}
-          </button>
-        </div>
+        {!busy && (
+          <div className="connect__actions">
+            <button type="button" className="connect__submit" onClick={connect}>
+              {t('cryptflare.connect')}
+            </button>
+          </div>
+        )}
       </div>
     )
   }
@@ -162,6 +166,54 @@ export function CryptFlareConnect({ onConnected }: { onConnected: (connected: bo
           </button>
         </div>
       </section>
+    </div>
+  )
+}
+
+/** What the Rust side answers when the person cancels the sign-in (`OAuthError::Cancelled`). */
+const CANCELLED = 'sign-in cancelled'
+
+/** How often the waiting panel asks for the sign-in's link until it has it, in milliseconds. */
+const LINK_POLL_MS = 250
+
+/**
+ * While the browser is out: the tab may have been closed, or the person wants another browser. Open it again, copy the
+ * link (any browser on this computer can finish the sign-in), or cancel.
+ */
+function Waiting(): ReactNode {
+  const { t } = useTranslation('integrations')
+  const [link, setLink] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (link !== null) return
+    const timer = setInterval(() => {
+      void cryptflareSignInLink().then((found) => {
+        if (found !== null) setLink(found)
+      })
+    }, LINK_POLL_MS)
+    return () => clearInterval(timer)
+  }, [link])
+
+  return (
+    <div className="settings__row" role="status">
+      <div>
+        <p className="settings__label">{t('cryptflare.waitingButton')}</p>
+        <p className="settings__hint">{t('cryptflare.waiting')}</p>
+      </div>
+      <div className="settings__actions settings__actions--tight">
+        <button type="button" className="settings__button" disabled={link === null} onClick={() => void reopenCryptflareSignIn().catch((cause: unknown) => toast({ text: t('cryptflare.reopenFailed'), detail: reason(cause), tone: 'problem' }))}>
+          <IconExternal aria-hidden="true" />
+          {t('cryptflare.reopen')}
+        </button>
+        <button type="button" className="settings__button" disabled={link === null} onClick={(event) => link !== null && void copyWithToast(link, t('cryptflare.linkCopied'), event.currentTarget)}>
+          <IconCopy aria-hidden="true" />
+          {t('cryptflare.copyLink')}
+        </button>
+        <button type="button" className="settings__button" onClick={() => void cancelCryptflareSignIn()}>
+          <IconClose aria-hidden="true" />
+          {t('cryptflare.cancel')}
+        </button>
+      </div>
     </div>
   )
 }

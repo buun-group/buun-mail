@@ -52,6 +52,9 @@ pub enum OAuthError {
     /// The browser did not come back in time.
     #[error("the browser did not come back in time; try connecting again")]
     TimedOut,
+    /// The person cancelled the sign-in in the app.
+    #[error("sign-in cancelled")]
+    Cancelled,
     /// The answer did not match the request: a different state or issuer.
     #[error("the sign-in answer did not match this request, so it was ignored")]
     Mismatch,

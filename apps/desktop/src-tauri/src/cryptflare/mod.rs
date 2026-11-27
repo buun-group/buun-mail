@@ -7,6 +7,7 @@
 //! - `api`: the REST calls (whoami, workspaces, environments, create, rotate, settings)
 //! - `entry`: an identity as a secret: its key, value and metadata
 //! - `service`: connecting, choosing where saves go, and hearing identity changes
+//! - `sign_in`: the sign-in waiting for the browser: open it again, copy its link, or cancel
 //! - `queue`: writing waiting saves, with retries, and refreshing the token one at a time
 
 mod api;
@@ -14,6 +15,7 @@ mod entry;
 mod queue;
 mod service;
 mod settings;
+mod sign_in;
 #[cfg(test)]
 mod tests;
 

@@ -376,7 +376,7 @@
   "cryptflare": {
     "intro": "Connect opens your browser to approve Buun Mail on CryptFlare, where you choose the organisation and the workspaces it may reach. Buun Mail can only list and write secrets there, never read one back.",
     "connect": "Connect CryptFlare",
-    "waiting": "Approve Buun Mail in your browser. This waits up to five minutes.",
+    "waiting": "Approve Buun Mail in your browser. Closed the tab? Open it again, or copy the link into another browser on this computer. This waits up to five minutes.",
     "waitingButton": "Waiting for the browser",
     "connected": "CryptFlare connected",
     "disconnected": "CryptFlare disconnected",
@@ -408,6 +408,11 @@
     "retry": "Try now",
     "retrying": "Trying",
     "retried_one": "{{count}} save written",
-    "retried_other": "{{count}} saves written"
+    "retried_other": "{{count}} saves written",
+    "reopen": "Open again",
+    "reopenFailed": "Could not open the browser",
+    "copyLink": "Copy link",
+    "linkCopied": "Sign-in link copied",
+    "cancel": "Cancel"
   }
 }
