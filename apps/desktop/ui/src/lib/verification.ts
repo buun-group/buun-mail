@@ -56,17 +56,21 @@ export const VERIFICATION_SENDER =
  *   'Your code: 847293'
  *   'passcode is: 5819'
  *   'magic code: 738461'
+ *   'verification code is: 780-530' (dashed groups, kept as written)
+ * The code must end there: a digit straight after it means it is part of a longer number.
  */
 const CODE_LABEL_NUMERIC =
-  /(?:verification|confirmation|security|sign.?in|log.?in|otp|one.?time|2fa|mfa|passcode|magic|temporary|access)\s{0,5}(?:(?:code|pin|number|token|key)\s{0,5})?(?:is[:\s]{0,5}|:\s{0,5}|–\s{0,5})(\d{4,8})/gi
+  /(?:verification|confirmation|security|sign.?in|log.?in|otp|one.?time|2fa|mfa|passcode|magic|temporary|access)\s{0,5}(?:(?:code|pin|number|token|key)\s{0,5})?(?:is[:\s]{0,5}|:\s{0,5}|–\s{0,5})(\d{2,4}(?:-\d{2,4}){1,3}|\d{4,8})(?!\d)/gi
 
 /**
  * Labeled alphanumeric codes:
  *   'Your code is A3K-9X2'
  *   'confirmation code: ABC-123-DEF'
+ * The code must end at a non-alphanumeric character, so a code run into the next word ('780-530This', from a
+ * sender's text part that drops the line break) is not read as one code.
  */
 const CODE_LABEL_ALPHANUM =
-  /(?:verification|confirmation|security|sign.?in|log.?in|otp|one.?time|2fa|mfa|passcode|magic|temporary|access)\s{0,5}(?:(?:code|pin|number|token|key)\s{0,5})?(?:is[:\s]{0,5}|:\s{0,5}|–\s{0,5})([A-Z0-9][A-Z0-9-]{2,11}[A-Z0-9])/gi
+  /(?:verification|confirmation|security|sign.?in|log.?in|otp|one.?time|2fa|mfa|passcode|magic|temporary|access)\s{0,5}(?:(?:code|pin|number|token|key)\s{0,5})?(?:is[:\s]{0,5}|:\s{0,5}|–\s{0,5})([A-Z0-9][A-Z0-9-]{2,11}[A-Z0-9])(?![A-Z0-9])/gi
 
 /**
  * Prefixed codes: G-847293, MSFT-123456
@@ -194,11 +198,11 @@ export function extractVerification(input: VerificationInput): VerificationMatch
   // ── 2. Labeled alphanumeric codes (0.93) ──
   for (const source of [text, stripped]) {
     for (const m of capped(source.matchAll(CODE_LABEL_ALPHANUM))) {
-      addMatch(matches, seen, 'code', m[1] ?? '', 0.93 + boost)
+      if (oneCase(m[1] ?? '')) addMatch(matches, seen, 'code', m[1] ?? '', 0.93 + boost)
     }
   }
   for (const m of capped(subject.matchAll(CODE_LABEL_ALPHANUM))) {
-    addMatch(matches, seen, 'code', m[1] ?? '', 0.98)
+    if (oneCase(m[1] ?? '')) addMatch(matches, seen, 'code', m[1] ?? '', 0.98)
   }
 
   // ── 3. Prefixed codes: G-847293, MSFT-123456 (0.90) ──
@@ -215,7 +219,7 @@ export function extractVerification(input: VerificationInput): VerificationMatch
 
   // ── 5. HTML emphasis codes - alphanumeric (0.83) ──
   for (const m of capped(html.matchAll(HTML_EMPHASIS_ALPHANUM))) {
-    addMatch(matches, seen, 'code', m[1] ?? '', 0.83 + boost)
+    if (oneCase(m[1] ?? '')) addMatch(matches, seen, 'code', m[1] ?? '', 0.83 + boost)
   }
 
   // ── 6. HTML large-font / styled codes (0.82) ──
@@ -301,6 +305,14 @@ export function extractVerification(input: VerificationInput): VerificationMatch
   // Sort by confidence desc
   matches.sort((a, b) => b.confidence - a.confidence)
   return matches
+}
+
+/**
+ * An alphanumeric code is written in one case. Upper and lower case together ('780-530This') is a code run into the
+ * next word, which the case-insensitive patterns cannot tell apart on their own.
+ */
+function oneCase(value: string): boolean {
+  return !(/[a-z]/.test(value) && /[A-Z]/.test(value))
 }
 
 function addMatch(

@@ -31,6 +31,22 @@ describe("extractVerification - labelled numeric codes", () => {
     expect(matches[0]?.value).toBe("123456");
   });
 
+  it("stops a dashed code at the next word when the sender's text drops the line break", () => {
+    for (const bodyText of [
+      "Your verification code is:780-530This verification code will expire in 15 minutes.",
+      "Your verification code is:\n\n780-530\n\nThis verification code will expire in 15 minutes.",
+    ]) {
+      const matches = extractVerification(input({ bodyText, fromAddress: "noreply@nvidia.com" }));
+      expect(matches[0], bodyText).toMatchObject({ type: "code", value: "780-530" });
+      expect(matches.some((match) => match.value.includes("This"))).toBe(false);
+    }
+  });
+
+  it("does not read a longer number as a code", () => {
+    const matches = extractVerification(input({ bodyText: "Your verification code is 1234567890" }));
+    expect(matches.map((match) => match.value)).not.toContain("12345678");
+  });
+
   it("ranks subject-line code matches as the strongest signal (confidence 1.0)", () => {
     const matches = extractVerification(
       input({
