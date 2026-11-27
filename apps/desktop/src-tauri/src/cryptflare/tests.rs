@@ -346,3 +346,14 @@ fn saves_nothing_while_off_and_signing_out_hands_the_token_back_and_drops_waitin
     assert!(!status.connected && status.pending == 0 && !status.save_identities);
     assert_eq!(setup.fake.lock().map(|fake| fake.revoked.clone()).unwrap_or_default(), vec!["rt-1".to_owned()]);
 }
+
+#[test]
+fn signs_in_on_cryptflare_as_its_own_verified_client_and_registers_anywhere_else() {
+    use super::service::{FIRST_PARTY_CLIENT, first_party_client};
+    for issuer in ["https://mcp.cryptflare.com", "https://mcp.cryptflare.com/", "HTTPS://MCP.CRYPTFLARE.COM"] {
+        assert_eq!(first_party_client(issuer), Some(FIRST_PARTY_CLIENT), "{issuer}");
+    }
+    for issuer in ["http://localhost:5497", "https://mcp.cryptflare.com.evil", "https://api.cryptflare.com"] {
+        assert_eq!(first_party_client(issuer), None, "{issuer}");
+    }
+}

@@ -36,7 +36,11 @@ computer and the app link on a phone, and sealed tokens. The code is in
 The endpoints are read from the metadata, not hard-coded. Locally: issuer `http://localhost:5497`, API
 `http://localhost:5488`.
 
-## 2. Register the client once
+## 2. The client
+
+On CryptFlare itself (`mcp.cryptflare.com`) the app signs in as Buun Mail's built-in client, `sys_buun_mail`, with no
+registration: the approval page shows it as verified, and both redirects below are already allowed. Any other
+CryptFlare (local, self-hosted) gets a client registered once per install:
 
 ```http
 POST /oauth/register
@@ -49,8 +53,9 @@ Content-Type: application/json
 - The answer's `client_id` (`cfc_...`) is kept sealed in the settings with the redirect it was registered for.
 - A loopback redirect matches on any port (RFC 8252 section 7.3), so the one-shot listener picks a free port each time
   and sends `http://127.0.0.1:<port>/callback`.
-- The consent screen shows a registered client as **Unverified** until CryptFlare has a built-in Buun Mail client; see
-  section 10.
+- The consent screen shows a registered client as **Unverified**; only `sys_buun_mail` shows as verified.
+- Signing in with `sys_buun_mail` after an older registered client hands the old refresh token back, so CryptFlare's
+  connected apps list Buun Mail once.
 
 ## 3. Send the person to approve
 
@@ -172,7 +177,7 @@ the CryptFlare service, which queues a save only while the switch is on and an o
 
 | Gap | Effect on Buun Mail | Fix on the CryptFlare side |
 | --- | --- | --- |
-| No first-party clients | The consent screen says Unverified for Buun Mail | A built-in `sys_buun_mail` client like dissolve's: public, PKCE S256, the loopback redirects on any port and `com.buungroup.mail:/oauth/callback` exactly, these four scopes, shown as verified. The app then uses it on `api.cryptflare.com` as it does on dissolve.email |
+| First-party clients | Done: on `mcp.cryptflare.com` the app signs in as the built-in `sys_buun_mail` client (public, PKCE S256, the loopback redirects on any port and `com.buungroup.mail:/oauth/callback` exactly), shown as verified. A local or self-hosted CryptFlare still gets a registered client | - |
 | No save-or-update call | Create, then `rotate` on `409` (one pass at a time, so two saves never race) | `PUT .../secrets/{key}` (planned) |
 | Previews have no `INTERNAL_API` binding | Sign-in fails with `503` against a CryptFlare preview | Test against production or local |
 

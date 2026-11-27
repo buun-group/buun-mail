@@ -22,6 +22,17 @@ use crate::oauth::{self, Metadata, SIGN_IN_WAIT};
 /// `secrets:read`: a saved password is read from dissolve.email, never back from `CryptFlare`.
 pub const SCOPES: &str = "secrets:write secrets:list workspaces:read environments:read";
 
+/// Buun Mail's own client on `CryptFlare`, made there as code: first-party, so the approval page shows it as verified,
+/// with the loopback redirect (any port) and the phone's app link allowed.
+pub const FIRST_PARTY_CLIENT: &str = "sys_buun_mail";
+
+/// The client id to sign in with at `issuer` without registering: [`FIRST_PARTY_CLIENT`] on `CryptFlare` itself. Any
+/// other server (local, self-hosted) gets a registered client.
+#[must_use]
+pub fn first_party_client(issuer: &str) -> Option<&'static str> {
+    issuer.trim_end_matches('/').eq_ignore_ascii_case(super::settings::DEFAULT_ISSUER).then_some(FIRST_PARTY_CLIENT)
+}
+
 /// The scope writing needs; without it the switch stays off.
 const WRITE_SCOPE: &str = "secrets:write";
 
@@ -201,7 +212,12 @@ impl CryptFlareService {
             api.trim_end_matches('/').clone_into(&mut saved.api);
         }
         let metadata = self.metadata(&saved)?;
-        if saved.client_id.is_empty() || saved.client_redirect != oauth::REGISTERED_REDIRECT {
+        if let Some(own) = first_party_client(saved.issuer()) {
+            // CryptFlare knows this app: its own client shows as verified and needs no registration. Kept in memory
+            // until the sign-in succeeds, so a failed one leaves the old client for refreshing its tokens.
+            own.clone_into(&mut saved.client_id);
+            oauth::REGISTERED_REDIRECT.clone_into(&mut saved.client_redirect);
+        } else if saved.client_id.is_empty() || saved.client_redirect != oauth::REGISTERED_REDIRECT {
             saved.client_id = oauth::register(&metadata).map_err(|error| error.to_string())?;
             oauth::REGISTERED_REDIRECT.clone_into(&mut saved.client_redirect);
             self.save(&saved).map_err(|error| error.to_string())?;
