@@ -24,6 +24,7 @@ mod agent;
 mod alerts;
 mod backup;
 mod commands;
+mod cryptflare;
 mod dissolve;
 mod dto;
 mod error;
@@ -32,6 +33,7 @@ mod imap;
 mod ingest;
 mod later;
 mod mailbox;
+mod oauth;
 mod paths;
 mod send;
 mod sync;
@@ -116,6 +118,15 @@ pub fn run() {
             commands::dissolve_identities,
             commands::update_dissolve_identity,
             commands::delete_dissolve_identity,
+            commands::cryptflare_status,
+            commands::connect_cryptflare,
+            commands::disconnect_cryptflare,
+            commands::cryptflare_workspaces,
+            commands::cryptflare_environments,
+            commands::set_cryptflare_target,
+            commands::set_cryptflare_save_identities,
+            commands::save_identities_to_cryptflare,
+            commands::flush_cryptflare,
             commands::reveal_status,
             commands::set_reveal_code,
             commands::lock_reveals,
@@ -234,7 +245,13 @@ fn start(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     app.manage(later::LaterService::start(paths.config.clone(), &mailbox, send.clone(), Some(app.handle().clone())));
     app.manage(send);
     app.manage(imap::ImapService::start(paths.config.clone(), Arc::clone(&mailbox), Some(app.handle().clone())));
-    app.manage(dissolve::DissolveService::start(paths.config.clone(), Arc::clone(&mailbox), Some(app.handle().clone())));
+    let dissolve = dissolve::DissolveService::start(paths.config.clone(), Arc::clone(&mailbox), Some(app.handle().clone()));
+    let cryptflare = cryptflare::CryptFlareService::start(paths.config.clone(), Some(app.handle().clone()));
+    // Each new or changed agent identity is handed to CryptFlare, which saves it when the person turned that on.
+    let saver = cryptflare.clone();
+    dissolve.on_identity(Arc::new(move |change| saver.identity_changed(&change)));
+    app.manage(dissolve);
+    app.manage(cryptflare);
     app.manage(writing::WritingStore::open(paths.config.clone()));
     app.manage(mailbox);
     Ok(())

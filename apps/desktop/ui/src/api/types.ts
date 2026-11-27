@@ -441,6 +441,32 @@ export interface DissolveStatus {
   identities: DissolveIdentities
 }
 
+/** A CryptFlare workspace and environment saves go to. Mirrors `TargetDto`. */
+export interface CryptFlareTarget {
+  workspaceId: string
+  workspaceName: string
+  environmentId: string
+  environmentName: string
+}
+
+/** A CryptFlare workspace or environment to choose. Mirrors `ChoiceDto`. */
+export interface CryptFlareChoice {
+  id: string
+  name: string
+}
+
+/** The CryptFlare connection, never a token or a saved value. Mirrors `CryptFlareStatusDto`. */
+export interface CryptFlareStatus {
+  connected: boolean
+  organisation: string | null
+  canWrite: boolean
+  target: CryptFlareTarget | null
+  saveIdentities: boolean
+  pending: number
+  lastSaved: string | null
+  problem: string | null
+}
+
 /** Whether a reveal code is set, and how many seconds reveals stay open. Mirrors `RevealStatusDto`. */
 export interface RevealStatus {
   codeSet: boolean

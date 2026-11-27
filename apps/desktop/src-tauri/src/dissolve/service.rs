@@ -18,6 +18,7 @@ use tauri::AppHandle;
 
 use super::WORKSPACE;
 use super::api::{Api, ApiError, Feed, Me, Meter, Persona, RemoteIdentity, RemoteInbox, RemoteMessage};
+use super::identity_events::{IdentityChange, IdentitySink, record_of};
 use super::oauth::{self, Metadata, OAuthError, SIGN_IN_WAIT};
 use super::settings::{self, Account, DissolveSettings, Extensions, KnownInbox};
 use super::stream::{self, Ended, Heartbeat};
@@ -216,6 +217,8 @@ pub(super) struct Inner {
     pub(super) mailbox: Arc<Mailbox>,
     app: Option<AppHandle>,
     open_browser: Opener,
+    /// Hears identity changes (`identity_events`), once `lib.rs` connects one.
+    pub(super) identity_sink: Mutex<Option<IdentitySink>>,
 }
 
 /// The dissolve.email connection. Cheap to clone, so slow work runs away from the window's thread.
@@ -260,6 +263,7 @@ impl DissolveService {
             mailbox,
             app,
             open_browser,
+            identity_sink: Mutex::new(None),
         }));
         let _ = service.show_workspace();
         service
@@ -338,16 +342,18 @@ impl DissolveService {
         let way_back = oauth::Return::open().map_err(|error| error.to_string())?;
         let pair = oauth::pkce().map_err(|error| error.to_string())?;
         let state = oauth::random(24).map_err(|error| error.to_string())?;
-        (self.0.open_browser)(&oauth::authorize_url(
-            &metadata,
-            &saved.client_id,
-            way_back.redirect(),
-            &state,
-            &pair.challenge,
-            &oauth::scopes(saved.identities),
-        ))?;
+        let scopes = oauth::scopes(saved.identities);
+        let request = oauth::Request {
+            client_id: &saved.client_id,
+            redirect: way_back.redirect(),
+            state: &state,
+            challenge: &pair.challenge,
+            scopes: &scopes,
+            resource: None,
+        };
+        (self.0.open_browser)(&oauth::authorize_url(&metadata, &request))?;
         let code = way_back.wait(&state, &metadata.issuer, SIGN_IN_WAIT).map_err(|error| error.to_string())?;
-        let tokens = oauth::exchange(&metadata, &saved.client_id, &code, way_back.redirect(), &pair.verifier, unix_now()).map_err(|error| error.to_string())?;
+        let tokens = oauth::exchange(&metadata, &request, &code, &pair.verifier, unix_now()).map_err(|error| error.to_string())?;
         let me = Api::new(saved.server(), &tokens.access).me().map_err(|error| error.to_string())?;
         // A new sign-in starts the changes feed again: the old cursor may be another account's.
         saved.cursor = None;
@@ -446,6 +452,9 @@ impl DissolveService {
         self.save(&saved).map_err(|error| error.to_string())?;
         self.show_workspace().map_err(|error| error.to_string())?;
         self.announce(&[]);
+        if let Some(identity) = &made.identity {
+            self.identity_changed(IdentityChange::Saved(record_of(identity, Some(&made.id), Some(&made.expires_at))));
+        }
         let extensions = saved.inboxes.get(&made.id).and_then(|known| known.extensions.clone());
         let inbox = DissolveInboxDto {
             id: made.id,
@@ -493,6 +502,7 @@ impl DissolveService {
     pub fn add_identity(&self, inbox: &str) -> Result<IdentityDto, String> {
         let made = self.call(|api| api.add_identity(inbox)).map_err(|error| error.to_string())?;
         self.note_identity(inbox, Some(made.id.clone()))?;
+        self.identity_changed(IdentityChange::Saved(record_of(&made, Some(inbox), self.expiry_of(inbox).as_deref())));
         Ok(made.into())
     }
 
@@ -507,7 +517,15 @@ impl DissolveService {
             Some(id) => id,
             None => self.fetch_identity(inbox)?.map(|identity| identity.id).ok_or_else(|| "this address has no agent identity".to_owned())?,
         };
-        self.call(|api| api.regenerate_identity(&id)).map(IdentityDto::from).map_err(|error| error.to_string())
+        let replaced = self.call(|api| api.regenerate_identity(&id)).map_err(|error| error.to_string())?;
+        // The old password cannot be read again, so the copy elsewhere is replaced at once.
+        self.identity_changed(IdentityChange::Saved(record_of(&replaced, Some(inbox), self.expiry_of(inbox).as_deref())));
+        Ok(replaced.into())
+    }
+
+    /// When an inbox kept here ends, RFC 3339.
+    fn expiry_of(&self, inbox: &str) -> Option<String> {
+        self.0.settings.lock().ok()?.inboxes.get(inbox).map(|known| known.expires_at.clone())
     }
 
     /// Makes an agent identity with each new address, or not.
@@ -586,6 +604,9 @@ impl DissolveService {
         self.call(|api| api.delete_inbox(id)).map_err(|error| error.to_string())?;
         let mut saved = self.0.settings.lock().map_err(|error| error.to_string())?.clone();
         if let Some(known) = saved.inboxes.remove(id) {
+            if known.identity.is_some() {
+                self.identity_changed(IdentityChange::Ended { identity_id: known.identity.clone(), email: known.address.clone() });
+            }
             self.0.mailbox.delete_forever(&known.messages.into_values().collect::<Vec<_>>(), &Actor::You).map_err(|error| error.to_string())?;
         }
         self.save(&saved).map_err(|error| error.to_string())?;
@@ -624,6 +645,9 @@ impl DissolveService {
         let ended: Vec<String> =
             saved.inboxes.iter().filter(|(id, known)| !known.ended && !remote.iter().any(|inbox| &inbox.id == *id)).map(|(id, _)| id.clone()).collect();
         for id in ended {
+            if let Some(known) = saved.inboxes.get(&id).filter(|known| known.identity.is_some()) {
+                self.identity_changed(IdentityChange::Ended { identity_id: known.identity.clone(), email: known.address.clone() });
+            }
             if saved.keep_after_expiry {
                 if let Some(known) = saved.inboxes.get_mut(&id) {
                     known.ended = true;

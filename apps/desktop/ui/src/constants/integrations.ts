@@ -10,6 +10,7 @@ import type { ParseKeys } from 'i18next'
 export const INTEGRATION_IDS = [
   'gateway',
   'dissolve',
+  'cryptflare',
   'cloudflare',
   'gmail',
   'outlook',
@@ -34,7 +35,7 @@ export const INTEGRATION_IDS = [
 ] as const
 export type IntegrationId = (typeof INTEGRATION_IDS)[number]
 
-export const DIRECTIONS = ['receive', 'send', 'alert'] as const
+export const DIRECTIONS = ['receive', 'send', 'alert', 'store'] as const
 export type Direction = (typeof DIRECTIONS)[number]
 
 /** A key in the `integrations` strings. */
@@ -54,7 +55,7 @@ export interface IntegrationField {
 import type { AlertKind } from '../api/types'
 import type { MailPreset } from './mailServers'
 
-export type IntegrationMethod = { kind: 'form'; fields: readonly IntegrationField[] } | { kind: 'oauth'; provider: string } | { kind: 'file'; accept: string } | { kind: 'gateway' } | { kind: 'resend' } | { kind: 'smtp' } | { kind: 'mailbox'; preset: MailPreset } | { kind: 'dissolve' } | { kind: 'alert'; alert: AlertKind }
+export type IntegrationMethod = { kind: 'form'; fields: readonly IntegrationField[] } | { kind: 'oauth'; provider: string } | { kind: 'file'; accept: string } | { kind: 'gateway' } | { kind: 'resend' } | { kind: 'smtp' } | { kind: 'mailbox'; preset: MailPreset } | { kind: 'dissolve' } | { kind: 'cryptflare' } | { kind: 'alert'; alert: AlertKind }
 
 export interface Integration {
   id: IntegrationId
@@ -70,6 +71,7 @@ const API_KEY: IntegrationField = { id: 'key', label: 'fields.apiKey', type: 'pa
 export const INTEGRATIONS: readonly Integration[] = [
   { id: 'gateway', name: 'providers.gateway.name', summary: 'providers.gateway.summary', directions: ['receive'], method: { kind: 'gateway' } },
   { id: 'dissolve', name: 'providers.dissolve.name', summary: 'providers.dissolve.summary', directions: ['receive'], method: { kind: 'dissolve' } },
+  { id: 'cryptflare', name: 'providers.cryptflare.name', summary: 'providers.cryptflare.summary', directions: ['store'], method: { kind: 'cryptflare' } },
   {
     id: 'cloudflare',
     name: 'providers.cloudflare.name',

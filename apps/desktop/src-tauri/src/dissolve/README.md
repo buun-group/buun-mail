@@ -52,7 +52,8 @@ adds the plan's inbox time to what is left.
 | Path | Purpose |
 |---|---|
 | `mod.rs` | The module and what it exports |
-| `oauth.rs` | Discovery, registration, PKCE, the way back from the browser (loopback or app link), tokens |
+| `oauth.rs` | dissolve.email's scopes and Buun Mail's own client there; the flow itself is the shared [`../oauth/`](../oauth/README.md) |
+| `identity_events.rs` | Identity changes (made, new password, renamed, extended, ended) for whoever listens, such as CryptFlare |
 | `api.rs` | The `/v1` calls for reading mail, the changes feed included |
 | `manage_api.rs` | The `/v1` calls for managing: deleting a message, aliases, labels, agent identities |
 | `manage.rs` | Deletions both ways, tags to labels, aliases and the identity list, for the commands |

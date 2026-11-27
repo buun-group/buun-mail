@@ -28,7 +28,7 @@ const KEY_FILE: &str = "vault.key";
 const PREFIX: &str = "sealed:v1:";
 
 /// The settings files that hold secrets, and the names of the fields that are secrets in them.
-const FILES: &[&str] = &["senders.json", "imap.json", "gateways.json", "dissolve.json", "agent.json", "alerts.json"];
+const FILES: &[&str] = &["senders.json", "imap.json", "gateways.json", "dissolve.json", "cryptflare.json", "agent.json", "alerts.json"];
 const SECRET_FIELDS: &[&str] = &["apiKey", "password", "token", "accessToken", "refreshToken", "secret"];
 
 static KEY: OnceLock<[u8; 32]> = OnceLock::new();

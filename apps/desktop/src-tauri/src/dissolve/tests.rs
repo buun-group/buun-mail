@@ -11,7 +11,7 @@ use buun_mail_store::{Placement, Store};
 use serde_json::{Value, json};
 
 use super::service::{DissolveService, POLLS_PER_CHECK};
-use super::{WORKSPACE, settings};
+use super::{IdentityChange, WORKSPACE, settings};
 use crate::mailbox::Mailbox;
 use crate::paths::TEST_ROUTING;
 
@@ -578,6 +578,7 @@ fn makes_an_agent_identity_with_a_new_address_once_allowed_on_a_plan_that_has_th
     );
     let status = allowing.connect(None, Some(true)).unwrap_or_else(|error| unreachable!("connect: {error}"));
     assert!(status.identities.granted);
+    let heard = listen(&allowing);
 
     let made = allowing.create_inbox(None, None, true).unwrap_or_else(|error| unreachable!("create: {error}"));
     let identity = made.identity_made.unwrap_or_else(|| unreachable!("no identity"));
@@ -594,6 +595,23 @@ fn makes_an_agent_identity_with_a_new_address_once_allowed_on_a_plan_that_has_th
     assert_eq!(allowing.identity_password(&made.inbox.id), Ok(Some("pw-2".to_owned())));
     let saved = std::fs::read_to_string(setup.config.join("dissolve.json")).unwrap_or_default();
     assert!(!saved.contains("pw-") && saved.contains(&identity.id));
+
+    // Whoever listens (CryptFlare) hears the made identity and its replacement, each with its password and persona.
+    let passwords: Vec<(Option<String>, bool)> = heard
+        .lock()
+        .map(|changes| {
+            changes
+                .iter()
+                .filter_map(|change| match change {
+                    IdentityChange::Saved(record) => {
+                        Some((record.password.clone(), record.persona.is_some() && record.inbox_id.as_deref() == Some(made.inbox.id.as_str())))
+                    }
+                    _ => None,
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    assert_eq!(passwords, vec![(Some("pw-1".to_owned()), true), (Some("pw-2".to_owned()), true)]);
 
     // An address without one can be given one, up to the plan's cap, which reads in dissolve.email's words.
     assert_eq!(allowing.identity("inb_a"), Ok(None));
@@ -736,6 +754,7 @@ fn extends_and_renames_an_identity_without_shortening_it_and_deletes_it_keeping_
     }
     let rows = service.identities().unwrap_or_else(|error| unreachable!("list: {error}"));
     assert_eq!(rows.first().and_then(|row| row.inbox.clone()), Some("inb_a".to_owned()));
+    let heard = listen(&service);
 
     let _ = service.update_identity("idn_9", false, Some("GitHub"));
     let _ = service.update_identity("idn_9", true, None);
@@ -747,4 +766,24 @@ fn extends_and_renames_an_identity_without_shortening_it_and_deletes_it_keeping_
     assert_eq!(patched.first().map(|(_, body)| body["label"].clone()), Some(json!("GitHub")));
 
     assert_eq!(service.delete_identity("idn_9"), Ok(Vec::new()));
+
+    // A rename or an extension is heard without a password, and a deleted identity as ended.
+    let changes = heard.lock().map(|changes| changes.clone()).unwrap_or_default();
+    assert!(
+        matches!(changes.first(), Some(IdentityChange::Updated(record)) if record.password.is_none() && record.email == "signup@dissolve.test"),
+        "{changes:?}"
+    );
+    assert_eq!(changes.last(), Some(&IdentityChange::Ended { identity_id: Some("idn_9".to_owned()), email: "signup@dissolve.test".to_owned() }));
+}
+
+/// Collects every identity change `service` makes.
+fn listen(service: &DissolveService) -> Arc<Mutex<Vec<IdentityChange>>> {
+    let heard = Arc::new(Mutex::new(Vec::new()));
+    let sink = Arc::clone(&heard);
+    service.on_identity(Arc::new(move |change| {
+        if let Ok(mut changes) = sink.lock() {
+            changes.push(change);
+        }
+    }));
+    heard
 }

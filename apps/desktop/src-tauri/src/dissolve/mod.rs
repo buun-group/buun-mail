@@ -9,6 +9,7 @@
 //! - `service`: connecting, the collection loop (the stream, the changes feed, or inbox by inbox), and the inbox actions
 
 mod api;
+mod identity_events;
 mod manage;
 mod manage_api;
 mod oauth;
@@ -18,6 +19,7 @@ mod stream;
 #[cfg(test)]
 mod tests;
 
+pub use identity_events::{IdentityChange, IdentityRecord};
 pub use manage::IdentityRowDto;
 pub use manage_api::Alias;
 #[cfg(mobile)]

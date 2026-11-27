@@ -16,6 +16,9 @@ Code here follows:
 | `agent/` | The MCP server agents connect to: `settings` (on, port, token in `agent.json`), `protocol`, `tools`, `server` (local only, token, no web origins), `state` |
 | `lib.rs` | Builds the app: plugins, the mailbox as state, the commands |
 | `sync/` | Collecting mail from Buun Mail Gateways, event-driven. [Its README](sync/README.md) |
+| `oauth/` | Signing in to a service from the app (OAuth 2.1 for installed apps), shared by dissolve.email and CryptFlare. [Its README](oauth/README.md) |
+| `dissolve/` | dissolve.email's inboxes as a workspace, and its agent identities. [Its README](dissolve/README.md) |
+| `cryptflare/` | Saving dissolve.email agent identities to a CryptFlare workspace automatically. [Its README](cryptflare/README.md) |
 | `send/` | Sending through Resend: `resend` (HTTP client: domains, send), `settings` (`senders.json`, readable by you only), `service` (which key covers which domain, sending a draft threaded, keeping a copy in Sent) |
 | `paths.rs` | Where the routing file and the store live on this platform; writes the example routing file on first run |
 | `ingest.rs` | Parse, route, run the rules on and store one message. Every mail source goes through it |

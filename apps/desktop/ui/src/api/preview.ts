@@ -1,4 +1,5 @@
 import type { Activity, AgentStatus, AlertChannel, Profile, Template, Writing, Reminder, ScheduledMessage, AlertKind, Contact, RevealStatus, DissolveAlias, DissolveIdentities, DissolveIdentity, DissolveIdentityRow, DissolveInbox, DissolveStatus, MadeDissolveInbox, Persona, Draft, ImapAccount, KnownContact, SmtpServer, MailView, Message, MessageDetail, Place, Rule, Sendable, Sender, TagCount, Workspace, WorkspaceEdit } from './types'
+import { cryptflare } from './preview-cryptflare'
 
 /**
  * A small stand-in mailbox for `pnpm dev:ui`, where there is no Rust side, so the layout can be tuned in a plain
@@ -366,6 +367,7 @@ export const preview = {
   writing,
   later,
   dissolve,
+  cryptflare,
   security,
   alerts,
   imapAccounts: (): ImapAccount[] => IMAP.map((account) => ({ ...account })),

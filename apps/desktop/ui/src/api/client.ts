@@ -5,7 +5,7 @@ import { openUrl } from '@tauri-apps/plugin-opener'
 import type { ExportFormat } from '../constants/ui'
 import { COMMANDS, IMPORT_EXTENSIONS } from './commands'
 import { preview, previewDetail, previewMessages, previewRouting, previewView, previewWorkspaces } from './preview'
-import type { Activity, AgentStatus, AlertChannel, Profile, Template, Writing, Reminder, ScheduledMessage, AlertKind, AvailableDomain, CheckReport, Contact, RevealStatus, SecretKind, DissolveAlias, DissolveIdentity, DissolveIdentityRow, DissolveStatus, MadeDissolveInbox, Draft, FileToSend, ImapAccount, KnownContact, SmtpSecurity, SmtpServer, Sendable, Sender, GatewayDomain, GatewayStatus, ImportReport, MailView, Message, MessageDetail, Place, Rule, Shelf, TagCount, DownloadedUpdate, UpdateInfo, Workspace, WorkspaceEdit } from './types'
+import type { Activity, AgentStatus, AlertChannel, Profile, Template, Writing, Reminder, ScheduledMessage, AlertKind, AvailableDomain, CheckReport, Contact, CryptFlareChoice, CryptFlareStatus, CryptFlareTarget, RevealStatus, SecretKind, DissolveAlias, DissolveIdentity, DissolveIdentityRow, DissolveStatus, MadeDissolveInbox, Draft, FileToSend, ImapAccount, KnownContact, SmtpSecurity, SmtpServer, Sendable, Sender, GatewayDomain, GatewayStatus, ImportReport, MailView, Message, MessageDetail, Place, Rule, Shelf, TagCount, DownloadedUpdate, UpdateInfo, Workspace, WorkspaceEdit } from './types'
 
 /**
  * The one door to the Rust side. In the desktop app every call is a Tauri command; in a plain browser (`pnpm dev:ui`)
@@ -455,6 +455,51 @@ export async function updateDissolveIdentity(id: string, change: { extend?: bool
 /** Deletes a dissolve.email identity, keeping its inbox and mail. */
 export async function deleteDissolveIdentity(id: string): Promise<DissolveIdentityRow[]> {
   return isTauri() ? invoke<DissolveIdentityRow[]>(COMMANDS.deleteDissolveIdentity, { id }) : preview.dissolve.deleteIdentity(id)
+}
+
+/** The CryptFlare connection, where saves go and what is waiting. */
+export async function cryptflareStatus(): Promise<CryptFlareStatus> {
+  return isTauri() ? invoke<CryptFlareStatus>(COMMANDS.cryptflareStatus) : preview.cryptflare.status()
+}
+
+/** Signs in to CryptFlare in the browser; resolves once the browser comes back. */
+export async function connectCryptflare(): Promise<CryptFlareStatus> {
+  return isTauri() ? invoke<CryptFlareStatus>(COMMANDS.connectCryptflare, { issuer: null, api: null }) : preview.cryptflare.connect()
+}
+
+/** Signs out of CryptFlare, dropping saves still waiting. */
+export async function disconnectCryptflare(): Promise<CryptFlareStatus> {
+  return isTauri() ? invoke<CryptFlareStatus>(COMMANDS.disconnectCryptflare) : preview.cryptflare.disconnect()
+}
+
+/** The CryptFlare workspaces the grant allows. */
+export async function cryptflareWorkspaces(): Promise<CryptFlareChoice[]> {
+  return isTauri() ? invoke<CryptFlareChoice[]>(COMMANDS.cryptflareWorkspaces) : preview.cryptflare.workspaces()
+}
+
+/** A CryptFlare workspace's environments. */
+export async function cryptflareEnvironments(workspace: string): Promise<CryptFlareChoice[]> {
+  return isTauri() ? invoke<CryptFlareChoice[]>(COMMANDS.cryptflareEnvironments, { workspace }) : preview.cryptflare.environments(workspace)
+}
+
+/** Chooses where CryptFlare saves go. */
+export async function setCryptflareTarget(target: CryptFlareTarget): Promise<CryptFlareStatus> {
+  return isTauri() ? invoke<CryptFlareStatus>(COMMANDS.setCryptflareTarget, { target }) : preview.cryptflare.target(target)
+}
+
+/** Saves new and changed dissolve.email identities to CryptFlare automatically, or stops. */
+export async function setCryptflareSaveIdentities(on: boolean): Promise<CryptFlareStatus> {
+  return isTauri() ? invoke<CryptFlareStatus>(COMMANDS.setCryptflareSaveIdentities, { on }) : preview.cryptflare.saveIdentities(on)
+}
+
+/** Saves every live dissolve.email identity to CryptFlare now. Resolves to how many were queued. */
+export async function saveIdentitiesToCryptflare(): Promise<number> {
+  return isTauri() ? invoke<number>(COMMANDS.saveIdentitiesToCryptflare) : preview.cryptflare.saveAll()
+}
+
+/** Writes every save still waiting for CryptFlare now. Resolves to how many were written. */
+export async function flushCryptflare(): Promise<number> {
+  return isTauri() ? invoke<number>(COMMANDS.flushCryptflare) : preview.cryptflare.flush()
 }
 
 /** Whether a reveal code is set, and how long reveals stay open. */

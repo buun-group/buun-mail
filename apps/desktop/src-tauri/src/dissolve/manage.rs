@@ -6,6 +6,7 @@ use std::sync::mpsc;
 use serde::Serialize;
 
 use super::api::{Api, Removal};
+use super::identity_events::{IdentityChange, IdentityRecord};
 use super::manage_api::{Alias, ListedIdentity};
 use super::service::DissolveService;
 use super::settings::DissolveSettings;
@@ -181,7 +182,19 @@ impl DissolveService {
         let left = expires.map_or(0, |at| ((at - crate::mailbox::unix_now()).max(0) + 59) / 60);
         let minutes = if extend { left + self.plan_inbox_minutes().unwrap_or(DEFAULT_EXTEND_MINUTES) } else { left.max(1) };
         self.call(|api| api.update_identity(id, Some(minutes), label)).map_err(|error| error.to_string())?;
-        self.identities()
+        let rows = self.identities()?;
+        if let Some(row) = rows.iter().find(|row| row.id == id) {
+            self.identity_changed(IdentityChange::Updated(IdentityRecord {
+                identity_id: row.id.clone(),
+                inbox_id: row.inbox.clone(),
+                email: row.email.clone(),
+                password: None,
+                persona: None,
+                label: row.label.clone(),
+                expires_at: row.expires_at.clone(),
+            }));
+        }
+        Ok(rows)
     }
 
     /// Deletes an identity, keeping its inbox and mail; returns the list.
@@ -190,15 +203,28 @@ impl DissolveService {
     ///
     /// Why it could not be deleted, in words.
     pub fn delete_identity(&self, id: &str) -> Result<Vec<IdentityRowDto>, String> {
+        // Its address, read before it goes, so a copy kept elsewhere can be marked ended.
+        let email = self.call(Api::identities).ok().and_then(|listed| listed.into_iter().find(|identity| identity.id == id).map(|identity| identity.email));
         self.call(|api| api.delete_identity(id)).map_err(|error| error.to_string())?;
-        let inboxes: Vec<String> = self
+        let inboxes: Vec<(String, String)> = self
             .0
             .settings
             .lock()
-            .map(|saved| saved.inboxes.iter().filter(|(_, known)| known.identity.as_deref() == Some(id)).map(|(inbox, _)| inbox.clone()).collect())
+            .map(|saved| {
+                saved
+                    .inboxes
+                    .iter()
+                    .filter(|(_, known)| known.identity.as_deref() == Some(id))
+                    .map(|(inbox, known)| (inbox.clone(), known.address.clone()))
+                    .collect()
+            })
             .unwrap_or_default();
-        for inbox in inboxes {
+        let email = email.or_else(|| inboxes.first().map(|(_, address)| address.clone()));
+        for (inbox, _) in inboxes {
             self.note_identity(&inbox, None)?;
+        }
+        if let Some(email) = email {
+            self.identity_changed(IdentityChange::Ended { identity_id: Some(id.to_owned()), email });
         }
         self.identities()
     }

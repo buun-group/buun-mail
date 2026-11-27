@@ -3,7 +3,8 @@
   "directions": {
     "receive": "Receive mail",
     "send": "Send mail",
-    "alert": "Alert me"
+    "alert": "Alert me",
+    "store": "Keep secrets in"
   },
   "state": {
     "ready": "Ready",
@@ -122,6 +123,10 @@
     "webhook": {
       "name": "Webhook",
       "summary": "The message as JSON to any address: Zapier, n8n, Make, or your own server."
+    },
+    "cryptflare": {
+      "name": "CryptFlare",
+      "summary": "Every dissolve.email agent identity, its password and persona, saved to a CryptFlare workspace automatically."
     }
   },
   "fields": {
@@ -367,5 +372,42 @@
     "sending": "Sending...",
     "sent": "Sent"
   },
-  "loading": "Loading"
+  "loading": "Loading",
+  "cryptflare": {
+    "intro": "Connect opens your browser to approve Buun Mail on CryptFlare, where you choose the organisation and the workspaces it may reach. Buun Mail can only list and write secrets there, never read one back.",
+    "connect": "Connect CryptFlare",
+    "waiting": "Approve Buun Mail in your browser. This waits up to five minutes.",
+    "waitingButton": "Waiting for the browser",
+    "connected": "CryptFlare connected",
+    "disconnected": "CryptFlare disconnected",
+    "disconnect": "Disconnect",
+    "disconnectHint": "Saves still waiting are dropped. Secrets already saved stay in CryptFlare.",
+    "organisation": "Organisation",
+    "cannotWrite": "This connection was not given permission to write secrets. Disconnect and connect again, keeping \"Write secrets\" ticked.",
+    "targetTitle": "Where saves go",
+    "targetHint": "A workspace you allowed, and one of its environments.",
+    "workspace": "Workspace",
+    "environment": "Environment",
+    "choose": "Choose",
+    "noWorkspaces": "No workspace is allowed for Buun Mail. Connect again and allow one.",
+    "targetSaved": "Saves go to {{workspace}} / {{environment}}",
+    "autoTitle": "Save agent identities automatically",
+    "autoHint": "Each new identity is saved as one secret: its address, password and persona, encrypted. A new password makes a new version, and an ended identity is kept and marked ended.",
+    "autoNeedsTarget": "Choose where saves go first.",
+    "saveAllTitle": "Save the identities you already have",
+    "saveAllHint": "Reads each live identity from dissolve.email, with its password, and saves it.",
+    "saveAll": "Save them now",
+    "savingAll": "Saving",
+    "savedAll_one": "{{count}} identity saved",
+    "savedAll_other": "{{count}} identities saved",
+    "saveFailed": "Could not save to CryptFlare",
+    "pending_one": "{{count}} save waiting",
+    "pending_other": "{{count}} saves waiting",
+    "lastSaved": "Last saved {{time}}.",
+    "neverSaved": "Nothing saved yet.",
+    "retry": "Try now",
+    "retrying": "Trying",
+    "retried_one": "{{count}} save written",
+    "retried_other": "{{count}} saves written"
+  }
 }

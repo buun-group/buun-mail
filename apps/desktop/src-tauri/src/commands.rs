@@ -12,6 +12,7 @@ use tauri::{AppHandle, State};
 
 use crate::agent::{AgentState, AgentStatusDto};
 use crate::alerts::{AlertChannelDto, AlertService};
+use crate::cryptflare::{ChoiceDto, CryptFlareService, CryptFlareStatusDto, TargetDto};
 use crate::dissolve::{Alias, DissolveService, DissolveStatusDto, IdentityDto, IdentityRowDto, MadeInboxDto};
 use crate::dto::{ActivityDto, ContactDto, ImportReportDto, KnownContactDto, MessageDetailDto, MessageDto, ShelfDto, TagCountDto, ViewDto, WorkspaceDto};
 use crate::error::AppError;
@@ -625,6 +626,73 @@ pub async fn update_dissolve_identity(
 pub async fn delete_dissolve_identity(dissolve: State<'_, DissolveService>, id: String) -> Result<Vec<IdentityRowDto>, String> {
     let service = dissolve.inner().clone();
     tauri::async_runtime::spawn_blocking(move || service.delete_identity(&id)).await.map_err(|error| error.to_string())?
+}
+
+/// The `CryptFlare` connection, where saves go and what is waiting; never a token or a saved value.
+#[tauri::command]
+pub fn cryptflare_status(cryptflare: State<'_, CryptFlareService>) -> Result<CryptFlareStatusDto, AppError> {
+    cryptflare.status()
+}
+
+/// Signs in to `CryptFlare` in the browser, away from the window's thread, waiting up to five minutes.
+#[tauri::command]
+pub async fn connect_cryptflare(cryptflare: State<'_, CryptFlareService>, issuer: Option<String>, api: Option<String>) -> Result<CryptFlareStatusDto, String> {
+    let service = cryptflare.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || service.connect(issuer.as_deref(), api.as_deref())).await.map_err(|error| error.to_string())?
+}
+
+/// Signs out of `CryptFlare`, dropping saves still waiting.
+#[tauri::command]
+pub async fn disconnect_cryptflare(cryptflare: State<'_, CryptFlareService>) -> Result<CryptFlareStatusDto, String> {
+    let service = cryptflare.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || service.disconnect().map_err(|error| error.to_string())).await.map_err(|error| error.to_string())?
+}
+
+/// The `CryptFlare` workspaces the grant allows.
+#[tauri::command]
+pub async fn cryptflare_workspaces(cryptflare: State<'_, CryptFlareService>) -> Result<Vec<ChoiceDto>, String> {
+    let service = cryptflare.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || service.workspaces()).await.map_err(|error| error.to_string())?
+}
+
+/// A `CryptFlare` workspace's environments.
+#[tauri::command]
+pub async fn cryptflare_environments(cryptflare: State<'_, CryptFlareService>, workspace: String) -> Result<Vec<ChoiceDto>, String> {
+    let service = cryptflare.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || service.environments(&workspace)).await.map_err(|error| error.to_string())?
+}
+
+/// Chooses the `CryptFlare` workspace and environment saves go to.
+#[tauri::command]
+pub fn set_cryptflare_target(cryptflare: State<'_, CryptFlareService>, target: TargetDto) -> Result<CryptFlareStatusDto, AppError> {
+    cryptflare.set_target(target)
+}
+
+/// Saves new and changed dissolve.email identities to `CryptFlare` automatically, or stops.
+#[tauri::command]
+pub fn set_cryptflare_save_identities(cryptflare: State<'_, CryptFlareService>, on: bool) -> Result<CryptFlareStatusDto, AppError> {
+    cryptflare.set_save_identities(on)
+}
+
+/// Saves every live dissolve.email identity to `CryptFlare` now, each read with its password. Returns how many were
+/// queued.
+#[tauri::command]
+pub async fn save_identities_to_cryptflare(dissolve: State<'_, DissolveService>, cryptflare: State<'_, CryptFlareService>) -> Result<usize, String> {
+    let (dissolve, cryptflare) = (dissolve.inner().clone(), cryptflare.inner().clone());
+    tauri::async_runtime::spawn_blocking(move || {
+        let queued = cryptflare.save_identities_now(dissolve.identity_records()?)?;
+        let _ = cryptflare.flush(true);
+        Ok(queued)
+    })
+    .await
+    .map_err(|error| error.to_string())?
+}
+
+/// Writes every save still waiting for `CryptFlare` now. Returns how many were written.
+#[tauri::command]
+pub async fn flush_cryptflare(cryptflare: State<'_, CryptFlareService>) -> Result<usize, String> {
+    let service = cryptflare.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || service.flush(true)).await.map_err(|error| error.to_string())?
 }
 
 /// Whether a reveal code is set, and how long reveals stay open.
