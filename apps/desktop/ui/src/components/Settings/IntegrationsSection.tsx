@@ -7,7 +7,7 @@ import { importFiles, cryptflareStatus, dissolveStatus, listGateways, listSender
 import type { ImportReport, Sender } from '../../api/types'
 import { DIRECTIONS, INTEGRATIONS, NOT_WIRED_NOTE } from '../../constants/integrations'
 import type { Direction, Integration } from '../../constants/integrations'
-import { BUUN_GROUP } from '../../constants/products'
+import { BUUN_GROUP, PRODUCTS } from '../../constants/products'
 import type { Theme } from '../../constants/ui'
 import { IconCaret, IconReceive, IconSend, INTEGRATION_GLYPHS, IconBellRinging, IconVault } from '../../icons'
 import { Gateways } from './Gateways'
@@ -103,6 +103,9 @@ interface RowProps {
   theme: Theme
 }
 
+/** A Buun Group product's own mark (dissolve.email, CryptFlare), so its row wears its logo rather than a glyph. */
+const brandMark = (id: Integration['id']): { light: string; dark: string } | undefined => PRODUCTS.find((product) => product.id === id)?.mark
+
 /** How many senders of one kind are connected. */
 const senderCountOf = (senders: Sender[], kind: 'resend' | 'smtp'): number => senders.filter((sender) => sender.kind === kind).length
 
@@ -114,7 +117,7 @@ function IntegrationRow({ rowKey, direction, integration, open, onToggle, onImpo
     <li className="integration" data-open={open}>
       <button type="button" className="integration__head" aria-expanded={open} aria-controls={panel} onClick={onToggle}>
         <span className={`integration__glyph logo--${integration.id}`} aria-hidden="true">
-          {integration.id === 'gateway' ? <img src={BUUN_GROUP.logo[theme]} alt="" /> : <Glyph />}
+          {integration.id === 'gateway' ? <img src={BUUN_GROUP.logo[theme]} alt="" /> : brandMark(integration.id) !== undefined ? <img src={brandMark(integration.id)?.[theme]} alt="" /> : <Glyph />}
         </span>
         <span className="integration__words">
           <span className="settings__label">{t(integration.name)}</span>
