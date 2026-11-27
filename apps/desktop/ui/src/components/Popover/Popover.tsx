@@ -29,7 +29,11 @@ export function Popover({ anchor, label, onClose, children }: { anchor: HTMLElem
 
   useEffect(() => {
     const away = (event: Event): void => {
-      if (!(event.target instanceof Node && (box.current?.contains(event.target) === true || anchor.contains(event.target)))) onClose()
+      const target = event.target
+      if (!(target instanceof Node)) return onClose()
+      // A drop-down opened from inside the box lists its options outside it, in the page body ([data-floating]).
+      const floating = target instanceof Element && target.closest('[data-floating]') !== null
+      if (!(floating || box.current?.contains(target) === true || anchor.contains(target))) onClose()
     }
     const escape = (event: KeyboardEvent): void => {
       if (event.key === 'Escape') {

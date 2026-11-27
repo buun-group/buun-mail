@@ -162,6 +162,7 @@ export function Select<V extends string>({ id, value, options, onChange, placeho
             ref={listRef}
             id={listId}
             role="listbox"
+            data-floating=""
             aria-labelledby={id}
             className="select__list"
             style={place === null ? { visibility: 'hidden', minWidth: width } : { left: place.left, top: place.top, minWidth: width }}
